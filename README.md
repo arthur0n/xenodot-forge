@@ -126,6 +126,22 @@ This project is not a competitor on breadth. The differences are in philosophy:
 
 If you want broad coverage now, go use GodotPrompter. If you want to experiment with the pipeline model on your own project, fork this.
 
+## Framework UI
+### Functional Questions - Approval Gate
+<img width="581" height="606" alt="image" src="https://github.com/user-attachments/assets/8c4acf45-dda3-44b4-8be5-d204bdfffdc6" />
+
+### Tools use - Approval Gate
+<img width="582" height="159" alt="image" src="https://github.com/user-attachments/assets/3b16e771-64ac-404b-8a03-e86437c99c5c" />
+
+### Activities List
+<img width="517" height="750" alt="image" src="https://github.com/user-attachments/assets/e9f7f50d-622d-4183-9f72-a7e828d79b3c" />
+
+### Session Management
+<img width="372" height="661" alt="image" src="https://github.com/user-attachments/assets/c0454de1-6962-43fb-b8c3-27de68cef965" />
+
+
+
+
 ## License
 
 [MIT](LICENSE)
