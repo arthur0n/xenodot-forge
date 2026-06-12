@@ -57,7 +57,7 @@ game/       Your Godot project lives here (gitignored — it has its own repo).
             The framework tracks only the folder, not the contents.
 ```
 
-There is **no template**. The agents, skills, and verification tools live _inside the game project_ (`game/.claude/`, `game/tools/`) and evolve with the project through the framework's own loops: bug triage, skill research, friction reports. One live copy — the framework uses what's there. The reference project during this POC is [dicefate](https://github.com/Coghatch-ai/dicefate).
+There is **no template**. The agents, skills, and verification tools live _inside the game project_ (`game/.claude/`, `game/tools/`) and evolve with the project through the framework's own loops: bug triage, skill research, friction reports. One live copy — the framework uses what's there. The reference project during this POC is [DiceOfFate](https://github.com/Coghatch-ai/dicefate).
 
 ## Requirements
 
