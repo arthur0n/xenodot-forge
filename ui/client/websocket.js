@@ -11,8 +11,16 @@ import { renderTodos } from "./todos.js";
 import { renderTasks } from "./tasks.js";
 import { renderAsk, renderPermission } from "./approvals.js";
 import { renderForm } from "./form.js";
-import { startAgent, stopAgent, clearAll } from "./running.js";
+import {
+  startAgent,
+  stopAgent,
+  stopAgentByTask,
+  attachTask,
+  isBackground,
+  clearAll,
+} from "./running.js";
 import { loadState } from "./project-tree.js";
+import { agentLabel } from "./agents.js";
 
 /** @typedef {import("../lib/types.js").ServerMsg} ServerMsg */
 /** @typedef {import("../lib/types.js").SdkEvent} SdkEvent */
@@ -25,6 +33,17 @@ const ws = new WebSocket(
 /** Send a JSON message to the server. @param {object} o */
 export function send(o) {
   ws.send(JSON.stringify(o));
+}
+
+let hiveBusy = false;
+/** Broadcast whether the hive's MAIN turn is in flight (not sub-agent chatter),
+ * so the composer can label its button "Queue Message" while a foreground turn
+ * holds the input. Backgrounding a worker ends the turn → idle → "Send" again.
+ * @param {boolean} v */
+export function setBusy(v) {
+  if (hiveBusy === v) return;
+  hiveBusy = v;
+  document.dispatchEvent(new CustomEvent("hive-busy", { detail: v }));
 }
 
 /** @type {Map<string, string>} */
@@ -41,6 +60,7 @@ ws.onclose = () => {
   $("session-dot").classList.remove("pulse");
   $("session-meta").textContent = "ended — refresh for a new session";
   clearThinking();
+  setBusy(false);
 };
 
 /** @param {Extract<ServerMsg, { type: "history" }>} m */
@@ -64,9 +84,10 @@ function handleInit(msg) {
 function handleToolUse(b, who) {
   if (b.name === "Task" || b.name === "Agent") {
     const label = b.input?.subagent_type ?? "agent";
+    const background = Boolean(b.input?.run_in_background);
     if (b.id) {
       subagents.set(b.id, label);
-      startAgent(b.id, label, b.input?.description); // adds a chip to the running panel
+      startAgent(b.id, label, b.input?.description, background); // adds a chip to the running panel
     }
     updateThinking("Spawn", b.input?.description ?? label);
     addLog({ kind: "spawn", agent: who, child: label, detail: b.input?.description ?? "" });
@@ -100,20 +121,42 @@ function handleBlock(b, who) {
 function handleAssistant(msg) {
   // subagent_type is on the message directly; fall back to the spawn-id map.
   const who = msg.subagent_type ?? subagents.get(msg.parent_tool_use_id ?? "") ?? "main";
+  if (who === "main") setBusy(true); // hive turn is live → composer queues
   for (const b of msg.message?.content ?? []) handleBlock(b, who);
 }
 
-/** A sub-agent finished when its Task tool_result arrives. @param {SdkEvent} msg */
+/** A sub-agent finished when its Task tool_result arrives — EXCEPT a backgrounded
+ * worker, whose immediate "running in the background" tool_result must not remove
+ * its chip (the task_notification does, once it truly settles). @param {SdkEvent} msg */
 function handleUser(msg) {
   for (const b of msg.message?.content ?? []) {
-    if (b.type === "tool_result" && b.tool_use_id) stopAgent(b.tool_use_id);
+    if (b.type === "tool_result" && b.tool_use_id && !isBackground(b.tool_use_id))
+      stopAgent(b.tool_use_id);
   }
+}
+
+/** A backgrounded Xenodot registered — bind its task_id to the running chip so
+ * its per-chip stop can call query.stopTask. @param {SdkEvent} msg */
+function handleTaskStarted(msg) {
+  if (msg.tool_use_id && msg.task_id) attachTask(msg.tool_use_id, msg.task_id);
+}
+
+/** A backgrounded Xenodot settled (completed | failed | stopped): drop its chip
+ * and surface the result summary. The hive also wakes to reconcile it.
+ * @param {SdkEvent} msg */
+function handleTaskNotification(msg) {
+  let label;
+  if (msg.tool_use_id) label = stopAgent(msg.tool_use_id);
+  if (!label && msg.task_id) label = stopAgentByTask(msg.task_id);
+  const tail = msg.summary ? ` — ${msg.summary.slice(0, 160)}` : "";
+  addBanner(`${agentLabel(label ?? "agent")} ${msg.status ?? "done"}${tail}`);
 }
 
 /** @param {SdkEvent} msg */
 function handleResult(msg) {
+  setBusy(false); // hive turn ended → composer sends immediately again
   clearThinking();
-  clearAll(); // backstop: clear any still-running agents at end of turn
+  clearAll(); // backstop: clear any still-running FOREGROUND agents at end of turn
   totalCost += msg.total_cost_usd ?? 0;
   const u = msg.usage ?? {};
   totalTokens += (u.input_tokens ?? 0) + (u.output_tokens ?? 0);
@@ -131,6 +174,9 @@ function handleResult(msg) {
 /** @param {SdkEvent} msg */
 function handleEvent(msg) {
   if (msg.type === "system" && msg.subtype === "init") handleInit(msg);
+  else if (msg.type === "system" && msg.subtype === "task_started") handleTaskStarted(msg);
+  else if (msg.type === "system" && msg.subtype === "task_notification")
+    handleTaskNotification(msg);
   else if (msg.type === "assistant") handleAssistant(msg);
   else if (msg.type === "user") handleUser(msg);
   else if (msg.type === "result") handleResult(msg);

@@ -19,25 +19,34 @@ const PALETTE = [
 const assigned = new Map();
 let nextIdx = 0;
 
-// Display-name (brand) map: identifier -> what the user sees. This is pure UI
+// Display-name (brand) map: identifier -> what the user sees. Brand first
+// ("Xenodot <role>"), so every agent reads as one of our Xenodots. Pure UI
 // flavor — the SDK identifiers (subagent_type) and agent filenames stay literal
 // so routing keeps working. Only the rendered text changes.
-//   main          -> Xenodot Hive   (the orchestrator / coordination loop)
-//   game-designer -> Designer Xenodot, godot-dev -> Dev Xenodot, etc.
+//   main -> Xenodot Hive, addon-researcher -> Xenodot Researcher, etc.
 /** @type {Record<string, string>} */
-const DISPLAY = { main: "Xenodot Hive" };
+const DISPLAY = {
+  main: "Xenodot Hive",
+  "game-designer": "Xenodot Designer",
+  "level-designer": "Xenodot Level Designer",
+  "godot-dev": "Xenodot Developer",
+  "godot-refactor": "Xenodot Refactor",
+  "addon-researcher": "Xenodot Researcher",
+  "transcript-researcher": "Xenodot Transcript",
+};
 
 /** @param {string} name @returns {string} */
 export function agentLabel(name) {
   if (!name) return name;
   if (DISPLAY[name]) return DISPLAY[name];
-  const role = name.replace(/^(godot|game)-/, "").replace(/-/g, " ");
+  // Fallback for any agent not in the map: brand first, domain prefix dropped.
+  const role = name.replace(/^(godot|game|addon|level|transcript)-/, "").replace(/-/g, " ");
   const titled = role.replace(/\b\w/g, (c) => c.toUpperCase());
-  return `${titled} Xenodot`;
+  return `Xenodot ${titled}`;
 }
 
 /** The avatar/initial for an agent: the first word of its display name that
- * isn't "Xenodot" — so the Hive reads "H" and "Designer Xenodot" reads "D".
+ * isn't "Xenodot" — so "Xenodot Hive" reads "H" and "Xenodot Designer" reads "D".
  * @param {string} name @returns {string} */
 export function agentInitial(name) {
   const word = agentLabel(name)

@@ -14,7 +14,7 @@
   --accent-border: color-mix(in oklab, var(--accent) 38%, transparent);
 
   /* Oxblood iron — dark Martian-red metal, never blue */
-  --bg: oklch(0.13 0.05 35.94);
+  --bg: oklch(0.11 0.05 28.96);
   --panel: oklch(0.17 0.03 26.13);
   --panel-2: color-mix(in oklab, var(--panel), white 6%);
   --panel-3: color-mix(in oklab, var(--panel), white 12%);
@@ -87,10 +87,10 @@
     transparent 1px 3px
   );
 
-  /* Oxide bloom — low-frequency fractal noise mapped to a flat rust hue, with
-     its alpha thresholded off the noise so corrosion shows in islands and
-     pits rather than an even wash. Large tile keeps the patches organic. */
-  --rust: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='180'%3E%3Cfilter id='r'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.018 0.026' numOctaves='5' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.42 0 0 0 0 0.2 0 0 0 0 0.07 0 0 0 1.25 -0.52'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23r)'/%3E%3C/svg%3E");
+  /* Tarnish — broad, desaturated noise blended in soft-light to give worn
+     steel its uneven light/dark patches (wider scale than --metal-grain, so
+     it reads as weathering across the plate, not fine tooling grain). */
+  --tarnish: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='180'%3E%3Cfilter id='t'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012 0.016' numOctaves='3' seed='6' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23t)' opacity='0.5'/%3E%3C/svg%3E");
 }
 
 body.density-compact {
@@ -1272,6 +1272,19 @@ input.cmd::placeholder {
   background: color-mix(in oklab, var(--accent) 85%, white);
 }
 
+/* Composer send button while a foreground hive turn holds the session: the
+   message only queues, so the button goes muted gray and says "Queue Message". */
+.btn.primary.queued {
+  background: var(--panel-3);
+  border-color: var(--border-strong);
+  color: var(--text-3);
+}
+
+.btn.primary.queued:hover {
+  background: var(--panel-3);
+  border-color: var(--border-strong);
+}
+
 .btn.ghost {
   background: transparent;
   color: var(--text-2);
@@ -1423,21 +1436,29 @@ input.cmd::placeholder {
 /* ---------------- Composer ---------------- */
 
 .composer-zone {
-  /* A corroded iron plate at the lip of the well — warmer and rustier than
-     the cool steel cylinder up top. Oxide blooms in patches over the grain,
-     and rust bleeds down from the welded top seam. */
-  border-top: 1px solid color-mix(in oklab, var(--amber) 22%, var(--border));
-  background-color: oklch(0.18 0.04 41);
+  /* A grayish worn-steel tray carved into the foot of the bench — neutral
+     metal, weathered by tarnish, and recessed for depth the same way the
+     center well is: dark hugs the walls, a lit lip catches at the top. */
+  border-top: 1px solid var(--border-strong);
+  background-color: oklch(0.192 0.006 240);
   background-image:
-    var(--rust),
-    linear-gradient(180deg, color-mix(in oklab, var(--amber) 13%, transparent) 0%, transparent 26%),
-    var(--metal-grain), var(--plate-sheen);
-  background-blend-mode: normal, normal, soft-light, normal;
+    var(--tarnish), var(--metal-grain),
+    linear-gradient(
+      180deg,
+      oklch(0.95 0.008 240 / 0.025) 0%,
+      transparent 28%,
+      oklch(0 0 0 / 0.12) 100%
+    );
+  background-blend-mode: soft-light, soft-light, normal;
   padding: 10px 24px 14px;
-  /* A raised plate at the lip of the well — it casts up onto the recess. */
   position: relative;
   z-index: 1;
-  box-shadow: 0 -12px 20px -12px oklch(0 0 0 / 0.55);
+  /* Recessed tray — left/right/bottom walls sink, a thin lit rim tops it. */
+  box-shadow:
+    inset 16px 0 26px -20px oklch(0 0 0 / 0.85),
+    inset -16px 0 26px -20px oklch(0 0 0 / 0.85),
+    inset 0 -14px 20px -16px oklch(0 0 0 / 0.7),
+    inset 0 1px 0 oklch(0.96 0.008 240 / 0.06);
 }
 
 .composer-inner {
@@ -2182,6 +2203,26 @@ input.cmd::placeholder {
 
 .running-stop:hover {
   background: color-mix(in oklab, var(--red) 22%, transparent);
+}
+
+/* Per-chip stop on a backgrounded worker — stops just that agent (stop_task),
+   distinct from the strip's group ■ Stop which interrupts the hive turn. */
+.running-agent .chip-stop {
+  margin-left: 2px;
+  padding: 0 5px;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-3);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.running-agent .chip-stop:hover {
+  color: var(--red);
+  border-color: color-mix(in oklab, var(--red) 40%, transparent);
 }
 
 .draw-level-canvas {

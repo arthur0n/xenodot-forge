@@ -66,6 +66,8 @@ Both are "valid but renders black" traps — layer 3 exists because of them:
 
 - NEVER write `transform = Transform3D(...)` matrices by hand — a transposed basis is still a valid rotation and renders a black screen with zero errors (this happened). Use `position = Vector3(...)` and `rotation_degrees = Vector3(...)` properties instead; both load correctly in .tscn.
 - An Environment with `background_mode = 2` (Sky) MUST have an actual Sky resource (e.g. ProceduralSkyMaterial) attached, or the background renders black.
+- In hand-authored `.tscn` files, keep the node hierarchy flat: all StaticBody3D and standalone MeshInstance3D nodes must be direct children of the root — no intermediate Node3D organisational groups. Nested groups make scenes load and run correctly but become uneditable in the Godot editor.
+- `#` comment lines are valid between `[sub_resource]` and `[ext_resource]` blocks (use them freely for readability). They must NOT appear between `[node]` blocks — Godot's parser fails to resolve parent paths when a `#` line interrupts the node section. To annotate a node, use `editor_description = "..."` on the node itself.
 
 ## Pass criteria (all three required)
 

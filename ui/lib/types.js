@@ -33,6 +33,7 @@
  * @property {string} [title]
  * @property {string} [description]
  * @property {string} [subagent_type]
+ * @property {boolean} [run_in_background] - hive backgrounds this Xenodot (Task/Agent input)
  * @property {Todo[]} [todos]
  * @property {Question[]} [questions]
  */
@@ -48,6 +49,12 @@
  * @property {number} [duration_ms]
  * @property {{ input_tokens?: number, output_tokens?: number }} [usage]
  * @property {{ content?: ContentBlock[] }} [message]
+ * @property {string} [task_id] - background-task lifecycle events (task_started/updated/notification)
+ * @property {string} [tool_use_id] - the spawning Task tool_use id a task event ties back to
+ * @property {string} [status] - task_notification: completed | failed | stopped
+ * @property {string} [summary] - task_notification/progress: the worker's result/progress text
+ * @property {string} [last_tool_name] - task_progress: tool the worker is currently running
+ * @property {{ status?: string, is_backgrounded?: boolean }} [patch] - task_updated changed fields
  */
 
 // ---------- Forms & questions ----------
@@ -109,6 +116,7 @@
  *   | { type: "policy", value: string }
  *   | { type: "task_update", op: "update" | "remove", id: string, status?: string }
  *   | { type: "stop" }
+ *   | { type: "stop_task", taskId: string }
  * )} ClientMsg */
 /** Pauses the session, sends the prompt, resolves when the browser replies.
  * @typedef {(type: string, payload: Record<string, unknown>) => Promise<Reply>} WaitFor */

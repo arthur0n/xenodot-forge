@@ -96,6 +96,31 @@ export function applyOp(op, now) {
   return list;
 }
 
+/** Drop agent-owned `done` tasks at a turn boundary so the board reflects live
+ * work instead of a graveyard of completed items. Keeps open tasks and every
+ * user-owned to-do (those are the user's to clear). Returns the new list, or
+ * null when nothing was pruned (so the caller can skip a redundant broadcast).
+ * @returns {Task[] | null} */
+export function pruneDoneTasks() {
+  const list = readTasks();
+  const kept = list.filter((t) => !(t.owner === "agent" && t.status === "done"));
+  if (kept.length === list.length) return null;
+  writeTasks(kept);
+  return kept;
+}
+
+/** Add one in_progress agent task bridging a backgrounded worker onto the board;
+ * returns the new list plus the created id (so the caller can settle it later).
+ * @param {string} title @param {string | undefined} note @param {string} now
+ * @returns {{ list: Task[], id: string }} */
+export function addBackgroundTask(title, note, now) {
+  const list = readTasks();
+  const task = makeTask(list, { title, note, status: "in_progress", owner: "agent" }, now);
+  list.push(task);
+  writeTasks(list);
+  return { list, id: task.id };
+}
+
 /** One-line summary for the tool result. @param {Task[]} list @returns {string} */
 export function summarize(list) {
   const done = list.filter((t) => t.status === "done").length;

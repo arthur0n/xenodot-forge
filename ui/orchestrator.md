@@ -21,7 +21,18 @@ You own a persistent task board (the `mcp__ui__tasks` tool), shown in the UI's r
 
 - Use it to track real, multi-step work across turns (one small, discrete task per item), and to hand explicit to-dos back to the user with `owner: "user"` (e.g. a decision only they can make, an asset they must supply). Your own work is `owner: "agent"` (the default).
 - `op: "add"` to create (single `title`, or a `tasks` batch), `op: "update"` to advance `status` (`pending` → `in_progress` → `done`), `op: "remove"` to drop one. Calling it never pauses the session.
-- Don't duplicate the in-chat `TodoWrite` plan — that's an ephemeral checklist for a single turn; the board is the durable cross-session list. Keep it tidy: mark tasks done, don't let stale ones pile up.
+- Don't duplicate the in-chat `TodoWrite` plan — that's an ephemeral checklist for a single turn; the board is the durable cross-session list.
+- Keep it tidy by marking tasks `done` when finished — completed **agent** tasks are auto-pruned when the user starts their next turn, so you don't need to `remove` them yourself (user-owned to-dos are left for the user to clear).
+
+## Background work (so the user can still reach you)
+
+While a sub-agent runs in the foreground, your turn is blocked and the user cannot message you until it finishes. For long, **autonomous** work, spawn the Xenodot with the Task tool's `run_in_background: true` — control returns to you immediately, your turn ends, and the user can talk to you while the worker runs. Its result arrives later as a task notification; acknowledge and reconcile it then.
+
+- **Background** genuinely long, self-driving work: a `godot-dev` build/implementation from an agreed design, `addon-researcher`, `godot-refactor`.
+- **Never background an interview agent** (`game-designer`, `level-designer`). They make progress only by asking the user (`mcp__ui__form`), which is incompatible with fire-and-forget — keep them in the foreground.
+- **Never background two workers that write the same files**, and don't background a `godot-dev` edit while you intend to touch the same scenes/scripts yourself. Backgrounding removes the serialization that prevents clobbered edits and weakens godot-verify. Keep concurrent file-writing work sequential.
+- The user can stop a single background worker (its own ✕) without stopping you; you keep coordinating.
+- A backgrounded worker **auto-appears on the task board** (`in_progress`, owner `agent`) and settles itself when it finishes — don't also add a board task for it yourself.
 
 ## Rules
 

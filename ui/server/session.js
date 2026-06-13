@@ -9,7 +9,7 @@ import { parseJSON } from "../lib/json.js";
 import { sessionHistory } from "./transcripts.js";
 import { makeFormTool } from "./form-tool.js";
 import { makeTaskTool } from "./task-tool.js";
-import { readTasks, applyOp } from "./tasks-store.js";
+import { readTasks, applyOp, pruneDoneTasks, addBackgroundTask } from "./tasks-store.js";
 import {
   DEFAULT_POLICY,
   EDIT_TOOLS,
@@ -115,6 +115,9 @@ function makeCanUseTool({ session, sessionAllowed, waitFor, log, agentByTool, fo
     if (toolName === FORM_TOOL) {
       // The tool handler does the waiting; hand it this call's agent (FIFO,
       // since canUseTool and the handler run 1:1 and order-aligned per tool).
+      // Forms come only from FOREGROUND interview agents — backgrounded
+      // (autonomous) Xenodots never call mcp__ui__form (orchestrator rule), so
+      // no two forms overlap and the FIFO stays 1:1 even with a worker in flight.
       formAgentQueue.push(agent);
       return { behavior: "allow", updatedInput: input };
     }
@@ -138,9 +141,68 @@ function makeCanUseTool({ session, sessionAllowed, waitFor, log, agentByTool, fo
   };
 }
 
+/** Bridge a backgrounded sub-agent onto the persistent board as an in_progress
+ * agent task, so background work shows in the right rail (not just the running
+ * strip). Only run_in_background spawns are bridged; foreground sub-agents are
+ * not (they'd clutter the board). Idempotent per task_id.
+ * @param {{ taskId?: string, toolUseId?: string, desc?: string }} t
+ * @param {{ bgSpawns: Set<string>, bgBoard: Map<string, string>, send: (obj: OutMsg) => void }} deps
+ */
+function bridgeStart(t, { bgSpawns, bgBoard, send }) {
+  if (!t.taskId || !t.toolUseId || !bgSpawns.has(t.toolUseId) || bgBoard.has(t.taskId)) return;
+  const title = (t.desc ?? "background task").slice(0, 200);
+  const { list, id } = addBackgroundTask(title, "background worker", new Date().toISOString());
+  bgBoard.set(t.taskId, id);
+  send({ type: "tasks", tasks: list });
+}
+
+/** Settle a bridged background task when its worker finishes: completed → mark
+ * done (auto-pruned next turn); failed/stopped → remove it.
+ * @param {{ taskId?: string, status?: string }} t
+ * @param {{ bgBoard: Map<string, string>, send: (obj: OutMsg) => void }} deps
+ */
+function bridgeSettle(t, { bgBoard, send }) {
+  if (!t.taskId) return;
+  const boardId = bgBoard.get(t.taskId);
+  if (!boardId) return;
+  bgBoard.delete(t.taskId);
+  const now = new Date().toISOString();
+  const list =
+    t.status === "completed"
+      ? applyOp({ op: "update", id: boardId, status: "done" }, now)
+      : applyOp({ op: "remove", id: boardId }, now);
+  send({ type: "tasks", tasks: list });
+}
+
+/** Per-message bookkeeping on the SDK stream: map each tool_use to the agent
+ * that raised it (so canUseTool can label concurrent approvals), note which
+ * spawns are backgrounded, and bridge their lifecycle onto the task board.
+ * @param {import("@anthropic-ai/claude-agent-sdk").SDKMessage} message
+ * @param {{ agentByTool: Map<string, string>, bgSpawns: Set<string>, bgBoard: Map<string, string>, send: (obj: OutMsg) => void }} deps
+ */
+function trackMessage(message, { agentByTool, bgSpawns, bgBoard, send }) {
+  if (message.type === "assistant") {
+    const label = message.subagent_type ?? "main";
+    for (const b of message.message?.content ?? []) {
+      if (b.type === "tool_use" && b.id) {
+        agentByTool.set(b.id, label);
+        const inp = /** @type {{ run_in_background?: boolean } | undefined} */ (b.input);
+        if (inp?.run_in_background) bgSpawns.add(b.id);
+      }
+    }
+  } else if (message.type === "system" && message.subtype === "task_started") {
+    bridgeStart(
+      { taskId: message.task_id, toolUseId: message.tool_use_id, desc: message.description },
+      { bgSpawns, bgBoard, send },
+    );
+  } else if (message.type === "system" && message.subtype === "task_notification") {
+    bridgeSettle({ taskId: message.task_id, status: message.status }, { bgBoard, send });
+  }
+}
+
 /**
  * Drive the Claude Code session and stream its messages to the browser.
- * @param {{ resumeId: string | null, policy: string, inbox: ReturnType<typeof createInbox>, send: (obj: OutMsg) => void, canUseTool: import("@anthropic-ai/claude-agent-sdk").CanUseTool, abort: AbortController, waitFor: WaitFor, agentByTool: Map<string, string>, formAgentQueue: string[], session: { policy: string, query?: { interrupt?: () => Promise<void> } } }} deps
+ * @param {{ resumeId: string | null, policy: string, inbox: ReturnType<typeof createInbox>, send: (obj: OutMsg) => void, canUseTool: import("@anthropic-ai/claude-agent-sdk").CanUseTool, abort: AbortController, waitFor: WaitFor, agentByTool: Map<string, string>, formAgentQueue: string[], session: { policy: string, query?: { interrupt?: () => Promise<void>, stopTask?: (taskId: string) => Promise<void> } } }} deps
  */
 function runSession({
   resumeId,
@@ -187,15 +249,12 @@ function runSession({
         },
       });
       session.query = q;
+      /** @type {Set<string>} */
+      const bgSpawns = new Set(); // tool_use ids spawned with run_in_background
+      /** @type {Map<string, string>} */
+      const bgBoard = new Map(); // sdk task_id -> bridged board task id
       for await (const message of q) {
-        // Map each tool_use id to the agent that produced it, so canUseTool can
-        // label concurrent approvals (subagent_type is on the message directly).
-        if (message.type === "assistant") {
-          const label = message.subagent_type ?? "main";
-          for (const b of message.message?.content ?? []) {
-            if (b.type === "tool_use" && b.id) agentByTool.set(b.id, label);
-          }
-        }
+        trackMessage(message, { agentByTool, bgSpawns, bgBoard, send });
         send({ type: "event", message });
       }
       send({ type: "status", text: "session ended" });
@@ -208,7 +267,7 @@ function runSession({
 
 /**
  * @param {import("ws").RawData} raw
- * @param {{ log: (dir: string, obj: OutMsg) => void, send: (obj: OutMsg) => void, inbox: ReturnType<typeof createInbox>, pending: Pending, session: { policy: string, query?: { interrupt?: () => Promise<void> } } }} deps
+ * @param {{ log: (dir: string, obj: OutMsg) => void, send: (obj: OutMsg) => void, inbox: ReturnType<typeof createInbox>, pending: Pending, session: { policy: string, query?: { interrupt?: () => Promise<void>, stopTask?: (taskId: string) => Promise<void> } } }} deps
  */
 function handleClientMessage(raw, { log, send, inbox, pending, session }) {
   /** @type {ClientMsg} */
@@ -220,6 +279,10 @@ function handleClientMessage(raw, { log, send, inbox, pending, session }) {
   }
   log("in", msg);
   if (msg.type === "user_input") {
+    // A new user turn — prune completed agent tasks so the board reflects live
+    // work instead of accumulating a graveyard of done items across the session.
+    const pruned = pruneDoneTasks();
+    if (pruned) send({ type: "tasks", tasks: pruned });
     inbox.push({
       type: "user",
       parent_tool_use_id: null,
@@ -242,6 +305,11 @@ function handleClientMessage(raw, { log, send, inbox, pending, session }) {
     // session alive for the next input.
     void session.query?.interrupt?.();
     send({ type: "status", text: "stopping the current turn — interrupting running agents…" });
+  } else if (msg.type === "stop_task") {
+    // Stop ONE backgrounded Xenodot by its task id; the hive turn and any other
+    // background workers keep running. The SDK emits a task_notification:stopped.
+    void session.query?.stopTask?.(msg.taskId);
+    send({ type: "status", text: `stopping background agent ${msg.taskId}…` });
   }
 }
 
@@ -270,7 +338,7 @@ export function handleConnection(ws, req) {
   const inbox = createInbox();
   /** @type {Pending} */
   const pending = new Map();
-  /** @type {{ policy: string, query?: { interrupt?: () => Promise<void> } }} */
+  /** @type {{ policy: string, query?: { interrupt?: () => Promise<void>, stopTask?: (taskId: string) => Promise<void> } }} */
   const session = { policy: DEFAULT_POLICY };
   /** @type {Set<string>} */
   const sessionAllowed = new Set(); // tools approved with "Always" this session
