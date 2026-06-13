@@ -106,6 +106,38 @@ your-workspace/
    question at a time, with a recommended answer — until the scope collapses to
    one buildable slice. That's a feature.
 
+## Installing the Claude config
+
+The framework ships its Claude Code setup in two parts:
+
+- **Framework spine** (`.claude/`) — rules + the rtk hook for working _on the
+  framework_. It's committed, so your fork already has it; nothing to install.
+- **Game config** (`game-config/`) — the rtk hook + the godot agents + skills the
+  framework deploys _into a game_. Install it once into your game:
+
+  ```bash
+  cd xenodot-forge
+  npm run setup -- ../game     # point at your game first (if you haven't)
+  npm run claude:install       # copy agents + skills + hook into ../game/.claude
+  ```
+
+`claude:install` is **non-destructive** — it never overwrites files you already
+have (your agents evolve in place). Pass `--force` for a clean reset to the
+shipped bundle:
+
+```bash
+npm run claude:install -- --force
+```
+
+The hook is `rtk hook claude`, guarded so it **no-ops safely if `rtk` isn't
+installed** — Bash keeps working. Get rtk for the token savings; the agents work
+either way. On first use you may need to approve the project hook once via
+`/hooks` in Claude Code.
+
+> **Maintaining a fork:** `game-config/` is kept current automatically — a
+> pre-commit step (`npm run claude:sync`) re-vendors your reference game's
+> `.claude/` agents + skills on every commit, so what you ship never drifts.
+
 ## Using the web UI
 
 The web UI runs the same agents from a browser: designer questions become

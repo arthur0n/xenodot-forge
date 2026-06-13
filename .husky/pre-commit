@@ -1,5 +1,6 @@
-# Keep the README Skills/Agents badges in sync with the paired game project,
-# then lint + format the staged files (lint-staged also tidies the re-staged
-# README).
+# Keep the README badges and the vendored game config in sync with the paired
+# game project, then lint + format the staged files (lint-staged also tidies the
+# re-staged README). Both scripts git-add what they touch so it lands in the commit.
 node ui/server/update-badges.js
+node ui/server/claude-sync.js
 npx lint-staged

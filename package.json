@@ -8,6 +8,8 @@
     "setup": "node ui/server/setup.js",
     "start": "node ui/server/index.js",
     "badges": "node ui/server/update-badges.js",
+    "claude:sync": "node ui/server/claude-sync.js",
+    "claude:install": "node ui/server/claude-install.js",
     "check": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix --max-warnings 0",
