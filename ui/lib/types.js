@@ -67,6 +67,18 @@
 /** @typedef {{ title?: string, description?: string, submitLabel?: string, fields?: FormField[] }} FormSpec */
 /** @typedef {{ content: string, status: "pending" | "in_progress" | "completed" }} Todo */
 
+// ---------- Tasks (persistent orchestrator to-do board) ----------
+/**
+ * A task in the right-rail board, persisted to <project>/.xenodot/tasks.json.
+ * @typedef {object} Task
+ * @property {string} id - short slug, e.g. "t3"
+ * @property {string} title
+ * @property {"agent" | "user"} owner - who must do it
+ * @property {"pending" | "in_progress" | "done"} status
+ * @property {string} [note] - optional one-line detail
+ * @property {string} created - ISO timestamp
+ */
+
 // ---------- WebSocket messages ----------
 /** @typedef {{ role: "user" | "assistant", text: string }} HistoryItem */
 /**
@@ -79,6 +91,7 @@
  *   | { type: "permission", id: number, toolName: string, input: ToolInput, agent?: string }
  *   | { type: "policy", value: string }
  *   | { type: "history", items?: HistoryItem[] }
+ *   | { type: "tasks", tasks: Task[] }
  * )} ServerMsg */
 
 /** A row in the activity log.
@@ -94,6 +107,7 @@
  *   | { type: "user_input", text: string }
  *   | { type: "reply", id: number, payload: Reply }
  *   | { type: "policy", value: string }
+ *   | { type: "task_update", op: "update" | "remove", id: string, status?: string }
  * )} ClientMsg */
 /** Pauses the session, sends the prompt, resolves when the browser replies.
  * @typedef {(type: string, payload: Record<string, unknown>) => Promise<Reply>} WaitFor */
