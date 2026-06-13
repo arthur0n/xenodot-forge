@@ -16,8 +16,26 @@ if (!RELEASE_TYPES.has(type)) {
   process.exit(0);
 }
 
-const tag = nextTag(latestTag(), type);
+const lastTag = latestTag();
+const tag = nextTag(lastTag, type);
 const pkgVersion = tagToPkgVersion(tag);
+
+// game-config/ is VENDORED from the game project's own repo — its agents/skills
+// are the game's work, not framework features. Flag changes at release time so
+// they're attributed to the game repo, not listed as framework changes.
+try {
+  const changed = execFileSync("git", ["diff", "--name-only", lastTag, "--", "game-config"], {
+    encoding: "utf8",
+  }).trim();
+  if (changed) {
+    const n = changed.split("\n").filter(Boolean).length;
+    console.log(
+      `release: ⚠ ${n} game-config/ file(s) changed since ${lastTag} — vendored from the`,
+    );
+    console.log("         game repo (github.com/Coghatch-ai/diceofate). Attribute those there;");
+    console.log("         do NOT list them as framework changes in the release notes.");
+  }
+} catch {}
 
 const repoRoot = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
 const pkgPath = path.join(repoRoot, "package.json");
