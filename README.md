@@ -207,6 +207,13 @@ git commit -m "…"          # post-commit creates the tag
 `package.json` tracks the 3-part sub-version; the 4th build digit lives only in
 the git tag (npm versions must be valid 3-part semver).
 
+> **Vendored game config is not a framework change.** Anything under
+> `game-config/` is synced from the game project's own repo
+> ([DiceOfFate](https://github.com/Coghatch-ai/diceofate)) — those agents/skills
+> are the game's work, not framework features. Attribute them to the game repo;
+> don't list them in framework release notes. `npm run release` prints a reminder
+> when `game-config/` changed since the last tag, so you can verify before cutting.
+
 ## Status
 
 ⚠️ **Proof of concept.** Shared so you can fork it and experiment with your own game. APIs, file layouts, and agent prompts will change without notice.
