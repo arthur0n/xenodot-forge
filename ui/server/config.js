@@ -67,12 +67,11 @@ export const TASK_TOOL = "mcp__ui__tasks";
 
 // The main loop is an orchestrator: pinned model (not the user's default) and a
 // routing-focused system prompt, editable in ui/orchestrator.md.
-export const MODEL =
-  args.find((a) => a.startsWith("--model="))?.split("=")[1] ?? "claude-sonnet-4-6";
+export const MODEL = args.find((a) => a.startsWith("--model="))?.split("=")[1] ?? "claude-opus-4-8";
 // Reasoning effort for the orchestrator turn. The main loop routes and dispatches
 // rather than reasoning hard, so default to a modest level; each sub-agent's own
 // `effort:` frontmatter overrides this while that agent is active. The pinned
-// model (claude-sonnet-4-6) supports low|medium|high|xhigh|max.
+// model (claude-opus-4-8) supports low|medium|high|xhigh|max.
 export const EFFORT = /** @type {import("@anthropic-ai/claude-agent-sdk").EffortLevel} */ (
   args.find((a) => a.startsWith("--effort="))?.split("=")[1] ?? "medium"
 );

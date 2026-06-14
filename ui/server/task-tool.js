@@ -4,7 +4,7 @@
 // returns immediately. Tasks can be owned by the agent or handed to the user.
 import { tool } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
-import { applyOp, summarize } from "./tasks-store.js";
+import { applyOp, closeOpenAgentTasks, summarize } from "./tasks-store.js";
 
 const TASK_SPEC = z.object({
   title: z.string().describe("Short, discrete task title"),
@@ -19,10 +19,13 @@ export function makeTaskTool(send) {
     "Manage your persistent task list — the to-do board shown in the UI's right rail and " +
       "stored at .xenodot/tasks.json. Use it to track your own multi-step work " +
       '(owner "agent") and to hand explicit to-dos to the user (owner "user"). It does ' +
-      "NOT pause the session. Keep tasks small and discrete; the JSON file is the source " +
-      "of truth you can read directly.",
+      "NOT pause the session. Keep tasks small and discrete. Every result lists the tasks " +
+      "still OPEN, so you can always see what's unfinished. Before you hand off or end " +
+      'your run, call op "complete_open" once to close all your own open tasks.',
     {
-      op: z.enum(["add", "update", "remove"]).describe("Mutation to apply"),
+      op: z
+        .enum(["add", "update", "remove", "complete_open"])
+        .describe('Mutation to apply. "complete_open" marks ALL your own open tasks done at once.'),
       // add
       title: z.string().optional().describe("add: the task title (or use `tasks` for a batch)"),
       owner: z.enum(["agent", "user"]).optional().describe('add/update: owner (default "agent")'),
@@ -31,9 +34,14 @@ export function makeTaskTool(send) {
       // update / remove
       id: z.string().optional().describe("update/remove: target task id (e.g. t3)"),
       status: z.enum(["pending", "in_progress", "done"]).optional().describe("update: new status"),
+      // Internal: the creating agent, set by the server (canUseTool) — do not set it yourself.
+      _by: z.string().optional().describe("internal — server-set; ignore"),
     },
     async (input) => {
-      const list = applyOp(input, new Date().toISOString());
+      const list =
+        input.op === "complete_open"
+          ? closeOpenAgentTasks(input._by)
+          : applyOp(input, new Date().toISOString());
       send({ type: "tasks", tasks: list });
       return { content: [{ type: "text", text: summarize(list) }] };
     },

@@ -3,7 +3,7 @@ name: godot-texture-import-pixel-art
 description: Correctly import pixel-art textures in Godot 4 — NEAREST filter, no mipmaps, uncompressed. Use whenever a PNG/texture is added to assets/textures/ and bound to a material or shader uniform. Also covers the Make-Unique gotcha on imported mesh materials and the texture_filter enum trap.
 ---
 
-Pixel-art textures must arrive at the GPU raw and unscaled. Godot's defaults (bilinear filter, mipmap generation, lossy compression) destroy crisp texels. The `.import` sidecar is the authoritative override — it takes effect on the next import, survives editor restarts, and is committed alongside the asset. The shader uniform hint `filter_nearest` is a second layer that prevents the sampler from ignoring the material setting.
+Pixel-art textures must arrive at the GPU raw and unscaled. Godot's defaults (bilinear filter, mipmap generation, lossy compression) destroy crisp texels. The `.import` sidecar is the authoritative override — it takes effect on the next import and survives editor restarts. The shader uniform hint `filter_nearest` is a second layer that prevents the sampler from ignoring the material setting.
 
 ## Requirements
 
@@ -15,7 +15,7 @@ Pixel-art textures must arrive at the GPU raw and unscaled. Godot's defaults (bi
 
 - Textures live at `assets/textures/<name>.png` (snake_case). Never place PNGs directly in `assets/` — the convention is `assets/textures/`.
 - ShaderMaterial uniforms use the `filter_nearest` hint (see Step 2). StandardMaterial3D albedo_texture uses `texture_filter = 1` (see Step 3).
-- All `.import` sidecars are committed to git — they are project state, not generated artefacts.
+- `assets/` is gitignored — PNGs and `.import` sidecars are not versioned. Godot regenerates sidecars on first open. Do not add sidecar commit steps.
 
 ## Steps
 
@@ -104,7 +104,7 @@ Then F5 and inspect at pixel scale (zoom in editor or use the SubViewport output
 
 ## Verification checklist
 
-- [ ] `.import` sidecar committed with `mipmaps/generate=false` and `compress/mode=0`
+- [ ] `.import` sidecar exists on disk with `mipmaps/generate=false` and `compress/mode=0` (not committed — `assets/` is gitignored)
 - [ ] Texture reloaded in editor (no import errors in Output panel)
 - [ ] Shader uniform has `filter_nearest` hint
 - [ ] StandardMaterial3D node has `texture_filter = 1` (not 3)
@@ -113,13 +113,13 @@ Then F5 and inspect at pixel scale (zoom in editor or use the SubViewport output
 
 ## Error → Fix
 
-| Symptom                                                  | Fix                                                                                                                  |
-| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Texture looks blurry / smeared in scene                  | Check `texture_filter` in `.tscn` — must be `1`, not `3`                                                             |
-| Texture looks scratched / moire pattern                  | `mipmaps/generate=true` in `.import` — set to `false`, re-import                                                     |
-| Material greyed out in Inspector                         | See Step 4: Make Unique on mesh, then on surface material                                                            |
-| Import sidecar has no `uid` / Godot re-imports every run | Normal on first import; Godot fills in `uid` and `dest_files` — commit after first import                            |
-| Shader still blurring despite `filter_nearest` hint      | Check the `.import` sidecar: `compress/mode=0` required; some compress modes ignore sampler hints                    |
-| Texture invisible after wiring                           | Check `use_texture` boolean uniform is `true`; check the PNG path matches `res://assets/textures/<name>.png` exactly |
+| Symptom                                                  | Fix                                                                                                                      |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Texture looks blurry / smeared in scene                  | Check `texture_filter` in `.tscn` — must be `1`, not `3`                                                                 |
+| Texture looks scratched / moire pattern                  | `mipmaps/generate=true` in `.import` — set to `false`, re-import                                                         |
+| Material greyed out in Inspector                         | See Step 4: Make Unique on mesh, then on surface material                                                                |
+| Import sidecar has no `uid` / Godot re-imports every run | Normal on first import; Godot fills in `uid` and `dest_files` automatically — no commit needed (`assets/` is gitignored) |
+| Shader still blurring despite `filter_nearest` hint      | Check the `.import` sidecar: `compress/mode=0` required; some compress modes ignore sampler hints                        |
+| Texture invisible after wiring                           | Check `use_texture` boolean uniform is `true`; check the PNG path matches `res://assets/textures/<name>.png` exactly     |
 
 Adapted from GodotPrompter (https://github.com/jame581/GodotPrompter), MIT License, Copyright (c) GodotPrompter Contributors.

@@ -9,7 +9,14 @@ import { parseJSON } from "../lib/json.js";
 import { sessionHistory } from "./transcripts.js";
 import { makeFormTool } from "./form-tool.js";
 import { makeTaskTool } from "./task-tool.js";
-import { readTasks, applyOp, pruneDoneTasks, addBackgroundTask } from "./tasks-store.js";
+import {
+  readTasks,
+  applyOp,
+  pruneDoneTasks,
+  addBackgroundTask,
+  closeOpenByAgent,
+  closeStragglerTasks,
+} from "./tasks-store.js";
 import {
   DEFAULT_POLICY,
   EDIT_TOOLS,
@@ -124,7 +131,10 @@ function makeCanUseTool({ session, sessionAllowed, waitFor, log, agentByTool, fo
     }
     if (toolName === TASK_TOOL) {
       // UI-control tool: mutates the task board, never pauses — auto-allow.
-      return { behavior: "allow", updatedInput: input };
+      // Stamp the calling agent (`_by`) so the server can deterministically close
+      // this agent's open tasks when it finishes (see closeOpenByAgent). The
+      // server overrides any model-supplied `_by`.
+      return { behavior: "allow", updatedInput: { ...input, _by: agent } };
     }
     if (
       session.policy === "all" ||
@@ -175,29 +185,67 @@ function bridgeSettle(t, { bgBoard, send }) {
   send({ type: "tasks", tasks: list });
 }
 
-/** Per-message bookkeeping on the SDK stream: map each tool_use to the agent
- * that raised it (so canUseTool can label concurrent approvals), note which
- * spawns are backgrounded, and bridge their lifecycle onto the task board.
- * @param {import("@anthropic-ai/claude-agent-sdk").SDKMessage} message
- * @param {{ agentByTool: Map<string, string>, bgSpawns: Set<string>, bgBoard: Map<string, string>, send: (obj: OutMsg) => void }} deps
- */
-function trackMessage(message, { agentByTool, bgSpawns, bgBoard, send }) {
-  if (message.type === "assistant") {
-    const label = message.subagent_type ?? "main";
-    for (const b of message.message?.content ?? []) {
-      if (b.type === "tool_use" && b.id) {
-        agentByTool.set(b.id, label);
-        const inp = /** @type {{ run_in_background?: boolean } | undefined} */ (b.input);
-        if (inp?.run_in_background) bgSpawns.add(b.id);
-      }
+/** Close a finished sub-agent's own open tasks (its scratchpad), keyed by the
+ * agent label recorded at task_started. task_notification fires for foreground
+ * AND background sub-agents, so this deterministically restores the inline close
+ * that the background change removed for foreground work — no LLM cooperation
+ * needed. @param {string | undefined} taskId
+ * @param {{ runningByTask: Map<string, string>, send: (obj: OutMsg) => void }} deps */
+function settleAgentTasks(taskId, { runningByTask, send }) {
+  if (!taskId) return;
+  const label = runningByTask.get(taskId);
+  runningByTask.delete(taskId);
+  if (!label) return;
+  send({ type: "tasks", tasks: closeOpenByAgent(label) });
+}
+
+/** Turn-end backstop: close any open sub-agent task whose owner is no longer
+ * running — a foreground straggler whose task_notification never arrived (e.g. a
+ * hard interrupt). Live sub-agents (incl. background workers) and the
+ * orchestrator's own cross-turn board are preserved.
+ * @param {{ runningByTask: Map<string, string>, send: (obj: OutMsg) => void }} deps */
+function sweepStragglers({ runningByTask, send }) {
+  const list = closeStragglerTasks(new Set(runningByTask.values()));
+  if (list) send({ type: "tasks", tasks: list });
+}
+
+/** Record each tool_use → the agent that raised it (so canUseTool can label
+ * concurrent approvals) and note which spawns are backgrounded.
+ * @param {import("@anthropic-ai/claude-agent-sdk").SDKAssistantMessage} message
+ * @param {{ agentByTool: Map<string, string>, bgSpawns: Set<string> }} deps */
+function trackToolUses(message, { agentByTool, bgSpawns }) {
+  const label = message.subagent_type ?? "main";
+  for (const b of message.message?.content ?? []) {
+    if (b.type === "tool_use" && b.id) {
+      agentByTool.set(b.id, label);
+      const inp = /** @type {{ run_in_background?: boolean } | undefined} */ (b.input);
+      if (inp?.run_in_background) bgSpawns.add(b.id);
     }
+  }
+}
+
+/** Per-message bookkeeping on the SDK stream: track tool_use→agent, bridge
+ * background workers onto the board, deterministically close each sub-agent's own
+ * tasks when it finishes, and sweep stragglers at turn end.
+ * @param {import("@anthropic-ai/claude-agent-sdk").SDKMessage} message
+ * @param {{ agentByTool: Map<string, string>, bgSpawns: Set<string>, bgBoard: Map<string, string>, runningByTask: Map<string, string>, send: (obj: OutMsg) => void }} deps
+ */
+function trackMessage(message, { agentByTool, bgSpawns, bgBoard, runningByTask, send }) {
+  if (message.type === "assistant") {
+    trackToolUses(message, { agentByTool, bgSpawns });
   } else if (message.type === "system" && message.subtype === "task_started") {
+    // Remember which sub-agent owns this spawn, so settleAgentTasks can close
+    // exactly its tasks when its notification arrives.
+    if (message.task_id) runningByTask.set(message.task_id, message.subagent_type ?? "");
     bridgeStart(
       { taskId: message.task_id, toolUseId: message.tool_use_id, desc: message.description },
       { bgSpawns, bgBoard, send },
     );
   } else if (message.type === "system" && message.subtype === "task_notification") {
     bridgeSettle({ taskId: message.task_id, status: message.status }, { bgBoard, send });
+    settleAgentTasks(message.task_id, { runningByTask, send });
+  } else if (message.type === "result") {
+    sweepStragglers({ runningByTask, send });
   }
 }
 
@@ -258,8 +306,10 @@ function runSession({
       const bgSpawns = new Set(); // tool_use ids spawned with run_in_background
       /** @type {Map<string, string>} */
       const bgBoard = new Map(); // sdk task_id -> bridged board task id
+      /** @type {Map<string, string>} */
+      const runningByTask = new Map(); // sdk task_id -> subagent_type (in-flight sub-agents)
       for await (const message of q) {
-        trackMessage(message, { agentByTool, bgSpawns, bgBoard, send });
+        trackMessage(message, { agentByTool, bgSpawns, bgBoard, runningByTask, send });
         send({ type: "event", message });
       }
       send({ type: "status", text: "session ended" });

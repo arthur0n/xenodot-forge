@@ -83,6 +83,7 @@
  * @property {"agent" | "user"} owner - who must do it
  * @property {"pending" | "in_progress" | "done"} status
  * @property {string} [note] - optional one-line detail
+ * @property {string} [agent] - internal: creating agent ("main" | "background" | a subagent_type), used to close a sub-agent's tasks when it finishes
  * @property {string} created - ISO timestamp
  */
 

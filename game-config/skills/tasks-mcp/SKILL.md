@@ -1,6 +1,6 @@
 ---
 name: tasks-mcp
-description: Use mcp__ui__tasks as a plan and scratchpad inside any agent run. Add tasks at start, update status as you work, use note as scratchpad. Visible in the UI right rail and persistent across sessions.
+description: Use mcp__ui__tasks as a plan and scratchpad inside any agent run. Add tasks at start, update status as you work, then close them in one call (op complete_open) before you hand off or return. Visible in the UI right rail and persistent across sessions.
 metadata:
   type: utility
 ---
@@ -8,28 +8,37 @@ metadata:
 # Tasks MCP — Plan & Scratchpad
 
 `mcp__ui__tasks` is a persistent task board (`.xenodot/tasks.json`, shown in the UI right rail).
-Calling it never pauses the session — call it freely between other tool calls.
+Calling it never pauses the session — call it freely between other tool calls. **Every result
+lists the tasks still OPEN (with their ids)** — read it to see what's left and to get the `id`
+you need for `update`/`remove`.
 
 **Every run:** at START add your full plan as one batch; set each task `in_progress` before its
-step and `done` after; leave nothing `pending`/`in_progress` when you return.
+step and `done` after; then close anything still open in ONE call before you return.
 
 ```jsonc
 { "op": "add", "tasks": [ { "title": "Build scene", "owner": "agent" } ] } // batch at start
-{ "op": "update", "title": "Build scene", "status": "in_progress", "note": "scratchpad" }
-{ "op": "update", "title": "Build scene", "status": "done" }
-{ "op": "remove", "title": "Build scene" }                                  // step turned out unneeded
+{ "op": "update", "id": "t3", "status": "in_progress", "note": "scratchpad" } // by id, from the OPEN list
+{ "op": "update", "id": "t3", "status": "done" }
+{ "op": "remove", "id": "t3" }                                               // step turned out unneeded
+{ "op": "complete_open" }                                                    // close ALL your open tasks at once
 ```
 
-- `title` (required) is the key for `update`/`remove`. `status`: `pending` → `in_progress` → `done`.
+- **`update`/`remove` target a task by `id`** (e.g. `t3`), NOT by title. The id comes from the
+  add result / the OPEN list in every tool result. (Updating by title silently does nothing.)
 - `owner`: `"agent"` (default), or `"user"` only for things the human must supply (an asset, a
   decision) — `user` tasks surface in the task / Get Assets modal. `note` is free-text scratchpad.
 
-## Self-gate (before any handoff or return)
+## Self-gate (before any handoff or return) — mandatory
 
-Before calling any handoff tool or ending your run, read `.xenodot/tasks.json` directly:
+The last thing you do before calling a handoff tool or ending your run:
 
-```bash
-cat .xenodot/tasks.json
+```jsonc
+{ "op": "complete_open" } // marks every task you own done, in one call
 ```
 
-Confirm every task you own has `status: "done"`. If any are `pending` or `in_progress`, mark them done (or remove them if they turned out unneeded) **before** the handoff call — not after. A server reset between your last task-update and your handoff leaves ghost tasks the orchestrator must clean up manually. Closing tasks is the last thing you do before returning. Keep the open-task window small: mark a task `done` the moment its step finishes, not in a batch at the end — an unclosed task is only exposed to a reset for as long as you leave it open. Prefer one `in_progress` task at a time.
+Then check the result: it must show **no OPEN tasks** of yours. `complete_open` is idempotent and
+needs no ids — one call closes your whole scratchpad, so closing can never be half-done. (The
+server also closes your tasks automatically when your run finishes, but call `complete_open`
+yourself so the board is clean the instant you hand off, not a moment later.) Prefer one
+`in_progress` task at a time and mark steps `done` as they finish, so the live board reflects
+your real progress.

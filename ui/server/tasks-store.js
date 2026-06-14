@@ -45,7 +45,7 @@ function nextId(list) {
   return `t${max + 1}`;
 }
 
-/** @param {Task[]} list @param {{ title?: string, owner?: string, note?: string, status?: string }} spec @param {string} now @returns {Task} */
+/** @param {Task[]} list @param {{ title?: string, owner?: string, note?: string, status?: string, agent?: string }} spec @param {string} now @returns {Task} */
 function makeTask(list, spec, now) {
   return {
     id: nextId(list),
@@ -55,6 +55,11 @@ function makeTask(list, spec, now) {
       ? /** @type {Task["status"]} */ (spec.status)
       : "pending",
     note: spec.note ? String(spec.note).slice(0, 500) : undefined,
+    // Which agent created this task, so the server can deterministically close a
+    // sub-agent's open tasks when it finishes (see closeOpenByAgent). "main" =
+    // orchestrator; "background" = a bridged background worker; otherwise the
+    // sub-agent's subagent_type. Internal — the client renderer ignores it.
+    agent: spec.agent ? String(spec.agent).slice(0, 80) : undefined,
     created: now,
   };
 }
@@ -62,7 +67,7 @@ function makeTask(list, spec, now) {
 /**
  * Apply one mutation and persist. Returns the new list (caller broadcasts it).
  * Unknown ids are ignored so a stale UI click can't throw.
- * @param {{ op: string, title?: string, owner?: string, note?: string, status?: string, id?: string, tasks?: Array<{ title?: string, owner?: string, note?: string }> }} op
+ * @param {{ op: string, title?: string, owner?: string, note?: string, status?: string, id?: string, _by?: string, tasks?: Array<{ title?: string, owner?: string, note?: string }> }} op
  * @param {string} now ISO timestamp (the caller stamps it — keeps this testable)
  * @returns {Task[]}
  */
@@ -71,7 +76,9 @@ export function applyOp(op, now) {
   if (op.op === "add") {
     const specs = Array.isArray(op.tasks) ? op.tasks : [op];
     for (const spec of specs) {
-      const task = makeTask(list, spec, now);
+      // `_by` (the creating agent) rides on the top-level op — inject it into
+      // every spec, including each entry of a batch add, for closeOpenByAgent.
+      const task = makeTask(list, { ...spec, agent: op._by }, now);
       list.push(task);
     }
   } else if (op.op === "update") {
@@ -111,18 +118,82 @@ export function pruneDoneTasks() {
 
 /** Add one in_progress agent task bridging a backgrounded worker onto the board;
  * returns the new list plus the created id (so the caller can settle it later).
+ * Tagged `agent: "background"` so the straggler sweep never touches a live worker.
  * @param {string} title @param {string | undefined} note @param {string} now
  * @returns {{ list: Task[], id: string }} */
 export function addBackgroundTask(title, note, now) {
   const list = readTasks();
-  const task = makeTask(list, { title, note, status: "in_progress", owner: "agent" }, now);
+  const task = makeTask(
+    list,
+    { title, note, status: "in_progress", owner: "agent", agent: "background" },
+    now,
+  );
   list.push(task);
   writeTasks(list);
   return { list, id: task.id };
 }
 
-/** One-line summary for the tool result. @param {Task[]} list @returns {string} */
+/** Mark `done` every open (not-done) `owner:"agent"` task, optionally scoped to
+ * one creating agent. The deterministic close: callers pass the finishing agent's
+ * label so only its tasks close (see closeOpenByAgent / the `complete_open` op).
+ * With no `agent`, closes ALL open agent tasks (blunt fallback). Always returns
+ * the new list so the caller can broadcast + summarize.
+ * @param {string} [agent] @returns {Task[]} */
+export function closeOpenAgentTasks(agent) {
+  const list = readTasks().map((t) =>
+    t.owner === "agent" && t.status !== "done" && (agent == null || t.agent === agent)
+      ? { ...t, status: /** @type {Task["status"]} */ ("done") }
+      : t,
+  );
+  writeTasks(list);
+  return list;
+}
+
+/** Close a specific agent's open tasks (its scratchpad) — called when that
+ * sub-agent finishes (task_notification). Same-label workers running in parallel
+ * would close each other's tasks, but the orchestrator forbids backgrounding two
+ * workers on the same files and foreground runs serially, so collisions don't
+ * arise in practice. @param {string} agent @returns {Task[]} */
+export function closeOpenByAgent(agent) {
+  return closeOpenAgentTasks(agent);
+}
+
+/** Turn-end backstop: mark `done` any open `owner:"agent"` task left by a
+ * sub-agent that is no longer running — i.e. a foreground straggler whose
+ * task_notification never arrived (hard interrupt/abort). Skips the orchestrator's
+ * own board (`agent: "main"`), live background workers (`agent: "background"`),
+ * and any sub-agent still listed in `running`. Returns the new list, or null when
+ * nothing changed (so the caller can skip a redundant broadcast).
+ * @param {Set<string>} running labels of sub-agents still in flight
+ * @returns {Task[] | null} */
+export function closeStragglerTasks(running) {
+  const list = readTasks();
+  let changed = false;
+  const next = list.map((t) => {
+    const straggler =
+      t.owner === "agent" &&
+      t.status !== "done" &&
+      t.agent != null &&
+      t.agent !== "main" &&
+      t.agent !== "background" &&
+      !running.has(t.agent);
+    if (!straggler) return t;
+    changed = true;
+    return { ...t, status: /** @type {Task["status"]} */ ("done") };
+  });
+  if (!changed) return null;
+  writeTasks(next);
+  return next;
+}
+
+/** One-line summary for the tool result. Always names the still-open tasks so the
+ * agent can tell at a glance whether its work is closed (not just a count).
+ * @param {Task[]} list @returns {string} */
 export function summarize(list) {
-  const done = list.filter((t) => t.status === "done").length;
-  return `${list.length} task${list.length === 1 ? "" : "s"} (${done} done).`;
+  const open = list.filter((t) => t.status !== "done");
+  const done = list.length - open.length;
+  const base = `${list.length} task${list.length === 1 ? "" : "s"} (${done} done).`;
+  if (!open.length) return list.length ? `${base} All closed.` : base;
+  const items = open.map((t) => `${t.id} ${t.title} [${t.status}]`).join(", ");
+  return `${base} OPEN: ${items}`;
 }
