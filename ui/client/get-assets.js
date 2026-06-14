@@ -4,16 +4,18 @@
 //      hit an art gap, titled "Asset: <name>" with the generation prompt in the
 //      note. The prompt is contextual to what's being built, never hardcoded.
 //   2. Generators — the stable catalog of free, no-signup pixel-art sites.
-// The user generates a PNG, uploads it here (POST /api/asset writes it into the
-// game's assets/textures/), and we ask the orchestrator to run asset-advisor to
-// verify it, then dispatch godot-dev (on PASS) to import + wire + verify.
+// The user generates a PNG (or sources a free .glb), uploads it here (POST
+// /api/asset writes a PNG to assets/textures/ or a GLB to assets/models/, routed
+// by file type), and we ask the orchestrator to run asset-advisor to verify it,
+// then dispatch godot-dev (on PASS) to import + wire + verify.
 import { $, el } from "./dom.js";
 import { fetchJSON, postJSON } from "../lib/json.js";
 import { send } from "./websocket.js";
 import { addUser } from "./chat.js";
 import { loadState } from "./project-tree.js";
 
-/** Free generators — the stable WHERE (catalog detail: library/asset-sources.md).
+/** Free sources — the stable WHERE (catalogue detail: library/sources/asset-sources.md
+ * for textures, library/sources/model-sources.md for 3D models).
  * @type {{ name: string, url: string, fit: string }[]} */
 const GENERATORS = [
   {
@@ -40,6 +42,21 @@ const GENERATORS = [
     name: "Pixelorama",
     url: "https://www.pixelorama.org/",
     fit: "free editor · tile/seam fix, downscale",
+  },
+  {
+    name: "Poly Pizza",
+    url: "https://poly.pizza/",
+    fit: "no login · .glb 3D models · CC0/CC-BY · furniture/props",
+  },
+  {
+    name: "Kenney",
+    url: "https://kenney.nl/assets",
+    fit: "no signup · CC0 model packs · consistent style",
+  },
+  {
+    name: "Quaternius",
+    url: "https://quaternius.com/",
+    fit: "no signup · CC0 low-poly model packs",
   },
 ];
 
@@ -88,6 +105,17 @@ function fileToDataUrl(file) {
 /** @param {Ask} ask @param {string} savedPath @returns {string} */
 function wirePrompt(ask, savedPath) {
   const task = ask.id ? ` (task ${ask.id})` : "";
+  if (savedPath.endsWith(".glb")) {
+    return (
+      `I sourced the "${ask.name}" model and saved it to ${savedPath}${task}. ` +
+      `First run the asset-advisor agent (gate 2) to verify it (.glb format, scale/units, materials, ` +
+      `placement in assets/models/, licence). Only on PASS, dispatch godot-dev to wire it per skill ` +
+      `godot-mesh-import-pixel-art — import, scale to the prop's footprint, instance it in place of the ` +
+      `matching greybox node (keep its name + position), NEAREST + Make-Unique only if it carries a ` +
+      `texture — then verify with godot-verify and mark the task done once it renders. If asset-advisor ` +
+      `fails it, report why and the corrected sourcing spec instead of wiring.`
+    );
+  }
   return (
     `I generated the "${ask.name}" texture and saved it to ${savedPath}${task}. ` +
     `First run the asset-advisor agent to verify it against the request (type, dimensions, alpha, ` +
@@ -136,11 +164,11 @@ async function upload(ask, file) {
 
 /** A file picker that uploads on selection. @param {Ask} ask @returns {HTMLElement} */
 function uploadControl(ask) {
-  const label = el("label", "btn primary", "Upload PNG");
+  const label = el("label", "btn primary", "Upload PNG / GLB");
   label.style.cursor = "pointer";
   const input = /** @type {HTMLInputElement} */ (el("input"));
   input.type = "file";
-  input.accept = "image/png";
+  input.accept = "image/png,.glb,model/gltf-binary";
   input.style.display = "none";
   input.onchange = () => {
     const f = input.files?.[0];
@@ -167,7 +195,7 @@ function copyBtn(text) {
 function askCard(ask) {
   const card = el("div", "asset-card");
   card.append(el("div", "modal-head", ask.name));
-  card.append(el("div", "modal-sub", `→ saves to ${ask.dest}`));
+  card.append(el("div", "modal-sub", "→ .png saves to assets/textures/ · .glb to assets/models/"));
   if (ask.prompt) {
     const ta = /** @type {HTMLTextAreaElement} */ (el("textarea", "form-input"));
     ta.value = ask.prompt;
@@ -186,16 +214,18 @@ function askCard(ask) {
  * @returns {HTMLElement} */
 function adhocCard() {
   const card = el("div", "asset-card");
-  card.append(el("div", "modal-sub", "No open requests — upload an ad-hoc texture:"));
+  card.append(
+    el("div", "modal-sub", "No open requests — upload an ad-hoc texture (.png) or model (.glb):"),
+  );
   const nameInput = /** @type {HTMLInputElement} */ (el("input", "form-input"));
   nameInput.placeholder = "name, e.g. grass_blade";
   card.append(nameInput);
   const actions = el("div", "modal-actions");
-  const label = el("label", "btn primary", "Upload PNG");
+  const label = el("label", "btn primary", "Upload PNG / GLB");
   label.style.cursor = "pointer";
   const input = /** @type {HTMLInputElement} */ (el("input"));
   input.type = "file";
-  input.accept = "image/png";
+  input.accept = "image/png,.glb,model/gltf-binary";
   input.style.display = "none";
   input.onchange = () => {
     const f = input.files?.[0];

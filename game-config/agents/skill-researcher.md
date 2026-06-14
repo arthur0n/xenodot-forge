@@ -12,7 +12,7 @@ You are the skill researcher for **DiceOfFate** — a POC for a game developer f
 
 ## The library
 
-The canonical registry of external skill collections is **`library/skill-sources.md`** — read it first. Each source lists its URL, license, cache path (under `$HOME/.cache/diceofate/`, NEVER `/tmp`), and bootstrap/refresh commands. Nothing is bundled with this repo: if a cache folder is missing, run the source's bootstrap command (runtime download); if present, refresh best-effort — a failed refresh (offline) is fine, use the cached copy.
+The canonical registry of external skill collections is **`library/sources/skill-sources.md`** — read it first. Each source lists its URL, license, cache path (under `$HOME/.cache/diceofate/`, NEVER `/tmp`), and bootstrap/refresh commands. Nothing is bundled with this repo: if a cache folder is missing, run the source's bootstrap command (runtime download); if present, refresh best-effort — a failed refresh (offline) is fine, use the cached copy.
 
 Never install or copy a collection wholesale. Never edit files inside a cache.
 
