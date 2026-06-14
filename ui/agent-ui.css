@@ -1,34 +1,44 @@
 /* ============================================================
    Xenodot Forge — UI styles
-   "The Forge Temple": Adeptus-Mechanicus control sanctum.
-   Oxblood Martian iron, cog-green machine-spirit glow, brass
-   caution sigils. Sharp corners, stamped labels.
+   "The Forge Temple": the Xenodot creature's bioluminescent
+   workshop. Void-ink maroon-black void, forge-green machine-spirit
+   glow, alien-lime hotspots. Sharp corners, stamped labels.
+   Official palette (assets/VoidInk_style.md):
+     Void Ink · Forge Green · Alien Lime · Pale Plasma ·
+     Bone White · Muted Alloy · Deep Panel.
    Bricolage Grotesque (display) · Archivo (UI) · IBM Plex Mono.
    ============================================================ */
 
 :root {
-  /* Machine-spirit glow — cog-green tech-light */
-  --accent: oklch(0.72 0.16 152);
-  --accent-text: oklch(0.82 0.15 155);
-  --accent-dim: color-mix(in oklab, var(--accent) 13%, transparent);
-  --accent-border: color-mix(in oklab, var(--accent) 38%, transparent);
+  /* Machine-spirit glow — Forge Green core, Alien Lime for readable
+     text, Pale Plasma for the hottest tips. The brand's vivid
+     yellow-green bioluminescence. */
+  --accent: oklch(0.72 0.2 130); /* Forge Green  #65C82D */
+  --accent-text: oklch(0.86 0.19 120); /* Alien Lime   #A9F35A */
+  --accent-bright: oklch(0.94 0.08 115); /* Pale Plasma  #E2FFC2 */
+  --accent-dim: color-mix(in oklab, var(--accent) 14%, transparent);
+  --accent-border: color-mix(in oklab, var(--accent) 40%, transparent);
 
-  /* Oxblood iron — dark Martian-red metal, never blue */
-  --bg: oklch(0.11 0.05 28.96);
-  --panel: oklch(0.17 0.03 26.13);
+  /* Void Ink base + Deep Panel green-steel — the creature's habitat:
+     a maroon-black void (reads near-black) under forge-green plates. */
+  --bg: oklch(
+    0.115 0.03 30
+  ); /* Void Ink #120000, eased toward true black so
+                                 the green identity stays the protagonist */
+  --panel: oklch(0.185 0.026 132); /* Deep Panel   #202B20, sunk for depth */
   --panel-2: color-mix(in oklab, var(--panel), white 6%);
   --panel-3: color-mix(in oklab, var(--panel), white 12%);
-  --well: oklch(0.13 0.02 28);
-  --border: oklch(0.85 0.03 35 / 0.08);
-  --border-strong: oklch(0.85 0.03 35 / 0.16);
+  --well: oklch(0.14 0.02 132);
+  --border: oklch(0.86 0.07 120 / 0.1); /* faint Alien-Lime hairline */
+  --border-strong: oklch(0.86 0.07 120 / 0.18);
 
-  --text: oklch(0.93 0.014 60);
-  --text-2: oklch(0.75 0.018 55);
-  /* Tertiary now clears WCAG AA (~4.6:1 on --panel) — was 0.54 (~3.8:1).
-     Still reads as "stamped, weathered" but no longer strains the eye. */
-  --text-3: oklch(0.64 0.019 52);
+  --text: oklch(0.97 0.015 105); /* Bone White   #F6F8EF */
+  --text-2: oklch(0.8 0.022 116);
+  /* Tertiary clears WCAG AA (~4.6:1 on --panel) — weathered alloy that
+     still reads cleanly without straining the eye. */
+  --text-3: oklch(0.65 0.03 122);
   /* Decoration only — glyphs/markers/rules that are seen, never read. */
-  --text-4: oklch(0.5 0.016 48);
+  --text-4: oklch(0.53 0.033 124); /* Muted Alloy  #6F806B */
 
   /* Forge semantics: verdigris = quenched, brass = caution,
      hot iron = danger, steel = inspection, copper = casting */
@@ -76,14 +86,14 @@
   --plate-sheen: linear-gradient(
     115deg,
     transparent 28%,
-    oklch(0.95 0.02 70 / 0.03) 47%,
+    oklch(0.95 0.03 110 / 0.03) 47%,
     transparent 66%
   );
 
   /* Milled hairlines — faint vertical tooling marks for chrome panels. */
   --plate-mill: repeating-linear-gradient(
     90deg,
-    oklch(0.95 0.02 70 / 0.014) 0 1px,
+    oklch(0.95 0.03 110 / 0.014) 0 1px,
     transparent 1px 3px
   );
 
@@ -205,16 +215,16 @@ body.resizing iframe {
      than the oxblood plates. The vertical ramp is the giveaway: dark rim up
      top, a bright specular band a third of the way down, rolling off into
      shadow at the underside. Grain rides on top in soft-light. */
-  background-color: oklch(0.21 0.022 32);
+  background-color: oklch(0.215 0.02 134);
   background-image:
     var(--metal-grain),
     linear-gradient(
       180deg,
-      oklch(0.2 0.022 32) 0%,
-      oklch(0.235 0.02 34) 14%,
-      oklch(0.29 0.018 36) 32%,
-      oklch(0.235 0.021 33) 56%,
-      oklch(0.155 0.028 29) 100%
+      oklch(0.205 0.018 134) 0%,
+      oklch(0.245 0.018 134) 14%,
+      oklch(0.305 0.016 132) 32%,
+      oklch(0.245 0.019 134) 56%,
+      oklch(0.15 0.022 134) 100%
     );
   background-blend-mode: soft-light, normal;
   position: relative;
@@ -222,7 +232,7 @@ body.resizing iframe {
   /* Lit rim at the crown, dark hairline at the underside, and a drop shadow
      so the cylinder sits proud of the columns below. */
   box-shadow:
-    inset 0 1px 0 oklch(0.96 0.02 80 / 0.14),
+    inset 0 1px 0 oklch(0.96 0.05 118 / 0.16),
     inset 0 -1px 0 oklch(0 0 0 / 0.4),
     0 5px 14px -5px oklch(0 0 0 / 0.55);
 }
@@ -254,19 +264,32 @@ body.resizing iframe {
   letter-spacing: 0.01em;
 }
 
-/* The ingot — a diamond-cut billet, still glowing */
+/* The forge sigil — the Xenodot creature, machine-crowned, lit by its
+   own machine-spirit glow so it reads off the dark bench. */
 .brand-mark {
-  width: 20px;
-  height: 20px;
-  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-  background: linear-gradient(135deg, var(--amber), var(--accent) 55%, oklch(0.42 0.17 25));
-  filter: drop-shadow(0 0 6px color-mix(in oklab, var(--accent) 45%, transparent));
-  display: grid;
-  place-items: center;
-  color: oklch(0.2 0.025 50);
-  font-size: 9px;
-  font-weight: 800;
+  height: 26px;
+  width: auto;
   flex: none;
+  filter: drop-shadow(0 0 7px color-mix(in oklab, var(--accent) 36%, transparent));
+}
+
+/* Wordmark echoes the emblem's stamped banner: tracked caps, "FORGE"
+   quenched to alien lime as a second tier. */
+.brand-word {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5em;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: var(--text);
+}
+
+.brand-word b {
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--accent-text);
 }
 
 .project-chip {
@@ -802,6 +825,189 @@ body.resizing iframe {
   color: var(--text);
 }
 
+/* ---------------- Get Assets tab ---------------- */
+
+.sources-intro {
+  padding: 0 4px 10px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+/* Stencilled field label — a stamped caption above each section/field. */
+.asset-field-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 10px 4px 5px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.asset-field-label::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  transform: rotate(45deg);
+  background: color-mix(in oklab, var(--accent) 70%, transparent);
+  flex: none;
+}
+
+/* Generators directory — link rows with an at-a-glance caption. */
+.gen-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0 4px 4px;
+}
+
+.gen-link {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--panel-2);
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+
+.gen-link:hover {
+  border-color: var(--accent-border);
+  background: var(--accent-dim);
+}
+
+.gen-note {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+/* Asset spec card — a cut billet holding one asset to generate. */
+.asset-card {
+  margin: 0 4px 12px;
+  padding: 11px 12px 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%);
+}
+
+.asset-card-head {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+
+.asset-card .asset-field-label {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Prompt block — a copy-ready well; the copy button rides the top-right. */
+.asset-prompt {
+  position: relative;
+  background: var(--well);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
+.asset-prompt-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: all;
+}
+
+.asset-copy {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--panel-3);
+  color: var(--text-2);
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.asset-copy:hover {
+  color: var(--accent-text);
+  border-color: var(--accent-border);
+}
+
+/* Spec rows — Size / Alpha / Tileable, each a stamped key + its value. */
+.asset-specs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.asset-spec {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+  font-size: 11.5px;
+}
+
+.asset-spec-k {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.asset-spec-v {
+  color: var(--text);
+}
+
+/* Generator chips at the foot of the card. */
+.asset-gens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.asset-gen {
+  padding: 3px 10px;
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  background: var(--accent-dim);
+  color: var(--accent-text);
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.asset-gen:hover {
+  background: color-mix(in oklab, var(--accent) 22%, transparent);
+}
+
 /* ---------------- Main / chat ---------------- */
 
 .main {
@@ -828,7 +1034,7 @@ body.resizing iframe {
     inset 16px 0 26px -20px oklch(0 0 0 / 0.85),
     inset -16px 0 26px -20px oklch(0 0 0 / 0.85),
     inset 0 15px 22px -18px oklch(0 0 0 / 0.7),
-    inset 0 1px 0 0 oklch(0.95 0.02 70 / 0.04);
+    inset 0 1px 0 0 oklch(0.95 0.03 112 / 0.05);
   position: relative;
   z-index: 0;
   overflow: hidden;
@@ -1298,13 +1504,13 @@ input.cmd::placeholder {
 }
 
 .btn:hover {
-  border-color: oklch(0.85 0.02 70 / 0.26);
+  border-color: oklch(0.86 0.06 118 / 0.28);
 }
 
 .btn.primary {
   background: var(--accent);
   border-color: transparent;
-  color: oklch(0.18 0.03 50);
+  color: oklch(0.16 0.04 140);
 }
 
 .btn.primary:hover {
@@ -1479,12 +1685,12 @@ input.cmd::placeholder {
      metal, weathered by tarnish, and recessed for depth the same way the
      center well is: dark hugs the walls, a lit lip catches at the top. */
   border-top: 1px solid var(--border-strong);
-  background-color: oklch(0.192 0.006 240);
+  background-color: oklch(0.185 0.012 134);
   background-image:
     var(--tarnish), var(--metal-grain),
     linear-gradient(
       180deg,
-      oklch(0.95 0.008 240 / 0.025) 0%,
+      oklch(0.95 0.02 115 / 0.028) 0%,
       transparent 28%,
       oklch(0 0 0 / 0.12) 100%
     );
@@ -1497,7 +1703,7 @@ input.cmd::placeholder {
     inset 16px 0 26px -20px oklch(0 0 0 / 0.85),
     inset -16px 0 26px -20px oklch(0 0 0 / 0.85),
     inset 0 -14px 20px -16px oklch(0 0 0 / 0.7),
-    inset 0 1px 0 oklch(0.96 0.008 240 / 0.06);
+    inset 0 1px 0 oklch(0.96 0.02 115 / 0.07);
 }
 
 /* Forge-console fittings scribed into the tray, behind the inputs (z-index:
@@ -1511,19 +1717,20 @@ input.cmd::placeholder {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  opacity: 0.03;
+  opacity: 0.3;
   background-repeat: no-repeat;
 }
 
 /* Four matching hex-socket bolts, one per corner — the same url repeated so
    each corner position gets its own bolt. */
 .composer-zone::before {
-  background-size: 17px 17px;
+  opacity: 0.34;
+  background-size: 22px 22px;
   background-position:
-    left 16px top 13px,
-    right 16px top 13px,
-    left 16px bottom 13px,
-    right 16px bottom 13px;
+    left 16px top 12px,
+    right 16px top 12px,
+    left 16px bottom 12px,
+    right 16px bottom 12px;
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='none' stroke='%23d6c2ac' stroke-width='5'%3E%3Ccircle cx='50' cy='50' r='40'/%3E%3Cpath d='M50 30 67 40 67 60 50 70 33 60 33 40Z'/%3E%3C/g%3E%3C/svg%3E"),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='none' stroke='%23d6c2ac' stroke-width='5'%3E%3Ccircle cx='50' cy='50' r='40'/%3E%3Cpath d='M50 30 67 40 67 60 50 70 33 60 33 40Z'/%3E%3C/g%3E%3C/svg%3E"),
@@ -1790,6 +1997,18 @@ input.cmd::placeholder {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 12px;
+  transition:
+    opacity 0.42s var(--ease-out),
+    transform 0.42s var(--ease-out);
+}
+
+/* A done task retires: it slides off and clears 5s after completion (see
+   tasks.js). Transform + opacity only — the gap closes when the row is
+   removed at the end of the fade. */
+.task-row.fading {
+  opacity: 0;
+  transform: translateX(12px);
+  pointer-events: none;
 }
 
 .task-row.status-done {
@@ -2159,13 +2378,13 @@ input.cmd::placeholder {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.85 0.02 70 / 0.1);
+  background: oklch(0.86 0.05 120 / 0.11);
   border: 3px solid transparent;
   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: oklch(0.85 0.02 70 / 0.18);
+  background-color: oklch(0.86 0.06 120 / 0.2);
   background-clip: padding-box;
   border: 3px solid transparent;
 }
@@ -2453,4 +2672,13 @@ input.cmd::placeholder {
 }
 .asset-card .form-input {
   margin: 6px 0;
+}
+.asset-path-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.asset-path-row .form-input {
+  flex: 1;
+  margin: 6px 0 0;
 }

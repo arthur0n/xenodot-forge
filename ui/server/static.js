@@ -14,6 +14,9 @@ const TYPES = {
   ".json": "application/json",
   ".md": "text/markdown",
   ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".ico": "image/x-icon",
 };
 
 const BASE = path.resolve(UI_DIR);
