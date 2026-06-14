@@ -1,212 +1,291 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Xenodot Forge</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&amp;family=Archivo:wght@400..700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet" />
-<meta name="color-scheme" content="dark" />
-<link rel="stylesheet" href="agent-ui.css" />
-</head>
-<body>
-
-<div class="app">
-
-  <header class="topbar">
-    <div class="brand">
-      <span class="brand-mark">X</span>
-      <span>Xenodot Forge</span>
-    </div>
-    <div class="project-chip">
-      <strong id="proj-name">—</strong>
-      <span class="path" id="proj-path"></span>
-    </div>
-    <div class="topbar-right">
-      <button class="approvals-pill" id="approvals-pill" style="display:none">
-        <span class="badge" id="pill-badge">0</span> waiting on you
-      </button>
-      <span class="usage" id="usage"></span>
-      <select class="mode-select" id="mode-select" aria-label="Tool approval mode">
-        <option value="ask">Ask each tool</option>
-        <option value="edits">Ask for edits only</option>
-        <option value="all">Auto-approve all</option>
-      </select>
-      <span class="session-status">
-        <span class="dot pulse" id="conn-dot"></span>
-        <span class="mono" id="model-name">connecting…</span>
-      </span>
-    </div>
-  </header>
-
-  <div class="app-body">
-
-    <aside class="sidebar">
-      <div class="side-section">
-        <div class="side-head">
-          <span class="side-label">Session</span>
-          <button class="icon-btn" id="new-session">+ new</button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Xenodot Forge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&amp;family=Archivo:wght@400..700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap"
+      rel="stylesheet"
+    />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" type="image/png" href="assets/favicon.png" />
+    <link rel="stylesheet" href="agent-ui.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <img class="brand-mark" src="assets/mark.webp" alt="" width="44" height="26" />
+          <span class="brand-word">Xenodot<b>Forge</b></span>
         </div>
-        <div class="session-card active" id="session-card">
-          <span class="name"><span class="dot idle" id="session-dot"></span><span id="session-model">starting…</span></span>
-          <span class="meta" id="session-meta"></span>
+        <div class="project-chip">
+          <strong id="proj-name">—</strong>
+          <span class="path" id="proj-path"></span>
         </div>
-        <div id="recent-sessions"></div>
-        <button class="expand-toggle" id="sessions-toggle" style="display:none">expand</button>
-      </div>
-
-      <div class="side-section">
-        <div class="side-head">
-          <span class="side-label">Project</span>
-          <button class="icon-btn" id="refresh">refresh</button>
+        <div class="topbar-right">
+          <button class="approvals-pill" id="approvals-pill" style="display: none">
+            <span class="badge" id="pill-badge">0</span> waiting on you
+          </button>
+          <span class="usage" id="usage"></span>
+          <select class="mode-select" id="mode-select" aria-label="Tool approval mode">
+            <option value="ask">Ask each tool</option>
+            <option value="edits">Ask for edits only</option>
+            <option value="all">Auto-approve all</option>
+          </select>
+          <span class="session-status">
+            <span class="dot pulse" id="conn-dot"></span>
+            <span class="mono" id="model-name">connecting…</span>
+          </span>
         </div>
-        <div class="project-banner" id="project-banner" style="display:none"></div>
-        <div class="side-tabs" role="tablist">
-          <button class="side-tab on" data-tab="assets">Game Files<span class="count"></span></button>
-          <button class="side-tab" data-tab="agents">Agents<span class="count"></span></button>
-          <button class="side-tab" data-tab="skills">Skills<span class="count"></span></button>
-        </div>
-        <div id="project-tree"></div>
-      </div>
-    </aside>
+      </header>
 
-    <div class="panel-resizer" id="resize-sidebar" title="Drag to resize"></div>
-    <div class="panel-resizer" id="resize-activity" title="Drag to resize"></div>
+      <div class="app-body">
+        <aside class="sidebar">
+          <div class="side-section">
+            <div class="side-head">
+              <span class="side-label">Session</span>
+              <button class="icon-btn" id="new-session">+ new</button>
+            </div>
+            <div class="session-card active" id="session-card">
+              <span class="name"
+                ><span class="dot idle" id="session-dot"></span
+                ><span id="session-model">starting…</span></span
+              >
+              <span class="meta" id="session-meta"></span>
+            </div>
+            <div id="recent-sessions"></div>
+            <button class="expand-toggle" id="sessions-toggle" style="display: none">expand</button>
+          </div>
 
-    <main class="main">
-      <div class="chat-scroll" id="chat-scroll">
-        <div class="chat-inner" id="chat-inner"></div>
-      </div>
+          <div class="side-section">
+            <div class="side-head">
+              <span class="side-label">Project</span>
+              <button class="icon-btn" id="refresh">refresh</button>
+            </div>
+            <div class="project-banner" id="project-banner" style="display: none"></div>
+            <div class="side-tabs" role="tablist">
+              <button class="side-tab on" data-tab="assets">
+                Game Files<span class="count"></span>
+              </button>
+              <button class="side-tab" data-tab="agents">Agents<span class="count"></span></button>
+              <button class="side-tab" data-tab="skills">Skills<span class="count"></span></button>
+            </div>
+            <div id="project-tree"></div>
+          </div>
+        </aside>
 
-      <!-- Running agents — a status strip at the bottom of the chat (above the
+        <div class="panel-resizer" id="resize-sidebar" title="Drag to resize"></div>
+        <div class="panel-resizer" id="resize-activity" title="Drag to resize"></div>
+
+        <main class="main">
+          <div class="chat-scroll" id="chat-scroll">
+            <div class="chat-inner" id="chat-inner"></div>
+          </div>
+
+          <!-- Running agents — a status strip at the bottom of the chat (above the
            composer), one chip per in-flight sub-agent. -->
-      <div class="running-agents" id="running-agents" style="display:none"></div>
+          <div class="running-agents" id="running-agents" style="display: none"></div>
 
-      <div class="composer-zone">
-        <div class="composer-inner">
+          <div class="composer-zone">
+            <div class="composer-inner">
+              <div class="quick-actions">
+                <button
+                  class="chip"
+                  data-fill="start the game-designer agent: I want to design a new feature"
+                >
+                  new design doc
+                </button>
+                <button
+                  class="chip"
+                  data-fill="start the godot-dev agent to implement the design doc at design/"
+                >
+                  start agent dev
+                </button>
+                <button class="chip" data-fill="verify all scenes and report the results">
+                  verify scenes
+                </button>
+                <button class="chip" data-fill="what is the current state of the project?">
+                  project state
+                </button>
+                <button class="chip" id="transcript-open">+ harvest transcript</button>
+                <button class="chip" id="assets-open">🎨 get assets</button>
+                <button class="chip" id="draw-level-open">🗺 draw level</button>
+              </div>
 
-          <div class="quick-actions">
-            <button class="chip" data-fill="start the game-designer agent: I want to design a new feature">new design doc</button>
-            <button class="chip" data-fill="start the godot-dev agent to implement the design doc at design/">start agent dev</button>
-            <button class="chip" data-fill="verify all scenes and report the results">verify scenes</button>
-            <button class="chip" data-fill="what is the current state of the project?">project state</button>
-            <button class="chip" id="transcript-open">+ harvest transcript</button>
-            <button class="chip" id="assets-open">🎨 get assets</button>
-            <button class="chip" id="draw-level-open">🗺 draw level</button>
+              <div class="composer">
+                <textarea
+                  id="composer-input"
+                  rows="1"
+                  placeholder="Tell the agents what to build…"
+                ></textarea>
+                <button class="btn primary" id="send-btn">Send</button>
+              </div>
+
+              <div class="composer-hint">Enter to send · Shift+Enter for newline</div>
+            </div>
+          </div>
+        </main>
+
+        <aside class="activity">
+          <div class="approvals-panel">
+            <div class="side-head">
+              <span class="side-label">Questions &amp; approvals</span>
+              <span class="badge" id="approvals-badge">0</span>
+            </div>
+            <div id="approvals-list"></div>
+            <div class="tree-empty" id="approvals-empty">nothing waiting on you</div>
           </div>
 
-          <div class="composer">
-            <textarea id="composer-input" rows="1" placeholder="Tell the agents what to build…"></textarea>
-            <button class="btn primary" id="send-btn">Send</button>
+          <div class="tasks-panel">
+            <div class="side-head">
+              <span class="side-label">Tasks</span>
+              <span class="badge" id="tasks-badge">0</span>
+            </div>
+            <div id="tasks-list"></div>
+            <div class="tree-empty" id="tasks-empty">no tasks yet</div>
           </div>
 
-          <div class="composer-hint">Enter to send · Shift+Enter for newline</div>
+          <div class="activity-head">
+            <span class="side-label">Activity</span>
+            <div class="filter-chips">
+              <button class="filter-chip on" data-filter="all">All</button>
+              <button class="filter-chip" data-filter="tools">Tools</button>
+              <button class="filter-chip" data-filter="files">Files</button>
+            </div>
+            <select class="agent-filter" id="agent-filter" aria-label="Filter activity by agent">
+              <option value="">All agents</option>
+            </select>
+          </div>
+
+          <div class="log-scroll" id="log-scroll"></div>
+
+          <div class="activity-foot">
+            <span class="live-dot"></span>
+            <span>live</span>
+            <button class="icon-btn" id="clear-log">clear</button>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="transcript-modal" style="display: none">
+      <div class="modal">
+        <div class="modal-head">Harvest a transcript</div>
+        <p class="modal-sub">
+          Paste a raw video transcript. The framework saves it to the game's
+          <code>transcripts/</code> folder and runs <strong>transcript-researcher</strong> on it.
+        </p>
+        <label class="form-label" for="transcript-title">Title</label>
+        <input class="form-input" id="transcript-title" placeholder="e.g. godot baked lighting" />
+        <label class="form-label" for="transcript-building"
+          >What are we about to build? <span class="muted">(optional)</span></label
+        >
+        <input
+          class="form-input"
+          id="transcript-building"
+          placeholder="e.g. baked lighting for the blockout levels"
+        />
+        <label class="form-label" for="transcript-text"
+          >Raw transcript <span class="req">*</span></label
+        >
+        <textarea
+          class="form-input"
+          id="transcript-text"
+          rows="10"
+          placeholder="Paste the raw video transcript here…"
+        ></textarea>
+        <div class="modal-error" id="transcript-error"></div>
+        <div class="modal-actions">
+          <button class="btn ghost" id="transcript-cancel">Cancel</button>
+          <button class="btn primary" id="transcript-submit">Add &amp; harvest</button>
         </div>
       </div>
-    </main>
+    </div>
 
-    <aside class="activity">
-      <div class="approvals-panel">
-        <div class="side-head">
-          <span class="side-label">Questions &amp; approvals</span>
-          <span class="badge" id="approvals-badge">0</span>
+    <div class="modal-overlay" id="assets-modal" style="display: none">
+      <div class="modal">
+        <div class="modal-head">Get assets</div>
+        <p class="modal-sub">
+          Each request below needs a file — <strong>pick a local file</strong> or
+          <strong>paste its path</strong>. PNGs land in <code>assets/textures/</code>, GLBs in
+          <code>assets/models/</code>, then <strong>godot-dev</strong> imports and wires it. Fill as
+          many as you like — the panel stays open until you close it.
+        </p>
+        <label class="form-label">Needed now</label>
+        <div id="assets-asks"></div>
+        <label class="form-label">Generators</label>
+        <div id="assets-generators"></div>
+        <div class="modal-error" id="assets-error"></div>
+        <div class="modal-actions">
+          <button class="btn ghost" id="assets-close">Close</button>
         </div>
-        <div id="approvals-list"></div>
-        <div class="tree-empty" id="approvals-empty">nothing waiting on you</div>
       </div>
+    </div>
 
-      <div class="tasks-panel">
-        <div class="side-head">
-          <span class="side-label">Tasks</span>
-          <span class="badge" id="tasks-badge">0</span>
+    <div class="modal-overlay" id="draw-level-modal" style="display: none">
+      <div class="modal">
+        <div class="modal-head">Draw a level</div>
+        <p class="modal-sub">
+          Pick a tool and drag on the grid —
+          <strong>wall · door · window · item · room</strong> (empty stays floor).
+          <strong>Item</strong> and <strong>Room</strong> paint the chosen <strong>id</strong> (same
+          id = same item / one room). Export saves the grid and hands it to the
+          <strong>level-designer</strong>, who asks the level name + scene details, then has
+          <strong>godot-dev</strong> build it.
+        </p>
+        <div class="draw-level-toolbar">
+          <div class="draw-level-palette" id="draw-level-palette"></div>
+          <div
+            class="draw-level-number"
+            id="draw-level-number"
+            title="Active id for the Item / Room tools"
+          >
+            <span class="draw-level-num-label">id</span>
+            <button
+              class="draw-level-num-btn"
+              id="draw-level-num-dec"
+              type="button"
+              aria-label="lower id"
+            >
+              −
+            </button>
+            <input
+              class="draw-level-num-val"
+              id="draw-level-num-val"
+              type="number"
+              min="1"
+              max="99"
+              value="1"
+            />
+            <button
+              class="draw-level-num-btn"
+              id="draw-level-num-inc"
+              type="button"
+              aria-label="raise id"
+            >
+              +
+            </button>
+          </div>
+          <button class="btn ghost" id="draw-level-clear">Clear</button>
+          <select
+            class="draw-level-load"
+            id="draw-level-load"
+            title="Load a saved level onto the canvas"
+          ></select>
+          <span class="muted">24 × 16 · right-click erases</span>
         </div>
-        <div id="tasks-list"></div>
-        <div class="tree-empty" id="tasks-empty">no tasks yet</div>
-      </div>
-
-      <div class="activity-head">
-        <span class="side-label">Activity</span>
-        <div class="filter-chips">
-          <button class="filter-chip on" data-filter="all">All</button>
-          <button class="filter-chip" data-filter="tools">Tools</button>
-          <button class="filter-chip" data-filter="files">Files</button>
+        <canvas id="draw-level-canvas" class="draw-level-canvas" width="560" height="384"></canvas>
+        <div class="modal-error" id="draw-level-error"></div>
+        <div class="modal-actions">
+          <button class="btn ghost" id="draw-level-close">Close</button>
+          <button class="btn primary" id="draw-level-export">Export level</button>
         </div>
-        <select class="agent-filter" id="agent-filter" aria-label="Filter activity by agent">
-          <option value="">All agents</option>
-        </select>
       </div>
-
-      <div class="log-scroll" id="log-scroll"></div>
-
-      <div class="activity-foot">
-        <span class="live-dot"></span>
-        <span>live</span>
-        <button class="icon-btn" id="clear-log">clear</button>
-      </div>
-    </aside>
-
-  </div>
-</div>
-
-<div class="modal-overlay" id="transcript-modal" style="display:none">
-  <div class="modal">
-    <div class="modal-head">Harvest a transcript</div>
-    <p class="modal-sub">Paste a raw video transcript. The framework saves it to the game's <code>transcripts/</code> folder and runs <strong>transcript-researcher</strong> on it.</p>
-    <label class="form-label" for="transcript-title">Title</label>
-    <input class="form-input" id="transcript-title" placeholder="e.g. godot baked lighting" />
-    <label class="form-label" for="transcript-building">What are we about to build? <span class="muted">(optional)</span></label>
-    <input class="form-input" id="transcript-building" placeholder="e.g. baked lighting for the blockout levels" />
-    <label class="form-label" for="transcript-text">Raw transcript <span class="req">*</span></label>
-    <textarea class="form-input" id="transcript-text" rows="10" placeholder="Paste the raw video transcript here…"></textarea>
-    <div class="modal-error" id="transcript-error"></div>
-    <div class="modal-actions">
-      <button class="btn ghost" id="transcript-cancel">Cancel</button>
-      <button class="btn primary" id="transcript-submit">Add &amp; harvest</button>
     </div>
-  </div>
-</div>
 
-<div class="modal-overlay" id="assets-modal" style="display:none">
-  <div class="modal">
-    <div class="modal-head">Get assets</div>
-    <p class="modal-sub">Generate a pixel-art PNG on a free site, then upload it here — it lands in the game's <code>assets/textures/</code> and <strong>godot-dev</strong> imports and wires it.</p>
-    <label class="form-label">Needed now</label>
-    <div id="assets-asks"></div>
-    <label class="form-label">Generators</label>
-    <div id="assets-generators"></div>
-    <div class="modal-error" id="assets-error"></div>
-    <div class="modal-actions">
-      <button class="btn ghost" id="assets-close">Close</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="draw-level-modal" style="display:none">
-  <div class="modal">
-    <div class="modal-head">Draw a level</div>
-    <p class="modal-sub">Pick a tool and drag on the grid — <strong>wall · door · window · item · room</strong> (empty stays floor). <strong>Item</strong> and <strong>Room</strong> paint the chosen <strong>id</strong> (same id = same item / one room). Export saves the grid and hands it to the <strong>level-designer</strong>, who asks the level name + scene details, then has <strong>godot-dev</strong> build it.</p>
-    <div class="draw-level-toolbar">
-      <div class="draw-level-palette" id="draw-level-palette"></div>
-      <div class="draw-level-number" id="draw-level-number" title="Active id for the Item / Room tools">
-        <span class="draw-level-num-label">id</span>
-        <button class="draw-level-num-btn" id="draw-level-num-dec" type="button" aria-label="lower id">−</button>
-        <input class="draw-level-num-val" id="draw-level-num-val" type="number" min="1" max="99" value="1" />
-        <button class="draw-level-num-btn" id="draw-level-num-inc" type="button" aria-label="raise id">+</button>
-      </div>
-      <button class="btn ghost" id="draw-level-clear">Clear</button>
-      <select class="draw-level-load" id="draw-level-load" title="Load a saved level onto the canvas"></select>
-      <span class="muted">24 × 16 · right-click erases</span>
-    </div>
-    <canvas id="draw-level-canvas" class="draw-level-canvas" width="560" height="384"></canvas>
-    <div class="modal-error" id="draw-level-error"></div>
-    <div class="modal-actions">
-      <button class="btn ghost" id="draw-level-close">Close</button>
-      <button class="btn primary" id="draw-level-export">Export level</button>
-    </div>
-  </div>
-</div>
-
-<script type="module" src="client/main.js"></script>
-</body>
+    <script type="module" src="client/main.js"></script>
+  </body>
 </html>
