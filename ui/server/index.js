@@ -13,7 +13,7 @@ import { PORT, PROJECT_DIR, PROJECT_FOUND, CONFIG_FILE, LOG_DIR } from "./config
 import { projectState } from "./project-state.js";
 import { recentSessions, deleteSession } from "./transcripts.js";
 import { writeTranscript } from "./transcript-write.js";
-import { writeAsset } from "./asset-write.js";
+import { writeAsset, writeAssetFromPath } from "./asset-write.js";
 import { writeLevel } from "./level-write.js";
 import { listLevels } from "./level-read.js";
 import { readTasks } from "./tasks-store.js";
@@ -44,8 +44,9 @@ function handleTranscriptPost(req, res) {
   });
 }
 
-/** Read an uploaded PNG (base64 data URL) and write it into the game's
- * assets/textures/; respond with the project-relative path or an error.
+/** Save an asset the UI supplied (a native-picker base64 data URL, or a local file
+ * path the user picked/named) into the game's assets/ (textures/ or models/, routed
+ * by file type); respond with the project-relative path or an error.
  * @param {import("node:http").IncomingMessage} req @param {import("node:http").ServerResponse} res */
 function handleAssetPost(req, res) {
   /** @type {Buffer[]} */
@@ -57,10 +58,12 @@ function handleAssetPost(req, res) {
     /** @type {{ path: string } | { error: string }} */
     let result;
     try {
-      const body = /** @type {{ name?: string, dataUrl?: string }} */ (
+      const body = /** @type {{ name?: string, dataUrl?: string, srcPath?: string }} */ (
         parseJSON(Buffer.concat(chunks).toString("utf8"))
       );
-      result = writeAsset(body.name ?? "", body.dataUrl ?? "");
+      result = body.srcPath
+        ? writeAssetFromPath(body.name ?? "", body.srcPath)
+        : writeAsset(body.name ?? "", body.dataUrl ?? "");
     } catch {
       result = { error: "bad request" };
     }

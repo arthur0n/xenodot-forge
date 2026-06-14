@@ -37,6 +37,32 @@ let activeTab = (() => {
   }
 })();
 
+/** Free, no-signup-friendly asset generators shown in the "Get Assets" tab.
+ * Edit freely — `note` is the at-a-glance caption, surfaced on hover too.
+ * @type {{ name: string, url: string, note: string }[]} */
+const GENERATORS = [
+  { name: "Pixler", url: "https://pixler.dev/", note: "free · ~15 gen/day · PNG" },
+  { name: "Seele AI", url: "https://www.seeles.ai/", note: "free tier · pixel art" },
+];
+
+/** Asset specs to hand off to a generator — the shape the asset-advisor agent
+ * produces. One labelled space per thing: prompt, size, alpha, tileable, where.
+ * @type {{ name: string, prompt: string, size: string, alpha: string,
+ *   tileable: string, generators: string[] }[]} */
+const ASSET_SPECS = [
+  {
+    name: "Bedsheet fabric texture",
+    prompt:
+      "pixel-art bedsheet fabric texture, top-down flat view, warm cream/off-white " +
+      "linen weave with subtle wrinkle lines, 32×32 px, no transparent background " +
+      "(solid), no outline glow, SNES 16-bit style, muted warm palette",
+    size: "32×32 px",
+    alpha: "No — solid background",
+    tileable: "No — single surface",
+    generators: ["Pixler", "Seele AI"],
+  },
+];
+
 /** Starter prompts for the "+ new …" buttons — scope-first, per the
  * framework's interview-before-build loop. */
 const NEW_PROMPTS = {
@@ -155,6 +181,94 @@ function renderSkills(tree, s) {
   tree.append(newItemBtn("skills", "new skill"));
 }
 
+/** One labelled "key — value" line inside an asset card.
+ * @param {string} k @param {string} v @returns {HTMLElement} */
+function specRow(k, v) {
+  const row = el("div", "asset-spec");
+  row.append(el("span", "asset-spec-k", k), el("span", "asset-spec-v", v));
+  return row;
+}
+
+/** A link chip pointing at a generator, by name.
+ * @param {string} name @returns {HTMLElement | null} */
+function genLink(name) {
+  const g = GENERATORS.find((x) => x.name === name);
+  if (!g) return null;
+  const a = el("a", "asset-gen", g.name);
+  a.setAttribute("href", g.url);
+  a.setAttribute("target", "_blank");
+  a.setAttribute("rel", "noopener noreferrer");
+  a.title = g.note;
+  return a;
+}
+
+/** A single asset spec card — a space for each thing.
+ * @param {(typeof ASSET_SPECS)[number]} a @returns {HTMLElement} */
+function assetCard(a) {
+  const card = el("div", "asset-card");
+  card.append(el("div", "asset-card-head", a.name));
+
+  card.append(el("div", "asset-field-label", "Prompt"));
+  const prompt = el("div", "asset-prompt");
+  prompt.append(el("div", "asset-prompt-text", a.prompt));
+  const copy = el("button", "asset-copy", "copy");
+  copy.onclick = () => {
+    void navigator.clipboard?.writeText(a.prompt);
+    copy.textContent = "copied";
+    setTimeout(() => {
+      copy.textContent = "copy";
+    }, 1200);
+  };
+  prompt.append(copy);
+  card.append(prompt);
+
+  const specs = el("div", "asset-specs");
+  specs.append(specRow("Size", a.size), specRow("Alpha", a.alpha), specRow("Tileable", a.tileable));
+  card.append(specs);
+
+  card.append(el("div", "asset-field-label", "Generator"));
+  const gens = el("div", "asset-gens");
+  a.generators.forEach((name) => {
+    const link = genLink(name);
+    if (link) gens.append(link);
+  });
+  card.append(gens);
+  return card;
+}
+
+/** The "Get Assets" tab: a generators directory, then one spec card per asset
+ * to hand off — each with a copy-able prompt and labelled size/alpha/tileable.
+ * @param {HTMLElement} tree */
+function renderSources(tree) {
+  tree.append(
+    el(
+      "div",
+      "sources-intro",
+      "Generate each in a free tool, then drop the file into the project.",
+    ),
+  );
+
+  tree.append(el("div", "asset-field-label", "Generators · no signup"));
+  const dir = el("div", "gen-list");
+  GENERATORS.forEach((g) => {
+    const a = el("a", "gen-link", g.name);
+    a.setAttribute("href", g.url);
+    a.setAttribute("target", "_blank");
+    a.setAttribute("rel", "noopener noreferrer");
+    a.append(el("span", "gen-note", g.note));
+    dir.append(a);
+  });
+  tree.append(dir);
+
+  if (!ASSET_SPECS.length) {
+    tree.append(el("div", "tree-empty", "no asset specs yet"));
+    return;
+  }
+  ASSET_SPECS.forEach((a) => {
+    tree.append(assetCard(a));
+  });
+}
+
 /** Re-render the active tab panel from the cached state. */
 function renderTab() {
   const counts = state
@@ -162,6 +276,7 @@ function renderTab() {
         assets: state.designDocs.length + state.scenes.length + state.scripts.length,
         agents: state.agents.length,
         skills: state.skills.length,
+        sources: ASSET_SPECS.length,
       }
     : null;
   $$(".side-tab").forEach((t) => {
@@ -175,6 +290,7 @@ function renderTab() {
   if (!state) return;
   if (activeTab === "agents") renderAgents(tree, state);
   else if (activeTab === "skills") renderSkills(tree, state);
+  else if (activeTab === "sources") renderSources(tree);
   else renderAssets(tree, state);
 }
 

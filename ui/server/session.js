@@ -9,6 +9,7 @@ import { parseJSON } from "../lib/json.js";
 import { sessionHistory } from "./transcripts.js";
 import { makeFormTool } from "./form-tool.js";
 import { makeTaskTool } from "./task-tool.js";
+import { makeAssetTool } from "./asset-tool.js";
 import {
   readTasks,
   applyOp,
@@ -22,6 +23,7 @@ import {
   EDIT_TOOLS,
   FORM_TOOL,
   TASK_TOOL,
+  ASSET_TOOL,
   MODEL,
   EFFORT,
   ORCHESTRATOR_PROMPT,
@@ -135,6 +137,10 @@ function makeCanUseTool({ session, sessionAllowed, waitFor, log, agentByTool, fo
       // this agent's open tasks when it finishes (see closeOpenByAgent). The
       // server overrides any model-supplied `_by`.
       return { behavior: "allow", updatedInput: { ...input, _by: agent } };
+    }
+    if (toolName === ASSET_TOOL) {
+      // UI-control tool: files a user-owned asset request, never pauses — auto-allow.
+      return { behavior: "allow", updatedInput: input };
     }
     if (
       session.policy === "all" ||
@@ -296,7 +302,11 @@ function runSession({
             ui: createSdkMcpServer({
               name: "ui",
               version: "0.1.0",
-              tools: [makeFormTool(waitFor, formAgentQueue), makeTaskTool(send)],
+              tools: [
+                makeFormTool(waitFor, formAgentQueue),
+                makeTaskTool(send),
+                makeAssetTool(send),
+              ],
             }),
           },
         },

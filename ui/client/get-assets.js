@@ -1,13 +1,15 @@
 // "Get assets" — the human-in-the-loop art-sourcing loop, in a modal (the
 // sidebar was too cramped). Two parts:
-//   1. Open asset requests — owner:"user" tasks the orchestrator filed when it
-//      hit an art gap, titled "Asset: <name>" with the generation prompt in the
-//      note. The prompt is contextual to what's being built, never hardcoded.
+//   1. Open asset requests — owner:"user" tasks the agent filed (via the
+//      mcp__ui__request_asset tool) when it hit an art gap: titled "Asset: <name>"
+//      with the kind + tailored brief in the note ("[texture|model] <brief>"). The
+//      brief is contextual to what's being built, never hardcoded.
 //   2. Generators — the stable catalog of free, no-signup pixel-art sites.
-// The user generates a PNG (or sources a free .glb), uploads it here (POST
-// /api/asset writes a PNG to assets/textures/ or a GLB to assets/models/, routed
-// by file type), and we ask the orchestrator to run asset-advisor to verify it,
-// then dispatch godot-dev (on PASS) to import + wire + verify.
+// For each request the user supplies a file two ways — pick a local file (native
+// dialog) or paste its local path — and the server (POST /api/asset) copies it into
+// assets/textures/ (PNG) or assets/models/ (GLB), routed by file type. The panel
+// stays open so several requests can be filled in one session; each then asks the
+// orchestrator to run asset-advisor to verify it and dispatch godot-dev (on PASS).
 import { $, el } from "./dom.js";
 import { fetchJSON, postJSON } from "../lib/json.js";
 import { send } from "./websocket.js";
@@ -61,6 +63,14 @@ const GENERATORS = [
 ];
 
 const ASK_RE = /^asset:\s*/i;
+const KIND_RE = /^\[(texture|model)\]\s*/i;
+
+// Requests the user filled this page-session. The server marks a supplied task
+// in_progress, but the GET /api/tasks refetch can race the websocket task_update —
+// so we also drop fulfilled ids locally, removing the card immediately and keeping
+// it gone across reopen.
+/** @type {Set<string>} */
+const fulfilled = new Set();
 
 /** @param {string} s @returns {string} */
 const slug = (s) =>
@@ -70,18 +80,41 @@ const slug = (s) =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 60) || "texture";
 
-/** @typedef {{ id: string, name: string, prompt: string, dest: string }} Ask */
+/** @typedef {"texture"|"model"} Kind */
+/** @typedef {{ id: string, name: string, kind: Kind, prompt: string, dest: string }} Ask */
 
-/** Open asset requests from the task board (owner:user, "Asset: …", not done).
+/** @param {string} name @param {Kind} kind @returns {string} */
+const destFor = (name, kind) =>
+  kind === "model" ? `assets/models/${slug(name)}.glb` : `assets/textures/${slug(name)}.png`;
+
+/** Open asset requests from the task board (owner:user, "Asset: …", not done/in-progress).
+ * The note carries "[texture|model] <brief>"; we split the kind hint off the brief.
  * @returns {Promise<Ask[]>} */
 async function loadAsks() {
   try {
     const tasks = /** @type {import("../lib/types.js").Task[]} */ (await fetchJSON("/api/tasks"));
     return tasks
-      .filter((t) => t.owner === "user" && t.status !== "done" && ASK_RE.test(t.title))
+      .filter(
+        (t) =>
+          t.owner === "user" &&
+          t.status !== "done" &&
+          t.status !== "in_progress" &&
+          !fulfilled.has(t.id) &&
+          ASK_RE.test(t.title),
+      )
       .map((t) => {
         const name = t.title.replace(ASK_RE, "").trim() || "texture";
-        return { id: t.id, name, prompt: t.note ?? "", dest: `assets/textures/${slug(name)}.png` };
+        const note = t.note ?? "";
+        const km = KIND_RE.exec(note);
+        /** @type {Kind} */
+        const kind = km?.[1]?.toLowerCase() === "model" ? "model" : "texture";
+        return {
+          id: t.id,
+          name,
+          kind,
+          prompt: note.replace(KIND_RE, ""),
+          dest: destFor(name, kind),
+        };
       });
   } catch {
     return [];
@@ -127,44 +160,61 @@ function wirePrompt(ask, savedPath) {
   );
 }
 
-/** Upload the chosen PNG, then hand wiring to the orchestrator.
- * @param {Ask} ask @param {File} file */
-async function upload(ask, file) {
-  const err = $("assets-error");
-  err.textContent = "";
-  /** @type {string} */
-  let dataUrl;
-  try {
-    dataUrl = await fileToDataUrl(file);
-  } catch {
-    err.textContent = "Could not read that file.";
-    return;
-  }
+/** Send the asset body to the server, then hand wiring to the orchestrator and
+ * refresh the cards. Does NOT close the modal — many requests can be filled in one
+ * session. @param {Ask} ask @param {{ name: string, dataUrl?: string, srcPath?: string }} body
+ * @param {HTMLElement} errEl @returns {Promise<void>} */
+async function saveAndWire(ask, body, errEl) {
+  errEl.textContent = "";
   /** @type {{ path?: string, error?: string }} */
   let data;
   try {
-    data = /** @type {{ path?: string, error?: string }} */ (
-      await postJSON("/api/asset", { name: ask.name, dataUrl })
-    );
+    data = /** @type {{ path?: string, error?: string }} */ (await postJSON("/api/asset", body));
   } catch {
-    err.textContent = "Upload failed — restart the UI server (npm start) and try again.";
+    errEl.textContent = "Save failed — restart the UI server (npm start) and try again.";
     return;
   }
   if (!data.path) {
-    err.textContent = data.error ?? "Could not save the image.";
+    errEl.textContent = data.error ?? "Could not save the asset.";
     return;
   }
-  close();
+  if (ask.id) fulfilled.add(ask.id);
   void loadState();
   const prompt = wirePrompt(ask, data.path);
   addUser(prompt);
   send({ type: "user_input", text: prompt });
   if (ask.id) send({ type: "task_update", op: "update", id: ask.id, status: "in_progress" });
+  void refresh();
 }
 
-/** A file picker that uploads on selection. @param {Ask} ask @returns {HTMLElement} */
-function uploadControl(ask) {
-  const label = el("label", "btn primary", "Upload PNG / GLB");
+/** @param {Ask} ask @param {File} file @param {HTMLElement} errEl @returns {Promise<void>} */
+async function upload(ask, file, errEl) {
+  errEl.textContent = "";
+  /** @type {string} */
+  let dataUrl;
+  try {
+    dataUrl = await fileToDataUrl(file);
+  } catch {
+    errEl.textContent = "Could not read that file.";
+    return;
+  }
+  await saveAndWire(ask, { name: ask.name, dataUrl }, errEl);
+}
+
+/** @param {Ask} ask @param {string} value @param {HTMLElement} errEl @returns {Promise<void>} */
+async function submitPath(ask, value, errEl) {
+  const srcPath = value.trim();
+  if (!srcPath) {
+    errEl.textContent = "Enter a local file path first.";
+    return;
+  }
+  await saveAndWire(ask, { name: ask.name, srcPath }, errEl);
+}
+
+/** Native file picker that saves the chosen file on selection.
+ * @param {() => Ask} getAsk @param {HTMLElement} errEl @returns {HTMLElement} */
+function pickControl(getAsk, errEl) {
+  const label = el("label", "btn primary", "Pick file…");
   label.style.cursor = "pointer";
   const input = /** @type {HTMLInputElement} */ (el("input"));
   input.type = "file";
@@ -172,10 +222,29 @@ function uploadControl(ask) {
   input.style.display = "none";
   input.onchange = () => {
     const f = input.files?.[0];
-    if (f) void upload(ask, f);
+    if (f) void upload(getAsk(), f, errEl);
   };
   label.append(input);
   return label;
+}
+
+/** Text field + button to supply the asset by a local path (no byte transfer).
+ * @param {() => Ask} getAsk @param {HTMLElement} errEl @param {string} placeholder
+ * @returns {HTMLElement} */
+function pathRow(getAsk, errEl, placeholder) {
+  const row = el("div", "asset-path-row");
+  const input = /** @type {HTMLInputElement} */ (el("input", "form-input"));
+  input.placeholder = placeholder;
+  const go = () => {
+    void submitPath(getAsk(), input.value, errEl);
+  };
+  input.onkeydown = (e) => {
+    if (e.key === "Enter") go();
+  };
+  const btn = el("button", "btn ghost", "Use path");
+  btn.onclick = go;
+  row.append(input, btn);
+  return row;
 }
 
 /** A copy-to-clipboard button for the contextual prompt. @param {string} text @returns {HTMLElement} */
@@ -195,7 +264,7 @@ function copyBtn(text) {
 function askCard(ask) {
   const card = el("div", "asset-card");
   card.append(el("div", "modal-head", ask.name));
-  card.append(el("div", "modal-sub", "→ .png saves to assets/textures/ · .glb to assets/models/"));
+  card.append(el("div", "modal-sub", `${ask.kind} → ${ask.dest}`));
   if (ask.prompt) {
     const ta = /** @type {HTMLTextAreaElement} */ (el("textarea", "form-input"));
     ta.value = ask.prompt;
@@ -203,38 +272,45 @@ function askCard(ask) {
     ta.readOnly = true;
     card.append(ta);
   }
+  const errEl = el("div", "modal-error");
+  const getAsk = () => ask;
   const actions = el("div", "modal-actions");
   if (ask.prompt) actions.append(copyBtn(ask.prompt));
-  actions.append(uploadControl(ask));
+  actions.append(pickControl(getAsk, errEl));
   card.append(actions);
+  card.append(
+    pathRow(
+      getAsk,
+      errEl,
+      `or paste a local path, e.g. ~/Downloads/${slug(ask.name)}.${ask.kind === "model" ? "glb" : "png"}`,
+    ),
+  );
+  card.append(errEl);
   return card;
 }
 
-/** Ad-hoc card when there's no pending request — name it, upload it.
+/** Ad-hoc card when there's no pending request — name it, then pick or path it.
  * @returns {HTMLElement} */
 function adhocCard() {
   const card = el("div", "asset-card");
   card.append(
-    el("div", "modal-sub", "No open requests — upload an ad-hoc texture (.png) or model (.glb):"),
+    el("div", "modal-sub", "No open requests — supply an ad-hoc texture (.png) or model (.glb):"),
   );
   const nameInput = /** @type {HTMLInputElement} */ (el("input", "form-input"));
   nameInput.placeholder = "name, e.g. grass_blade";
   card.append(nameInput);
-  const actions = el("div", "modal-actions");
-  const label = el("label", "btn primary", "Upload PNG / GLB");
-  label.style.cursor = "pointer";
-  const input = /** @type {HTMLInputElement} */ (el("input"));
-  input.type = "file";
-  input.accept = "image/png,.glb,model/gltf-binary";
-  input.style.display = "none";
-  input.onchange = () => {
-    const f = input.files?.[0];
+  const errEl = el("div", "modal-error");
+  // The file type decides texture vs model on the server; kind here is just a default.
+  /** @returns {Ask} */
+  const getAsk = () => {
     const name = nameInput.value.trim() || "texture";
-    if (f) void upload({ id: "", name, prompt: "", dest: `assets/textures/${slug(name)}.png` }, f);
+    return { id: "", name, kind: "texture", prompt: "", dest: destFor(name, "texture") };
   };
-  label.append(input);
-  actions.append(label);
+  const actions = el("div", "modal-actions");
+  actions.append(pickControl(getAsk, errEl));
   card.append(actions);
+  card.append(pathRow(getAsk, errEl, "or paste a local path, e.g. ~/Downloads/grass.png"));
+  card.append(errEl);
   return card;
 }
 

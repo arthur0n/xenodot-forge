@@ -65,6 +65,11 @@ export const FORM_TOOL = "mcp__ui__form";
 // real side effect, so it bypasses the permission policy.
 export const TASK_TOOL = "mcp__ui__tasks";
 
+// In-process MCP tool the agent calls to request one art asset (see asset-tool.js).
+// Like the task tool it only files a task-board item (a UI-control surface, no real
+// side effect), so it bypasses the permission policy.
+export const ASSET_TOOL = "mcp__ui__request_asset";
+
 // The main loop is an orchestrator: pinned model (not the user's default) and a
 // routing-focused system prompt, editable in ui/orchestrator.md.
 export const MODEL = args.find((a) => a.startsWith("--model="))?.split("=")[1] ?? "claude-opus-4-8";

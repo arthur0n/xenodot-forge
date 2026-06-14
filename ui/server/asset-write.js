@@ -1,13 +1,22 @@
-// Write a pixel-art PNG uploaded from the web UI into the game's
-// assets/textures/ folder, where godot-dev wires it. Sibling to
-// transcript-write.js and equally narrow: PNG only, name slugified to
-// [a-z0-9-], confined to <project>/assets/textures/, never clobbers.
-import { writeFileSync, mkdirSync, existsSync } from "node:fs";
+// Write an asset the web UI supplied into the game's assets/ folder, where
+// godot-dev wires it. The user supplies it one of two ways (client/get-assets.js):
+//   • native picker → a base64 data URL  (writeAsset)
+//   • a local file path                  (writeAssetFromPath)
+// Both funnel through writeBuffer, which routes by file type sniffed from the
+// decoded bytes:
+//   PNG  → assets/textures/<slug>.png   (pixel-art texture)
+//   GLB  → assets/models/<slug>.glb     (sourced low-poly 3D prop)
+// Narrow by design: those two media only, name slugified to [a-z0-9-], confined
+// to the target folder, never clobbers. Sibling to level-write.js / transcript-write.js.
+import { writeFileSync, mkdirSync, existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { PROJECT_DIR } from "./config.js";
 
-const MAX_BYTES = 5_000_000;
+const PNG_MAX_BYTES = 5_000_000;
+const GLB_MAX_BYTES = 25_000_000;
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const GLB_MAGIC = Buffer.from("glTF", "ascii"); // glTF-binary container magic
 
 /** @param {string} s @returns {string} */
 function slug(s) {
@@ -16,31 +25,78 @@ function slug(s) {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "")
-      .slice(0, 60) || "texture"
+      .slice(0, 60) || "asset"
   );
 }
 
 /**
- * Decode a `data:image/png;base64,…` URL and write it to
- * <project>/assets/textures/<slug(name)>.png, suffixing -2, -3, … to avoid
- * clobbering. Returns the project-relative path or an error.
+ * Route a decoded asset buffer into the game's assets/ folder by the sniffed file
+ * type: PNG → assets/textures/<slug>.png, GLB → assets/models/<slug>.glb. Suffixes
+ * -2, -3, … to avoid clobbering. The file type — not the caller — decides the
+ * destination, so a mismatched request can never put a GLB in textures/.
+ * @param {string} name @param {Buffer} buf
+ * @returns {{ path: string } | { error: string }}
+ */
+function writeBuffer(name, buf) {
+  /** @type {{ subdir: string, ext: string } | null} */
+  let kind = null;
+  if (buf.subarray(0, 8).equals(PNG_MAGIC)) {
+    if (buf.length > PNG_MAX_BYTES) return { error: "PNG too large (max 5 MB)" };
+    kind = { subdir: "textures", ext: "png" };
+  } else if (buf.subarray(0, 4).equals(GLB_MAGIC)) {
+    if (buf.length > GLB_MAX_BYTES) return { error: "model too large (max 25 MB)" };
+    kind = { subdir: "models", ext: "glb" };
+  }
+  if (!kind) {
+    return { error: "unsupported file — provide a .png texture or a .glb (glTF-binary) model" };
+  }
+
+  const dir = path.join(PROJECT_DIR, "assets", kind.subdir);
+  const stem = slug(name);
+  let file = path.join(dir, `${stem}.${kind.ext}`);
+  if (!file.startsWith(dir + path.sep)) return { error: "invalid name" }; // defense in depth
+  mkdirSync(dir, { recursive: true });
+  let n = 2;
+  while (existsSync(file)) file = path.join(dir, `${stem}-${n++}.${kind.ext}`);
+  writeFileSync(file, buf);
+  return { path: path.relative(PROJECT_DIR, file) };
+}
+
+/**
+ * Decode a base64 data URL (the native-picker upload) and write it into assets/.
+ * The data URL's MIME is ignored (browsers report .glb inconsistently) — only the
+ * magic bytes decide the destination.
  * @param {string} name @param {string} dataUrl
  * @returns {{ path: string } | { error: string }}
  */
 export function writeAsset(name, dataUrl) {
-  const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl ?? "");
-  if (!m) return { error: "PNG only — upload a .png with a transparent background" };
-  const buf = Buffer.from(m[1] ?? "", "base64");
-  if (buf.length > MAX_BYTES) return { error: "image too large (max 5 MB)" };
-  if (!buf.subarray(0, 8).equals(PNG_MAGIC)) return { error: "not a valid PNG" };
+  const m = /^data:[^;,]*;base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl ?? "");
+  if (!m) return { error: "upload a base64 data URL (.png texture or .glb model)" };
+  return writeBuffer(name, Buffer.from(m[1] ?? "", "base64"));
+}
 
-  const dir = path.join(PROJECT_DIR, "assets", "textures");
-  const stem = slug(name);
-  let file = path.join(dir, `${stem}.png`);
-  if (!file.startsWith(dir + path.sep)) return { error: "invalid name" }; // defense in depth
-  mkdirSync(dir, { recursive: true });
-  let n = 2;
-  while (existsSync(file)) file = path.join(dir, `${stem}-${n++}.png`);
-  writeFileSync(file, buf);
-  return { path: path.relative(PROJECT_DIR, file) };
+/**
+ * Read a local file the user picked or named (a leading ~ expands to home) and copy
+ * it into assets/. Reading an arbitrary local path is fine for this single-user local
+ * dev tool; the DESTINATION stays confined to assets/ (writeBuffer's guard). The
+ * coarse pre-read cap avoids slurping a huge non-asset file before writeBuffer's
+ * precise per-type cap rejects it.
+ * @param {string} name @param {string} srcPath
+ * @returns {{ path: string } | { error: string }}
+ */
+export function writeAssetFromPath(name, srcPath) {
+  const raw = (srcPath ?? "").trim();
+  if (!raw) return { error: "enter a local file path (.png texture or .glb model)" };
+  const expanded = raw.startsWith("~") ? path.join(os.homedir(), raw.slice(1)) : raw;
+  const abs = path.resolve(expanded);
+  /** @type {import("node:fs").Stats} */
+  let st;
+  try {
+    st = statSync(abs);
+  } catch {
+    return { error: `no file at ${raw}` };
+  }
+  if (!st.isFile()) return { error: `not a file: ${raw}` };
+  if (st.size > GLB_MAX_BYTES) return { error: "file too large (max 25 MB)" };
+  return writeBuffer(name, readFileSync(abs));
 }
