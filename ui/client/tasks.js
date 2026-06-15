@@ -142,20 +142,24 @@ function createRow(t) {
 function updateOwnerChip(row, chip, t) {
   const agent = t.owner === "agent" ? t.agent : undefined;
   chip.replaceChildren();
-  if (agent) {
-    row.classList.add("identified");
-    row.style.setProperty("--agent-color", agentColor(agent));
-    chip.className = "owner-chip owner-agent identified";
-    chip.title = agentLabel(agent);
+  if (t.owner === "agent") {
+    // Always a stamped tag (sigil + label). A known creator names its Xenodot —
+    // role, identity color, and a matching row accent. An unattributed agent task
+    // (e.g. a legacy entry) gets a generic "Agent" stamp in the default accent.
+    row.classList.toggle("identified", Boolean(agent));
+    if (agent) row.style.setProperty("--agent-color", agentColor(agent));
+    else row.style.removeProperty("--agent-color");
+    chip.className = agent ? "owner-chip owner-agent identified" : "owner-chip owner-agent";
+    chip.title = agent ? agentLabel(agent) : "";
     chip.append(
-      el("span", "owner-sigil", agentInitial(agent)),
-      el("span", "owner-label", agentRole(agent)),
+      el("span", "owner-sigil", agent ? agentInitial(agent) : "A"),
+      el("span", "owner-label", agent ? agentRole(agent) : "Agent"),
     );
   } else {
     row.style.removeProperty("--agent-color");
-    chip.className = `owner-chip owner-${t.owner}`;
+    chip.className = "owner-chip owner-user";
     chip.title = "";
-    chip.append(el("span", "owner-label", t.owner === "user" ? "You" : "Agent"));
+    chip.append(el("span", "owner-label", "You"));
   }
 }
 

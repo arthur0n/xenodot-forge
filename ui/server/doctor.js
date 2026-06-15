@@ -9,8 +9,15 @@
 import { existsSync, readdirSync, lstatSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
-import { PROJECT_DIR, FRAMEWORK_PLUGIN_DIR, ENGINE, ENGINE_LABEL } from "./config.js";
+import {
+  PROJECT_DIR,
+  FRAMEWORK_PLUGIN_DIR,
+  ENGINE,
+  ENGINE_LABEL,
+  RES_ASSET_MOUNT,
+} from "./config.js";
 import { prepareGame } from "./materialize.js";
+import { readPromotions, approvedPending } from "./promotions-store.js";
 
 /** Count files with a suffix in a dir (0 if missing). @param {string} dir @param {string} suffix */
 function countFiles(dir, suffix) {
@@ -49,6 +56,15 @@ function libraryLinked() {
   }
 }
 
+/** @returns {boolean} */
+function assetLibraryLinked() {
+  try {
+    return lstatSync(path.join(PROJECT_DIR, RES_ASSET_MOUNT)).isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
 // Bring the game's generated files up to date (tools copied, library linked), then check.
 prepareGame(PROJECT_DIR);
 
@@ -78,6 +94,11 @@ const checks = [
     label: "tools/ materialized into the game (gitignored)",
   },
   { ok: libraryLinked(), hard: false, label: "library/ symlinked to the plugin" },
+  {
+    ok: assetLibraryLinked(),
+    hard: false,
+    label: `${RES_ASSET_MOUNT}/ symlinked to the external asset library`,
+  },
   { ok: hasRtk(), hard: false, label: "rtk on PATH (optional — hook no-ops without it)" },
 ];
 
@@ -87,6 +108,17 @@ for (const c of checks) {
   const mark = c.ok ? "✓" : c.hard ? "✗" : "—";
   console.log(`  ${mark} ${c.label}`);
   if (!c.ok && c.hard) hardFails += 1;
+}
+
+// Soft: surface pending promotion requests so an approved capability never sits
+// un-promoted just because the chat scrolled away (see promotions-store.js).
+const requested = readPromotions().filter((p) => p.status === "requested").length;
+const approved = approvedPending().length;
+if (requested || approved) {
+  console.log(
+    `  ⇧ promotions: ${requested} awaiting a decision, ${approved} approved — ` +
+      "run `npm run promote -- --pending` to apply the approved ones.",
+  );
 }
 
 if (hardFails > 0) {

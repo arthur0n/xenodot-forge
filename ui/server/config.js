@@ -29,7 +29,7 @@ const args = process.argv.slice(2);
  * Read once: it carries both the saved project path and the engine block. */
 const SAVED = (() => {
   try {
-    return /** @type {{ projectDir?: string, engine?: EngineConfig }} */ (
+    return /** @type {{ projectDir?: string, engine?: EngineConfig, assetLibrary?: string }} */ (
       parseJSON(readFileSync(CONFIG_FILE, "utf8"))
     );
   } catch {
@@ -73,6 +73,25 @@ export const ENGINE = {
 /** Capitalized engine name for UI/CLI copy, e.g. "Godot", "Redot", "Blazium". */
 export const ENGINE_LABEL = ENGINE.name.charAt(0).toUpperCase() + ENGINE.name.slice(1);
 
+/** The game's res:// mount name for the external shared-asset library — a symlink
+ * materialize.js creates (`<game>/x-shared-assets` → ASSET_LIBRARY), so a model resolves
+ * at `res://x-shared-assets/models/<name>.glb`. One literal, shared across config /
+ * materialize / asset-write / doctor / the client, to avoid drift. */
+export const RES_ASSET_MOUNT = "x-shared-assets";
+
+/** The external "shared asset library": free-library example assets (models/textures) the
+ * game uses but kept OUTSIDE its tree, so the game stays pure game. Symlinked into the game
+ * at `res://x-shared-assets/` — and, unlike the knowledge library, NOT .gdignored, so Godot
+ * scans and imports it. The framework is per-game, so this dir is effectively this game's,
+ * just external. Resolution (first hit wins): env `XENODOT_ASSET_LIBRARY` → `.xenodot.json`
+ * `assetLibrary` → default sibling `../x-shared-assets`. May start empty — the framework
+ * only needs to know where it is. */
+export const ASSET_LIBRARY = path.resolve(
+  process.env.XENODOT_ASSET_LIBRARY ??
+    SAVED.assetLibrary ??
+    path.join(FRAMEWORK_DIR, "..", RES_ASSET_MOUNT),
+);
+
 // When an engine binary is configured, propagate it as $GODOT so the verify gate
 // uses it. The Claude Code session the SDK spawns inherits this process's env, so
 // every `$GODOT` call (tools/validate.sh, the godot-verify skill) hits the chosen
@@ -86,6 +105,10 @@ if (ENGINE.bin) process.env.GODOT = ENGINE.bin;
 // `additionalDirectories` (see session.js). Inherited by the Claude Code subprocess.
 process.env.XENODOT_PLUGIN = FRAMEWORK_PLUGIN_DIR;
 process.env.XENODOT_LIBRARY = path.join(FRAMEWORK_PLUGIN_DIR, "library");
+// The external shared-asset library (see ASSET_LIBRARY). Exported so the spawned session,
+// its agents (asset-advisor reads/verifies the sourced file here) and validate.sh can locate
+// it regardless of cwd; the game reaches the same bytes via the res://x-shared-assets symlink.
+process.env.XENODOT_ASSET_LIBRARY = ASSET_LIBRARY;
 
 /** Whether PROJECT_DIR actually holds an engine project (Godot or a fork) —
  * drives the startup warning and the UI's empty-state banner. */
@@ -123,6 +146,25 @@ export const ASSET_TOOL = "mcp__ui__request_asset";
 // (impossible for a fire-and-forget worker). The orchestrator relays the answer on
 // a later turn. UI-control surface, no real side effect, so it bypasses the policy.
 export const ASK_TOOL = "mcp__ui__ask";
+
+// In-process MCP tool an agent calls to request promoting a game-local capability
+// (tool/skill/agent) into the framework plugin. Like the task tool it only files a
+// record on the promotions board (a UI-control surface, no real side effect — the
+// move happens later via `npm run promote`), so it bypasses the permission policy.
+export const PROMOTE_TOOL = "mcp__ui__promote";
+
+// Bare tool names auto-allowed (no permission prompt) for the whole session — the
+// read/research/exec toolset background sub-agents need. This is the ONE lever that
+// reaches a backgrounded (headless) sub-agent: it has no interactive approver, so
+// the SDK auto-denies anything not pre-approved, and only BARE-name allows reach it
+// — an argument-scoped settings rule like `Bash(**)`/`Read(**)` does NOT (that's why
+// backgrounded researchers were denied Read/Bash/WebSearch/WebFetch despite the
+// settings allowlist). Passed as SDK `allowedTools` (see session.js). Deliberately
+// NOT Write/Edit — game/library edits ride the agents' `acceptEdits` mode, and
+// authoring under `.claude/` stays a foreground, human-approved act (orchestrator
+// rule). Bash is safe here because the destructive-git/-shell PreToolUse hooks gate
+// it independently of the permission layer.
+export const AUTO_ALLOW_TOOLS = ["Read", "Glob", "Grep", "Bash", "WebSearch", "WebFetch"];
 
 // The main loop is an orchestrator: pinned model (not the user's default) and a
 // routing-focused system prompt, editable in ui/orchestrator.md.

@@ -24,6 +24,8 @@ export function reduce(s, msg) {
   switch (msg.type) {
     case "tasks":
       return { ...s, tasks: msg.tasks }; // SNAPSHOT — replace
+    case "promotions":
+      return { ...s, promotions: msg.items }; // SNAPSHOT — replace
     case "policy":
       return { ...s, policy: msg.value }; // SNAPSHOT — replace
     case "history":
@@ -38,6 +40,16 @@ export function reduce(s, msg) {
       return foldDenied(s, msg);
     case "idle":
       return foldIdle(s);
+    case "context":
+      return {
+        ...s,
+        session: {
+          ...s.session,
+          contextPct: msg.percentage,
+          contextTokens: msg.totalTokens,
+          contextMax: msg.maxTokens,
+        },
+      };
     case "event":
       return reduceEvent(s, msg.message);
     default:

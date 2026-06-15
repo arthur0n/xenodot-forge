@@ -4,6 +4,7 @@ description: Mechanical modularization agent for this Godot project. Extracts ex
 model: haiku
 tools: Read, Write, Edit, Bash, Glob, Grep, mcp__ui__tasks
 skills:
+  - caveman
   - godot-composition
   - godot-code-rules
   - godot-verify

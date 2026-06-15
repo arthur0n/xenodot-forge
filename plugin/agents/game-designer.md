@@ -4,6 +4,7 @@ description: Game designer agent for the DiceOfFate project. Turns a feature or 
 model: opus
 tools: Read, Glob, Grep, Write, Edit, Skill, mcp__ui__form, mcp__ui__tasks
 skills:
+  - caveman
   - tasks-mcp
 effort: high
 ---

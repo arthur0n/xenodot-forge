@@ -6,8 +6,10 @@
 //      brief is contextual to what's being built, never hardcoded.
 //   2. Generators — the stable catalog of free, no-signup pixel-art sites.
 // For each request the user supplies a file two ways — pick a local file (native
-// dialog) or paste its local path — and the server (POST /api/asset) copies it into
-// assets/textures/ (PNG) or assets/models/ (GLB), routed by file type. The panel
+// dialog) or paste its local path — and chooses a destination "place": the game's own
+// assets/ (default) or the external shared-asset library (res://x-shared-assets, for
+// free-library example assets kept out of the game tree). The server (POST /api/asset)
+// copies it into <place>/textures/ (PNG) or <place>/models/ (GLB), routed by file type. The panel
 // stays open so several requests can be filled in one session; each then asks the
 // orchestrator to run asset-advisor to verify it and dispatch godot-dev (on PASS).
 import { $, el } from "./dom.js";
@@ -83,9 +85,13 @@ const slug = (s) =>
 /** @typedef {"texture"|"model"} Kind */
 /** @typedef {{ id: string, name: string, kind: Kind, prompt: string, dest: string }} Ask */
 
-/** @param {string} name @param {Kind} kind @returns {string} */
-const destFor = (name, kind) =>
-  kind === "model" ? `assets/models/${slug(name)}.glb` : `assets/textures/${slug(name)}.png`;
+/** @param {string} name @param {Kind} kind @param {"game"|"shared"} [place] @returns {string} */
+const destFor = (name, kind, place) => {
+  const root = place === "shared" ? "x-shared-assets" : "assets";
+  return kind === "model"
+    ? `${root}/models/${slug(name)}.glb`
+    : `${root}/textures/${slug(name)}.png`;
+};
 
 /** Open asset requests from the task board (owner:user, "Asset: …", not done/in-progress).
  * The note carries "[texture|model] <brief>"; we split the kind hint off the brief.
@@ -142,7 +148,7 @@ function wirePrompt(ask, savedPath) {
     return (
       `I sourced the "${ask.name}" model and saved it to ${savedPath}${task}. ` +
       `First run the asset-advisor agent (gate 2) to verify it (.glb format, scale/units, materials, ` +
-      `placement in assets/models/, licence). Only on PASS, dispatch godot-dev to wire it per skill ` +
+      `placement, licence). Only on PASS, dispatch godot-dev to wire it per skill ` +
       `godot-mesh-import-pixel-art — import, scale to the prop's footprint, instance it in place of the ` +
       `matching greybox node (keep its name + position), NEAREST + Make-Unique only if it carries a ` +
       `texture — then verify with godot-verify and mark the task done once it renders. If asset-advisor ` +
@@ -152,7 +158,7 @@ function wirePrompt(ask, savedPath) {
   return (
     `I generated the "${ask.name}" texture and saved it to ${savedPath}${task}. ` +
     `First run the asset-advisor agent to verify it against the request (type, dimensions, alpha, ` +
-    `placement in assets/textures/, import settings). Only on PASS, dispatch godot-dev to import it ` +
+    `placement, import settings). Only on PASS, dispatch godot-dev to import it ` +
     `(Filter = Nearest, Mipmaps = Off) and wire it per the asset-sourcing loop — e.g. bind ` +
     `blade_texture and set use_texture = true in resources/grass_blade_material.tres, or swap the ` +
     `relevant StandardMaterial3D albedo — then verify with godot-verify and mark the task done once it ` +
@@ -162,7 +168,8 @@ function wirePrompt(ask, savedPath) {
 
 /** Send the asset body to the server, then hand wiring to the orchestrator and
  * refresh the cards. Does NOT close the modal — many requests can be filled in one
- * session. @param {Ask} ask @param {{ name: string, dataUrl?: string, srcPath?: string }} body
+ * session. @param {Ask} ask
+ * @param {{ name: string, dataUrl?: string, srcPath?: string, place?: "game"|"shared" }} body
  * @param {HTMLElement} errEl @returns {Promise<void>} */
 async function saveAndWire(ask, body, errEl) {
   errEl.textContent = "";
@@ -187,8 +194,9 @@ async function saveAndWire(ask, body, errEl) {
   void refresh();
 }
 
-/** @param {Ask} ask @param {File} file @param {HTMLElement} errEl @returns {Promise<void>} */
-async function upload(ask, file, errEl) {
+/** @param {Ask} ask @param {File} file @param {"game"|"shared"} place @param {HTMLElement} errEl
+ * @returns {Promise<void>} */
+async function upload(ask, file, place, errEl) {
   errEl.textContent = "";
   /** @type {string} */
   let dataUrl;
@@ -198,22 +206,24 @@ async function upload(ask, file, errEl) {
     errEl.textContent = "Could not read that file.";
     return;
   }
-  await saveAndWire(ask, { name: ask.name, dataUrl }, errEl);
+  await saveAndWire(ask, { name: ask.name, dataUrl, place }, errEl);
 }
 
-/** @param {Ask} ask @param {string} value @param {HTMLElement} errEl @returns {Promise<void>} */
-async function submitPath(ask, value, errEl) {
+/** @param {Ask} ask @param {string} value @param {"game"|"shared"} place @param {HTMLElement} errEl
+ * @returns {Promise<void>} */
+async function submitPath(ask, value, place, errEl) {
   const srcPath = value.trim();
   if (!srcPath) {
     errEl.textContent = "Enter a local file path first.";
     return;
   }
-  await saveAndWire(ask, { name: ask.name, srcPath }, errEl);
+  await saveAndWire(ask, { name: ask.name, srcPath, place }, errEl);
 }
 
 /** Native file picker that saves the chosen file on selection.
- * @param {() => Ask} getAsk @param {HTMLElement} errEl @returns {HTMLElement} */
-function pickControl(getAsk, errEl) {
+ * @param {() => Ask} getAsk @param {() => "game"|"shared"} getPlace @param {HTMLElement} errEl
+ * @returns {HTMLElement} */
+function pickControl(getAsk, getPlace, errEl) {
   const label = el("label", "btn primary", "Pick file…");
   label.style.cursor = "pointer";
   const input = /** @type {HTMLInputElement} */ (el("input"));
@@ -222,21 +232,21 @@ function pickControl(getAsk, errEl) {
   input.style.display = "none";
   input.onchange = () => {
     const f = input.files?.[0];
-    if (f) void upload(getAsk(), f, errEl);
+    if (f) void upload(getAsk(), f, getPlace(), errEl);
   };
   label.append(input);
   return label;
 }
 
 /** Text field + button to supply the asset by a local path (no byte transfer).
- * @param {() => Ask} getAsk @param {HTMLElement} errEl @param {string} placeholder
- * @returns {HTMLElement} */
-function pathRow(getAsk, errEl, placeholder) {
+ * @param {() => Ask} getAsk @param {() => "game"|"shared"} getPlace @param {HTMLElement} errEl
+ * @param {string} placeholder @returns {HTMLElement} */
+function pathRow(getAsk, getPlace, errEl, placeholder) {
   const row = el("div", "asset-path-row");
   const input = /** @type {HTMLInputElement} */ (el("input", "form-input"));
   input.placeholder = placeholder;
   const go = () => {
-    void submitPath(getAsk(), input.value, errEl);
+    void submitPath(getAsk(), input.value, getPlace(), errEl);
   };
   input.onkeydown = (e) => {
     if (e.key === "Enter") go();
@@ -260,11 +270,37 @@ function copyBtn(text) {
   return btn;
 }
 
+/** Destination "place" selector: the game's own assets/ (default) or the external
+ * shared-asset library (res://x-shared-assets) — for free-library example assets kept out of
+ * the game tree. @returns {{ row: HTMLElement, get: () => "game"|"shared",
+ * onChange: (cb: () => void) => void }} */
+function placeSelect() {
+  const row = el("div", "asset-place-row");
+  row.append(el("span", "desc", "Place: "));
+  const sel = /** @type {HTMLSelectElement} */ (el("select", "form-input"));
+  const game = /** @type {HTMLOptionElement} */ (el("option", undefined, "Game (assets/)"));
+  game.value = "game";
+  const shared = /** @type {HTMLOptionElement} */ (
+    el("option", undefined, "Shared (x-shared-assets/)")
+  );
+  shared.value = "shared";
+  sel.append(game, shared);
+  row.append(sel);
+  return {
+    row,
+    get: () => (sel.value === "shared" ? "shared" : "game"),
+    onChange: (cb) => {
+      sel.onchange = cb;
+    },
+  };
+}
+
 /** Card for one open asset request. @param {Ask} ask @returns {HTMLElement} */
 function askCard(ask) {
   const card = el("div", "asset-card");
   card.append(el("div", "modal-head", ask.name));
-  card.append(el("div", "modal-sub", `${ask.kind} → ${ask.dest}`));
+  const sub = el("div", "modal-sub", `${ask.kind} → ${ask.dest}`);
+  card.append(sub);
   if (ask.prompt) {
     const ta = /** @type {HTMLTextAreaElement} */ (el("textarea", "form-input"));
     ta.value = ask.prompt;
@@ -274,13 +310,19 @@ function askCard(ask) {
   }
   const errEl = el("div", "modal-error");
   const getAsk = () => ask;
+  const place = placeSelect();
+  place.onChange(() => {
+    sub.textContent = `${ask.kind} → ${destFor(ask.name, ask.kind, place.get())}`;
+  });
+  card.append(place.row);
   const actions = el("div", "modal-actions");
   if (ask.prompt) actions.append(copyBtn(ask.prompt));
-  actions.append(pickControl(getAsk, errEl));
+  actions.append(pickControl(getAsk, place.get, errEl));
   card.append(actions);
   card.append(
     pathRow(
       getAsk,
+      place.get,
       errEl,
       `or paste a local path, e.g. ~/Downloads/${slug(ask.name)}.${ask.kind === "model" ? "glb" : "png"}`,
     ),
@@ -306,10 +348,14 @@ function adhocCard() {
     const name = nameInput.value.trim() || "texture";
     return { id: "", name, kind: "texture", prompt: "", dest: destFor(name, "texture") };
   };
+  const place = placeSelect();
+  card.append(place.row);
   const actions = el("div", "modal-actions");
-  actions.append(pickControl(getAsk, errEl));
+  actions.append(pickControl(getAsk, place.get, errEl));
   card.append(actions);
-  card.append(pathRow(getAsk, errEl, "or paste a local path, e.g. ~/Downloads/grass.png"));
+  card.append(
+    pathRow(getAsk, place.get, errEl, "or paste a local path, e.g. ~/Downloads/grass.png"),
+  );
   card.append(errEl);
   return card;
 }

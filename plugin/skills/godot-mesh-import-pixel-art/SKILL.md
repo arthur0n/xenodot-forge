@@ -3,113 +3,112 @@ name: godot-mesh-import-pixel-art
 description: Import, scale and wire a SOURCED low-poly / pixel-art .glb model in Godot 4 as a discrete prop — the primary path for furniture/items, instanced in place of a greybox box (NOT a texture wrapped on a primitive). Use whenever a .glb arrives in assets/models/ from the asset-sourcing loop, when a prop must stop being a flat greybox box, when an imported model renders blurry / wrong-sized / black, or when deciding how to swap a greybox node for a real model. Also use for the glTF Advanced-Import workflow (skip a node, override vs extract a material, embedded textures, normal-map invert-Y), when deciding inherited-scene vs nested-instance vs make-local for an imported model, or when adding a collider to an imported mesh (auto-generate + Make-Unique). NOT for authoring a model (that is parked/Blender) and NOT for tiling a texture on a wall (that is godot-texture-import-pixel-art).
 ---
 
-A discrete prop (furniture, item, set dressing) in this 3D-pixel-art project is a **sourced low-poly `.glb` model instanced in place of its greybox box** — never a single PNG wrapped on a `BoxMesh`. The pixel look comes from the SubViewport downscale + orthographic camera, so a clean low-poly mesh (flat-material, vertex-coloured, or lightly textured) already reads as pixel art once rendered low-res. This skill covers importing a `.glb` you _sourced_ (free, CC0/low-poly — see `library/sources/model-sources.md`); authoring one from scratch (Blender) is parked v2.
+Discrete prop (furniture, item, set dressing) = **sourced low-poly `.glb` instanced in place of greybox box**. Pixel look comes from SubViewport downscale + orthographic camera — clean low-poly mesh reads as pixel art at low res. Judge the result in F5, not the editor viewport.
 
 ## Requirements
 
-- `godot-3d-pixelation` — the SubViewport rig must exist; scale and filter bugs are invisible at full res, obvious at low res. Judge the result in F5, not the editor viewport.
-- `godot-texture-import-pixel-art` — the authority on NEAREST filtering + the Make-Unique gotcha. This skill _reuses_ it; it does not restate the `.import`/sampler rules.
+- `godot-3d-pixelation` — SubViewport rig must exist.
+- `godot-texture-import-pixel-art` — authority on NEAREST filtering + Make-Unique gotcha; this skill reuses it.
 - `godot-verify` — mandatory 3-layer check after wiring.
-- The greybox prop it replaces already exists as a named node (e.g. `Wardrobe` `MeshInstance3D`) at a **computed** position — the slice that placed the box made it a clean 1:1 swap target. Keep that node's name and transform.
+- Greybox node at a **computed** position (keep its name and transform).
 
 ## Project conventions
 
-- The source model lives at `assets/models/<name>.glb` (snake_case, glTF-binary, self-contained). `.gltf` (text + external `.bin`/textures) is NOT supported via the single-file upload — convert/export to `.glb` first. Any textures the model carries still belong in `assets/textures/`. `assets/` is gitignored.
-- A `.glb` imports as a **PackedScene** by default; instance that scene as the prop. Do not flatten it into the level by hand.
-- Keep the **one build path** rule: if the greybox prop was placed by an author-time builder (`tools/build_shared_apartment*.gd`), extend that builder to instance the model — don't fork a second importer or hand-edit the `.tscn` in parallel.
+- Source at `assets/models/<name>.glb` (snake_case, glTF-binary, self-contained). `.gltf` not supported — convert to `.glb` first.
+- `.glb` imports as **PackedScene**; instance it. Don't flatten by hand.
+- **One build path:** if greybox was placed by a builder (`tools/build_*.gd`), extend that builder — don't fork a second importer.
 
 ## Steps
 
-**1. Place + let Godot import**
+**1. Place + import**
 
-Drop the file at `assets/models/<name>.glb`. On the next editor open (or headless import) Godot generates the import + a PackedScene. Confirm no import errors in the Output panel.
+Drop `assets/models/<name>.glb`. Confirm no import errors in Output panel.
 
-**1a. Advanced Import (only when the default import is wrong)**
+**1a. Advanced Import (only when default import is wrong)**
 
-Godot treats a `.glb` as a _scene_, not a single mesh. The basic Import dock covers Root Type / Root Name / Root Scale; the **Advanced Import Settings** window (double-click the `.glb` in FileSystem) covers per-node and per-material decisions. Open it only when the default import has a concrete defect — otherwise skip to step 2.
+Double-click `.glb` in FileSystem → Advanced Import Settings. Open only for concrete defects:
 
-- **Skip a node** — a sourced model often ships extra nodes (a baked-in light, a camera, a duplicate LOD, a logo plane). Select it in the Advanced Import tree → **Skip Import** (or rename it with the `-noimp` suffix at source). We light scenes ourselves (`godot-pixel-lighting`) and frame them with our own camera (`godot-orthographic-follow-camera` for top-down/iso), so **always skip any imported Light/Camera** — leaving them in fights our rig.
-- **Material: override vs extract** — by default materials are embedded in the imported scene and can't be edited or shared. For each material node, **Storage = Built-In** keeps it embedded (fine for a one-off prop); **Storage = Files** _extracts_ it to a real `.tres` you can edit and reuse — extract when you need to set `texture_filter`, swap an albedo, or share the material across props. Extract to `resources/` (our material home), not next to the model.
-- **Embedded vs external textures** — a `.glb` packs its textures inside the binary. If you extract a material and want the source PNG editable / NEAREST-filtered the project way, also extract the texture to `assets/textures/<name>.png`, then it imports under our pixel-art rules (`godot-texture-import-pixel-art`). A self-contained flat/vertex-coloured model needs none of this.
-- **Normal map invert-Y** — if a model carries a normal map and lit surfaces look _inverted_ (bumps read as dents under the sun), the map uses the opposite green-channel convention (DirectX vs OpenGL). On that texture's import set **Normal Map = Flip Y** (or invert the green channel in an editor). Note: at our SubViewport downscale normal maps rarely earn their cost — prefer a flat material first; only chase this if a specific prop visibly needs the detail.
+- **Skip a node** — skip imported lights/cameras (we own lighting/framing); use **Skip Import** or `-noimp` suffix.
+- **Material override vs extract** — `Storage = Built-In` keeps embedded (fine for one-off); `Storage = Files` extracts to editable `.tres` in `resources/` (extract when sharing or setting `texture_filter`).
+- **Embedded textures** — extract to `assets/textures/<name>.png` if NEAREST-filter needed; imports under pixel-art rules.
+- **Normal map invert-Y** — if normals look inverted (bumps read as dents): set **Normal Map = Flip Y**. Rarely needed at SubViewport scale.
 
-**2. Filtering — only if the model carries a painted/pixel texture**
+**2. Filtering (only if model has a pixel/painted texture)**
 
-Many CC0 low-poly models are flat-material or vertex-coloured — they have **no texture**, so there is nothing to filter; skip to step 3. If the model _does_ carry a pixel/painted texture and it looks blurry:
+Flat/vertex-coloured models have no texture — skip to step 3. If blurry:
 
-1. Instance the model, select the `MeshInstance3D`, Inspector → Mesh → right-click → **Make Unique**, then Surface 0 → Material → **Make Unique** (the gotcha — see `godot-texture-import-pixel-art` step 4).
-2. Set the material `texture_filter = 1` (NEAREST — the `= 3` mipmap trap applies here too).
+1. Instance model → select `MeshInstance3D` → Mesh → **Make Unique** → Surface 0 → Material → **Make Unique** (gotcha: shared `.glb` resource).
+2. Set `texture_filter = 1` (NEAREST — `= 3` mipmap trap applies here too).
 
-**3. Scale near-uniformly to a sane size (the most common defect)**
+**3. Scale near-uniformly**
 
-Sourced models arrive at arbitrary units — a chair can import 0.1 m or 10 m tall. Scale it to a sane real-world size **near-uniformly** (one scalar on all three axes):
+Sourced models arrive at arbitrary units. Scale to real-world size **near-uniformly** (one scalar all axes):
 
-- A sourced or procedurally-generated model already has **correct proportions**. Scale it to a sane real-world size; do **NOT** stretch it per-axis to fill the greybox cell's footprint. The greybox box is a placeholder _volume_, not a target shape — a bed is ~0.5 m tall no matter how tall its cell box was drawn. Per-axis stretching crushes/bloats the prop (a flat-shard bed, a room-dominating desk).
-- Pick the scalar from the model's _dominant_ dimension: read the model's AABB (`get_aabb()` or the editor bounds), take one axis with a known real size (e.g. a single bed ≈ 1.9 m long), and apply that one factor to all three axes via the **glTF import Root Scale** (Import dock) or the node's `scale`. A small tolerance (±~5 %) to seat it against a wall is fine; a different factor per axis is not.
-- Re-seat on the floor: floor top ≈ y 0, so the model's lowest point sits at y 0 (mesh pivots vary — offset the node, don't eyeball).
+- Don't stretch per-axis to fill greybox cell footprint. A bed is ~0.5 m tall regardless of cell height. Per-axis stretching crushes/bloats props.
+- Read model AABB → pick dominant dimension with known real size (e.g. single bed ≈ 1.9 m long) → apply that one factor via **glTF import Root Scale** or node `scale`. ±5% tolerance to seat against wall is fine.
+- Re-seat: floor top ≈ y 0; model's lowest point sits at y 0.
 
-**4. Scene structure — instance, don't make-local (the re-import decision)**
+**4. Scene structure — nested instance (canonical)**
 
-The imported `.glb` is a read-only PackedScene; how you attach behavior/colliders to it decides whether you can re-import the source later. Three options, one canonical choice:
+Three options:
 
-- **Make-local** — `Scene → Make Local` on the instance flattens the mesh data into your `.tscn`. You get full edit control, but you **lose the link to the source** (a re-import of an updated `.glb` won't reach it) and bloat the scene with mesh data. **Avoid** — it breaks the asset-sourcing loop's "re-source and re-import" path.
-- **Inherited scene** — `New Inherited Scene` from the `.glb`, then add nodes. Re-import flows through, but it **couples your gameplay logic directly to the art file's root** — if the source's node structure changes on re-import, your overrides can break. Avoid for props with behavior.
-- **Nested instance (canonical)** — instance the `.glb` PackedScene as a **child** of a node you own (the named greybox node, a `Node3D`/`StaticBody3D`, or an entity scene per `godot-composition`). Behavior and colliders live on _your_ node; the model is a swappable child. Re-import flows straight through, and re-sourcing the prop is a one-child swap. This is the same "engine-node base + children" shape as our composition convention — the model is the visual child.
+- **Make-local** — loses link to source; re-import won't reach it. **Avoid.**
+- **Inherited scene** — couples logic to art file; breaks on re-import if node structure changes. **Avoid for props with behavior.**
+- **Nested instance (canonical)** — instance `.glb` PackedScene as child of a node you own. Behavior + colliders on your node. Re-import flows through; re-sourcing = one-child swap.
 
-So: the greybox node you own stays the parent; the model PackedScene becomes its child. Never make-local a sourced prop.
+The greybox node you own = parent; model PackedScene = child. Never make-local a sourced prop.
 
-**5. Swap the greybox node 1:1**
+**5. Swap greybox 1:1**
 
-Replace the named greybox node's _content_, not its identity:
+Keep node **name** (`Wardrobe`) and **position** (computed transform). Make the named node the owner (`Node3D` or `StaticBody3D`). Nest the `.glb` instance at local origin scaled per step 3.
 
-- Keep the node **name** (`Wardrobe`) and **position** (the computed transform from the prop slice) so nothing else in the scene shifts.
-- Make the named node the owner (a `Node3D`, or `StaticBody3D` if it needs collision) and **nest** an instance of `<name>.glb` (the PackedScene) under it at the local origin, scaled per step 3 (step 4). One model per greybox box.
-- Collision — **level props get a collider BY DEFAULT** (the player must not walk through furniture; this is a pipeline default, not a parked extra — skill `godot-gridmap-level` step 3). Paths:
-  - **Headless build-time (the common builder path)** — when a `@tool`/headless builder instances props with no editor open, make the prop holder a `StaticBody3D` and add a `CollisionShape3D` with a per-prop `BoxShape3D` sized to the model's mesh AABB. Get the AABB by instancing the model and walking its `MeshInstance3D`s, accumulating each node's `Transform3D` from the holder origin and enclosing the 8 transformed corners (no live SceneTree / `get_global_transform()` needed). ONE unique shape per prop; centre the box on `aabb.position + aabb.size/2`. A box, never trimesh.
-  - **Source suffix** — if you control the source export, name the collider mesh with a suffix and Godot builds it on import: `-col` (static trimesh sibling), `-convcol` (convex), `-colonly` (collider, no visible mesh). Cheapest when the model already ships a collision proxy.
-  - **In-engine auto-generate** — select the imported `MeshInstance3D` → **Mesh → Create Collision Shape** (single convex for a prop, or trimesh for a static concave shape) → it adds a `CollisionShape3D` under a body. Then **right-click the shape resource → Make Unique** (the gotcha — same as mesh materials: a shared `.glb` instance reuses one shape resource, so editing one edits all until made unique). Prefer a simple primitive (`BoxShape3D`/`CapsuleShape3D`) over a generated trimesh for anything the player collides with — trimesh is static-only and expensive. See `design/collision-shapes.md`.
+Collision — **props get a collider BY DEFAULT** (pipeline default, not parked):
+
+- **Headless build-time** — make prop holder `StaticBody3D` + `CollisionShape3D` + unique `BoxShape3D` sized to AABB. Get AABB: instance model, walk `MeshInstance3D`s accumulating `Transform3D` from holder origin, enclose 8 corners. One unique shape per prop; centre box on `aabb.position + aabb.size/2`. Box, never trimesh.
+- **Source suffix** — `-col` (static trimesh), `-convcol` (convex), `-colonly` (collider only, no mesh). Cheapest when model ships a collision proxy.
+- **In-engine auto-generate** — select `MeshInstance3D` → **Mesh → Create Collision Shape** → **right-click shape resource → Make Unique** (gotcha: shared resource edits all copies). Prefer `BoxShape3D`/`CapsuleShape3D` over trimesh for player-collision props.
 
 **6. Verify**
 
 ```bash
-tools/validate.sh                      # if you touched a builder .gd
+tools/validate.sh
 $GODOT --headless --path . --script tools/verify_scene.gd -- levels/<level>.tscn main.tscn
 ```
 
-Then F5: the prop renders as the model (not a flat box), is the right size next to the player and other props, sits **on** the floor (no float/sink), and is crisp/blocky at SubViewport scale (no blur).
+F5: prop renders as model (not flat box), right size, sits on floor, crisp/blocky at SubViewport scale.
 
 ## Verification checklist
 
-- [ ] `assets/models/<name>.glb` imported with no Output-panel errors
-- [ ] Model scaled near-uniformly to a sane real-world size (not stretched per-axis to the cell, not giant / not tiny); base on the floor
-- [ ] Replaced node keeps its original **name** and **position**; nothing else moved
-- [ ] If textured: surface material Made Unique with `texture_filter = 1` (not 3); if flat/vertex-coloured: no texture step needed
-- [ ] Any imported Light/Camera was skipped (Advanced Import → Skip, or `-noimp`) — our rig owns lighting/framing
-- [ ] Model is a **nested instance** under a node you own — NOT made-local, NOT an inherited scene (re-import still flows through)
-- [ ] If a material/texture was extracted: material → `resources/`, texture → `assets/textures/`, imported under pixel-art rules
-- [ ] If collision was added: shape resource Made Unique; a simple primitive for anything the player hits (trimesh only for static concave)
-- [ ] One build path (builder extended, not a forked importer / parallel hand-edit)
-- [ ] `tools/validate.sh` passes (if a builder changed); `verify_scene.gd` prints `VERIFY: OK`
-- [ ] F5 shows the model crisp at SubViewport scale
+- [ ] `assets/models/<name>.glb` imported, no Output errors
+- [ ] Scaled near-uniformly to real-world size (not per-axis to cell; not giant/tiny); base on floor
+- [ ] Replaced node keeps original **name** and **position**
+- [ ] If textured: surface material Made Unique, `texture_filter = 1`; if flat/vertex-coloured: no texture step
+- [ ] Imported Light/Camera skipped (Advanced Import → Skip or `-noimp`)
+- [ ] Model is **nested instance** under owned node — not made-local, not inherited scene
+- [ ] If material/texture extracted: material → `resources/`, texture → `assets/textures/`
+- [ ] If collision added: shape resource Made Unique; simple primitive for player-hit props
+- [ ] One build path (builder extended, not forked)
+- [ ] `tools/validate.sh` passes; `verify_scene.gd` prints `VERIFY: OK`
+- [ ] F5: crisp at SubViewport scale
 
 ## Error → Fix
 
-| Symptom                                                      | Fix                                                                                                                                                                                      |
-| ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Prop is a giant / a speck                                    | Step 3 — scale near-uniformly to a sane real-world size via Root Scale or node `scale` (one scalar, not per-axis)                                                                        |
-| Prop floats or sinks into the floor                          | Step 3 — align the model's lowest AABB point to y 0; offset the node for an off-centre pivot                                                                                             |
-| Prop is crushed flat / bloated to dominate the room          | Step 3 — a per-axis (non-uniform) scale was used to fit the greybox footprint; re-scale near-uniformly (one scalar from the dominant dimension), the model's own proportions are correct |
-| Model texture looks blurry / smeared                         | Step 2 — Make Unique the surface material, set `texture_filter = 1` (not 3)                                                                                                              |
-| Model renders black / unlit                                  | It has no material, or its material is unshaded with no albedo — Make Unique and set an albedo, or confirm the scene sun reaches it                                                      |
-| Half the model is invisible / inside-out                     | Back-face culling on inverted normals — set the material cull mode to Disabled, or re-export the source double-sided                                                                     |
-| `.gltf` upload rejected                                      | Only `.glb` (self-contained) is supported — re-export/convert to `.glb`                                                                                                                  |
-| Editor shows the box AND the model                           | The greybox `MeshInstance3D` wasn't replaced — swap its content, keep the node name/position (step 5)                                                                                    |
-| Scene has a stray light / camera / extra mesh from the model | Step 1a — open Advanced Import, Skip the node (or `-noimp` at source); our rig owns lighting/framing                                                                                     |
-| Material can't be edited / won't take a NEAREST filter       | It's embedded — step 1a, Advanced Import → that material → Storage = Files to extract a `.tres` into `resources/`                                                                        |
-| Lit surface looks inverted (bumps read as dents)             | Normal map uses the opposite Y convention — step 1a, set Normal Map = Flip Y on that texture (or drop the normal map; rarely needed at SubViewport scale)                                |
-| Re-importing an updated `.glb` doesn't change the prop       | The prop was made-local — step 4, it must be a nested instance under your node, not flattened into the `.tscn`                                                                           |
-| Editing one prop's collider changed every copy               | Shared shape resource — step 5, right-click the `CollisionShape3D` resource → Make Unique                                                                                                |
+| Symptom                                 | Fix                                                                            |
+| --------------------------------------- | ------------------------------------------------------------------------------ |
+| Prop giant / speck                      | Step 3 — near-uniform Root Scale from dominant dimension                       |
+| Prop floats / sinks                     | Step 3 — align model AABB lowest point to y 0                                  |
+| Prop crushed / bloated                  | Step 3 — per-axis scale used; re-scale near-uniformly                          |
+| Texture blurry                          | Step 2 — Make Unique surface material, `texture_filter = 1`                    |
+| Model black / unlit                     | No material or unshaded no albedo — Make Unique, set albedo, confirm scene sun |
+| Half model invisible / inside-out       | Inverted normals — material cull mode Disabled, or re-export double-sided      |
+| `.gltf` rejected                        | Convert to `.glb` (self-contained binary)                                      |
+| Box AND model visible                   | Greybox `MeshInstance3D` not replaced — swap content, keep name/position       |
+| Stray light / camera / mesh from model  | Step 1a — Advanced Import → Skip (or `-noimp`)                                 |
+| Material won't take NEAREST filter      | Embedded — Step 1a → Storage = Files → extract `.tres` to `resources/`         |
+| Lit surface inverted (bumps = dents)    | Normal map Y convention — Step 1a → Normal Map = Flip Y                        |
+| Re-import doesn't change prop           | Prop was made-local — must be nested instance                                  |
+| Editing one collider changed all copies | Shared shape resource — right-click → Make Unique                              |
 
 ---
 
-The Advanced-Import workflow and the glTF import-name suffix table (`-col` / `-convcol` / `-colonly` / `-noimp`) are Adapted from GodotPrompter (https://github.com/jame581/GodotPrompter), MIT License, Copyright (c) GodotPrompter Contributors.
+Adapted from GodotPrompter (https://github.com/jame581/GodotPrompter), MIT License, Copyright (c) GodotPrompter Contributors.

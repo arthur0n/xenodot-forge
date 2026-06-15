@@ -10,7 +10,15 @@ import http from "node:http";
 import { mkdirSync } from "node:fs";
 import { WebSocketServer } from "ws";
 import { parseJSON } from "../lib/json.js";
-import { PORT, PROJECT_DIR, PROJECT_FOUND, CONFIG_FILE, LOG_DIR, ENGINE_LABEL } from "./config.js";
+import {
+  PORT,
+  PROJECT_DIR,
+  PROJECT_FOUND,
+  CONFIG_FILE,
+  LOG_DIR,
+  ENGINE_LABEL,
+  RES_ASSET_MOUNT,
+} from "./config.js";
 import { projectState } from "./project-state.js";
 import { recentSessions, deleteSession } from "./transcripts.js";
 import { writeTranscript } from "./transcript-write.js";
@@ -21,6 +29,7 @@ import { readTasks } from "./tasks-store.js";
 import { serveStatic } from "./static.js";
 import { handleConnection } from "./session.js";
 import { prepareGame } from "./materialize.js";
+import { computeUsage } from "./usage.js";
 
 /** Read a request body and write it as a transcript; respond with the path or an error.
  * @param {import("node:http").IncomingMessage} req @param {import("node:http").ServerResponse} res */
@@ -46,9 +55,10 @@ function handleTranscriptPost(req, res) {
   });
 }
 
-/** Save an asset the UI supplied (a native-picker base64 data URL, or a local file
- * path the user picked/named) into the game's assets/ (textures/ or models/, routed
- * by file type); respond with the project-relative path or an error.
+/** Save an asset the UI supplied (a native-picker base64 data URL, or a local file path
+ * the user picked/named) into the chosen place — the game's assets/ (default) or the external
+ * shared-asset library (place="shared") — into textures/ or models/ routed by file type;
+ * respond with the res://-relative path or an error.
  * @param {import("node:http").IncomingMessage} req @param {import("node:http").ServerResponse} res */
 function handleAssetPost(req, res) {
   /** @type {Buffer[]} */
@@ -60,12 +70,13 @@ function handleAssetPost(req, res) {
     /** @type {{ path: string } | { error: string }} */
     let result;
     try {
-      const body = /** @type {{ name?: string, dataUrl?: string, srcPath?: string }} */ (
-        parseJSON(Buffer.concat(chunks).toString("utf8"))
-      );
+      const body =
+        /** @type {{ name?: string, dataUrl?: string, srcPath?: string, place?: "game"|"shared" }} */ (
+          parseJSON(Buffer.concat(chunks).toString("utf8"))
+        );
       result = body.srcPath
-        ? writeAssetFromPath(body.name ?? "", body.srcPath)
-        : writeAsset(body.name ?? "", body.dataUrl ?? "");
+        ? writeAssetFromPath(body.name ?? "", body.srcPath, body.place)
+        : writeAsset(body.name ?? "", body.dataUrl ?? "", body.place);
     } catch {
       result = { error: "bad request" };
     }
@@ -104,49 +115,49 @@ mkdirSync(LOG_DIR, { recursive: true });
 // Materialize the framework's per-game files into the game (gitignored): tools copied,
 // library symlinked. The plugin is the single source; the committed game stays pure.
 if (PROJECT_FOUND) {
-  const { tools, lib } = prepareGame(PROJECT_DIR);
+  const { tools, lib, assets } = prepareGame(PROJECT_DIR);
   if (tools.copied) console.log(`tools: refreshed ${tools.copied} file(s) in ${PROJECT_DIR}/tools`);
   if (lib.linked && lib.reason === "created") console.log(`library: linked → plugin/library`);
+  if (assets.linked && assets.reason === "created")
+    console.log(`${RES_ASSET_MOUNT}: linked → external asset library`);
 }
 
+/** Simple GET endpoints: url → data producer. Keeps the main handler under the
+ * complexity cap by replacing N if-branches with a single lookup.
+ * @type {Record<string, () => unknown>} */
+const GET_ROUTES = {
+  "/api/state": projectState,
+  "/api/sessions": recentSessions,
+  "/api/tasks": readTasks,
+  "/api/levels": listLevels,
+  "/api/usage": computeUsage,
+};
+
 const server = http.createServer((req, res) => {
-  if (req.url === "/api/state") {
+  const url = req.url ?? "";
+  const getRoute = GET_ROUTES[url];
+  if (getRoute) {
     res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify(projectState()));
+    res.end(JSON.stringify(getRoute()));
     return;
   }
-  if (req.url === "/api/sessions") {
-    res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify(recentSessions()));
-    return;
-  }
-  if (req.method === "DELETE" && req.url?.startsWith("/api/sessions/")) {
-    const id = decodeURIComponent(req.url.slice("/api/sessions/".length));
+  if (req.method === "DELETE" && url.startsWith("/api/sessions/")) {
+    const id = decodeURIComponent(url.slice("/api/sessions/".length));
     const ok = deleteSession(id);
     res.writeHead(ok ? 200 : 404, { "content-type": "application/json" });
     res.end(JSON.stringify({ deleted: ok }));
     return;
   }
-  if (req.method === "POST" && req.url === "/api/transcript") {
+  if (req.method === "POST" && url === "/api/transcript") {
     handleTranscriptPost(req, res);
     return;
   }
-  if (req.url === "/api/tasks") {
-    res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify(readTasks()));
-    return;
-  }
-  if (req.method === "POST" && req.url === "/api/asset") {
+  if (req.method === "POST" && url === "/api/asset") {
     handleAssetPost(req, res);
     return;
   }
-  if (req.method === "POST" && req.url === "/api/level") {
+  if (req.method === "POST" && url === "/api/level") {
     handleLevelPost(req, res);
-    return;
-  }
-  if (req.url === "/api/levels") {
-    res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify(listLevels()));
     return;
   }
   serveStatic(req, res);

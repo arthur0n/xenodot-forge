@@ -4,6 +4,7 @@ description: Level designer agent for the DiceOfFate project. Turns a hand-drawn
 model: sonnet
 tools: Read, Glob, Grep, Write, Skill, mcp__ui__form, mcp__ui__tasks
 skills:
+  - caveman
   - gd-utilities-level-design
   - tasks-mcp
 effort: medium

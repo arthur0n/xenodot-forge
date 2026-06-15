@@ -2,8 +2,8 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Godot-family 4.x](https://img.shields.io/badge/Godot--family-4.x-blue.svg)
-![Skills: 21](https://img.shields.io/badge/Skills-21-purple.svg)
-![Agents: 10](https://img.shields.io/badge/Agents-10-orange.svg)
+![Skills: 22](https://img.shields.io/badge/Skills-22-purple.svg)
+![Agents: 11](https://img.shields.io/badge/Agents-11-orange.svg)
 ![Status: POC](https://img.shields.io/badge/Status-POC-yellow.svg)
 
 An experiment in building games on **Godot and its compatible forks (Redot, Blazium)** with Claude Code using **a deliberate pipeline instead of a chat box**.
@@ -18,7 +18,8 @@ The tools are here. The shape of the framework is yours to decide.
 
 ### Roadmap:
 
-🔨 [FPS POC](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/fps_poc.md) — the active roadmap. The foundation POC ([`first_game.md`](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/first_game.md)) is complete and retired.
+✅ [Foundation POC](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/first_game.md)) is complete and retired.
+🔨 [FPS POC](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/fps_poc.md) — the active roadmap.
 
 ## Why this exists
 
@@ -153,6 +154,18 @@ Nothing is copied into your game. The only per-game files the framework material
 gitignored and regenerated on demand: `tools/` (copied — Godot runs `.gd` helpers from
 `res://`) and `library/` (a symlink to the plugin's knowledge base). Your committed game
 stays pure game.
+
+**Example assets, kept out of your game (`x-shared-assets`).** Free CC0 example assets
+(models/textures from Poly Pizza, Kenney, Quaternius, …) live in an **external shared asset
+library** so your game tree stays clean — they're used by the game but never part of it. The
+framework mounts that library into the game as a gitignored symlink at `res://x-shared-assets/`
+(with `models/` + `textures/` subdirs); **unlike `library/`, Godot scans and imports it**, so a
+model resolves at `res://x-shared-assets/models/<name>.glb`. The location defaults to a sibling
+`x-shared-assets/` folder next to your game and **may start empty** — the framework just needs to
+know where it is; override it with the `assetLibrary` key in `.xenodot.json` or the
+`XENODOT_ASSET_LIBRARY` env var (same precedence as the engine block). In the web UI's **Get
+Assets** modal, pick the **Place** — Game (`assets/`) or Shared (`x-shared-assets/`) — when you
+supply a file; the `asset-advisor` → `godot-dev` loop verifies and wires it either way.
 
 **Growing the framework.** A new skill/agent/tool starts **game-local** in `<game>/.claude/`
 and is usable immediately. When one proves broadly useful, promote it into the plugin so every

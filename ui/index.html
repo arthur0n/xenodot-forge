@@ -67,7 +67,10 @@
           <div class="side-section">
             <div class="side-head">
               <span class="side-label">Session</span>
-              <button class="icon-btn" id="new-session">+ new</button>
+              <span class="side-head-actions">
+                <button class="icon-btn" id="compact-session" title="Trim the transcript, keep the session, skills and task board">compact</button>
+                <button class="icon-btn" id="new-session">+ new</button>
+              </span>
             </div>
             <div class="session-card active" id="session-card">
               <span class="name"
@@ -75,6 +78,10 @@
                 ><span id="session-model">starting…</span></span
               >
               <span class="meta" id="session-meta"></span>
+              <div class="ctx-meter" id="ctx-meter" title="Context window used this session">
+                <div class="ctx-bar" id="ctx-bar"></div>
+              </div>
+              <span class="ctx-label" id="ctx-label"></span>
             </div>
             <div id="recent-sessions"></div>
             <button class="expand-toggle" id="sessions-toggle" style="display: none">expand</button>
@@ -92,6 +99,7 @@
               </button>
               <button class="side-tab" data-tab="agents">Agents<span class="count"></span></button>
               <button class="side-tab" data-tab="skills">Skills<span class="count"></span></button>
+              <button class="side-tab" data-tab="tokens">Tokens</button>
             </div>
             <div id="project-tree"></div>
           </div>
@@ -168,6 +176,14 @@
             <div class="tree-empty" id="tasks-empty">the bench is clear</div>
           </div>
 
+          <div class="promotions-panel" id="promotions-panel" style="display: none">
+            <div class="side-head">
+              <span class="side-label">Promote to framework</span>
+              <span class="badge" id="promotions-badge">0</span>
+            </div>
+            <div id="promotions-list"></div>
+          </div>
+
           <div class="activity-head">
             <span class="side-label">Activity</span>
             <div class="filter-chips">
@@ -189,6 +205,10 @@
           </div>
         </aside>
       </div>
+
+      <!-- Tap-to-dismiss backdrop behind an open drawer (small screens only;
+       inert on desktop, where the panels live inline in the grid). -->
+      <div class="scrim" id="scrim" aria-hidden="true"></div>
     </div>
 
     <div class="modal-overlay" id="transcript-modal" style="display: none">
@@ -230,9 +250,11 @@
         <div class="modal-head">Get assets</div>
         <p class="modal-sub">
           Each request below needs a file — <strong>pick a local file</strong> or
-          <strong>paste its path</strong>. PNGs land in <code>assets/textures/</code>, GLBs in
-          <code>assets/models/</code>, then <strong>godot-dev</strong> imports and wires it. Fill as
-          many as you like — the panel stays open until you close it.
+          <strong>paste its path</strong>, and choose a <strong>Place</strong>. PNGs land in
+          <code>textures/</code>, GLBs in <code>models/</code> — under the game's
+          <code>assets/</code> (default) or the external <code>x-shared-assets/</code> library
+          (free-library example assets kept out of the game tree). Then <strong>godot-dev</strong>
+          imports and wires it. Fill as many as you like — the panel stays open until you close it.
         </p>
         <label class="form-label">Needed now</label>
         <div id="assets-asks"></div>

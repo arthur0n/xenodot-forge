@@ -28,7 +28,14 @@ const node = (...args) => execFileSync("node", args, { stdio: "inherit" });
  * @param {string} dir */
 function ensureIgnores(dir) {
   const file = path.join(dir, ".gitignore");
-  const need = ["/tools/", "/library", "/transcripts/", ".xenodot/", ".claude/projects/"];
+  const need = [
+    "/tools/",
+    "/library",
+    "/x-shared-assets",
+    "/transcripts/",
+    ".xenodot/",
+    ".claude/projects/",
+  ];
   let cur = "";
   try {
     cur = readFileSync(file, "utf8");

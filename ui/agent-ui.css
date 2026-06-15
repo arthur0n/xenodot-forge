@@ -625,6 +625,63 @@ body.resizing iframe {
   color: var(--text-2);
 }
 
+/* Context-window meter — how full the orchestrator transcript is this session.
+   Crosses green -> amber -> red so the user knows when to compact/reset before a
+   long session gets expensive (every turn re-reads the whole prefix). */
+.ctx-meter {
+  height: 4px;
+  margin: 5px 0 0 14px;
+  border-radius: 2px;
+  background: var(--panel-3);
+  overflow: hidden;
+}
+
+.ctx-bar {
+  height: 100%;
+  width: 0;
+  border-radius: 2px;
+  background: var(--green);
+  transition:
+    width 0.4s ease,
+    background-color 0.3s ease;
+}
+
+.ctx-bar.ctx-warn {
+  background: var(--amber);
+}
+
+.ctx-bar.ctx-hot {
+  background: var(--red);
+  animation: ctx-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes ctx-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 color-mix(in oklab, var(--red) 0%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 7px color-mix(in oklab, var(--red) 75%, transparent);
+  }
+}
+
+.ctx-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-3);
+  padding-left: 14px;
+}
+
+.ctx-label.ctx-hot {
+  color: var(--red);
+}
+
+.side-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .session-del-btn {
   display: none;
   margin-left: auto;
@@ -2194,6 +2251,7 @@ input.cmd::placeholder {
 }
 
 .owner-chip.owner-agent {
+  padding-left: 2px; /* agent chips always carry a sigil — snug it in */
   color: var(--accent);
   background: color-mix(in oklab, var(--accent) 12%, transparent);
   border-color: color-mix(in oklab, var(--accent) 30%, transparent);
@@ -2205,9 +2263,8 @@ input.cmd::placeholder {
   border-color: color-mix(in oklab, var(--blue) 30%, transparent);
 }
 
-/* An identified agent task — tinted by its Xenodot's color, sigil padded in. */
+/* An identified agent task — tinted by its Xenodot's color. */
 .owner-chip.identified {
-  padding-left: 2px;
   color: var(--agent-color, var(--accent));
   background: color-mix(in oklab, var(--agent-color, var(--accent)) 13%, transparent);
   border-color: color-mix(in oklab, var(--agent-color, var(--accent)) 34%, transparent);
@@ -2815,6 +2872,47 @@ input.cmd::placeholder {
   margin-top: 6px;
 }
 
+/* Promotions board — game-local capability → framework plugin requests. */
+.promo-row {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 9px;
+  margin-bottom: 6px;
+  background: var(--well);
+}
+.promo-row.status-approved {
+  border-color: var(--green, var(--border-strong));
+}
+.promo-head {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+.promo-kind {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+.promo-name {
+  font-family: var(--mono, monospace);
+  font-size: 13px;
+}
+.promo-reason {
+  font-size: 12px;
+  opacity: 0.85;
+  margin: 3px 0;
+}
+.promo-status {
+  font-size: 11px;
+  opacity: 0.7;
+}
+.promo-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
 .modal textarea.form-input {
   resize: vertical;
   min-height: 120px;
@@ -2888,4 +2986,230 @@ input.cmd::placeholder {
 .task-answer-done {
   font-style: italic;
   opacity: 0.85;
+}
+
+/* ── Token usage tab ───────────────────────────────────────── */
+.tokens-tab {
+  padding: 6px 0 8px;
+  display: flex;
+  flex-direction: column;
+}
+.tokens-kv {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 3px 14px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+.tokens-kv-key {
+  color: var(--text-3);
+}
+.tokens-kv-val {
+  color: var(--text-2);
+  font-weight: 500;
+}
+.tokens-hit .tokens-kv-key {
+  color: var(--text-2);
+  font-size: 12px;
+}
+.tokens-hit .tokens-kv-val {
+  color: var(--accent-text);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+.tokens-divider {
+  margin: 5px 14px;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+.tokens-section-head {
+  padding: 4px 14px 2px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+}
+.tokens-session {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 3px 14px;
+  border-radius: var(--radius-sm);
+  cursor: default;
+}
+.tokens-session:hover {
+  background: var(--panel-2);
+}
+.tokens-session-name {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-2);
+}
+.tokens-session-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-3);
+}
+.tokens-refresh {
+  align-self: flex-end;
+  margin: 0 14px 4px;
+  padding: 2px 8px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-3);
+  font-size: 11px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+}
+.tokens-refresh:hover {
+  border-color: var(--accent-border);
+  color: var(--accent-text);
+}
+
+/* ============================================================
+   Small screens — phones and the Galaxy Z Fold 5 (folded cover
+   ~344px wide, unfolded inner ~673px, both portrait-tall). The
+   desktop above is the 3-column bench; here the chat fills the
+   screen and the side + activity panels become off-canvas drawers
+   opened from the same topbar keys, with a tap-to-dismiss scrim.
+   Placed last so these rules win over the desktop collapse rules.
+   ============================================================ */
+
+/* The scrim is inert anywhere but the small-screen drawers below. */
+.scrim {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .app {
+    /* dvh survives the mobile browser's collapsing address bar */
+    height: 100dvh;
+  }
+
+  /* Chat owns the whole body in every collapse combination. */
+  .app-body,
+  body.sidebar-collapsed .app-body,
+  body.hide-activity .app-body,
+  body.sidebar-collapsed.hide-activity .app-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* No seams to drag without side-by-side columns. */
+  #resize-sidebar,
+  #resize-activity {
+    display: none !important;
+  }
+
+  /* Both panels: fixed drawers below the topbar, off-canvas until opened. The
+     base transform parks them off-screen; the open state slides them back. */
+  .sidebar,
+  .activity {
+    position: fixed;
+    top: 50px;
+    bottom: 0;
+    width: min(86vw, 330px);
+    z-index: 60;
+    overflow-y: auto;
+    box-shadow: 0 10px 44px oklch(0 0 0 / 0.55);
+    transition: transform 0.26s var(--ease-out);
+  }
+
+  .sidebar {
+    left: 0;
+    border-right: 1px solid var(--border-strong);
+    transform: translateX(-101%);
+  }
+
+  .activity {
+    right: 0;
+    border-left: 1px solid var(--border-strong);
+    transform: translateX(101%);
+  }
+
+  /* Open = the collapse class is absent. Keep the panel displayed (override the
+     desktop `display:none`) so it can slide rather than vanish. */
+  body.sidebar-collapsed .sidebar {
+    display: flex;
+  }
+
+  body:not(.sidebar-collapsed) .sidebar,
+  body:not(.hide-activity) .activity {
+    transform: none;
+  }
+
+  /* Backdrop behind an open drawer; tap to dismiss (wired in resize.js). */
+  .scrim {
+    position: fixed;
+    inset: 50px 0 0 0;
+    z-index: 55;
+    background: color-mix(in oklab, var(--bg) 60%, transparent);
+    backdrop-filter: blur(1.5px);
+  }
+
+  body:not(.sidebar-collapsed) .scrim,
+  body:not(.hide-activity) .scrim {
+    display: block;
+  }
+
+  /* Topbar: shed the widest, least-essential bits so the keys + status fit. */
+  .topbar {
+    gap: 8px;
+    padding: 0 10px;
+  }
+
+  .usage,
+  .project-chip .path {
+    display: none;
+  }
+
+  .topbar-right {
+    gap: 8px;
+  }
+
+  /* Quick actions scroll sideways instead of stacking and eating height. */
+  .quick-actions {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .quick-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .quick-actions .chip {
+    flex: none;
+  }
+
+  /* Tighter gutters so text isn't squeezed on a ~344px cover screen. */
+  .chat-scroll {
+    padding: 14px 14px;
+  }
+
+  .composer-zone {
+    padding: 10px 12px 12px;
+  }
+
+  .msg-agent,
+  .msg-user {
+    max-width: 100%;
+  }
+}
+
+/* The folded cover screen (~344px) — drop the wordmark and project chip; the
+   mark, the two drawer keys, the approval mode and the status dot are enough. */
+@media (max-width: 430px) {
+  .brand-word,
+  .project-chip {
+    display: none;
+  }
+
+  .mode-select {
+    max-width: 8.5em;
+  }
 }

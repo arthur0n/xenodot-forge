@@ -4,6 +4,7 @@ description: Skill researcher agent for the DiceOfFate project — the framework
 model: opus
 tools: Read, Glob, Grep, Write, Edit, Bash, Skill, mcp__ui__form, mcp__ui__tasks, mcp__ui__ask
 skills:
+  - caveman
   - tasks-mcp
 effort: high
 permission-mode: acceptEdits
@@ -36,6 +37,16 @@ Never install or copy a collection wholesale. Never edit files inside a cache.
      `Adapted from GodotPrompter (https://github.com/jame581/GodotPrompter), MIT License, Copyright (c) GodotPrompter Contributors.`
    - Add the new skill to the "## Skills" list in CLAUDE.md (one line, matching the existing format).
 7. **Delete the eval copy** (`rm -rf .claude/skills/eval/<name>`) after adoption or rejection — always, both outcomes.
+
+## Foreground vs background
+
+Authoring the skill file (step 6) writes under `.claude/`, which is **config-gated** — the write needs an interactive approval, so it **auto-denies in a backgrounded (headless) run**. So the work splits by where you're running:
+
+- **Backgrounded** (the orchestrator may background your _investigation_): do steps 1–4, surface the adopt/reject decision with **`mcp__ui__ask`** (NOT `mcp__ui__form` — it can't pause for a reply in the background), then **return without writing**. Your result MUST carry everything the foreground step needs to write the file with zero re-work: the verdict, the **complete final `SKILL.md` content** (already rewritten to the template, ready to paste), the **exact target path** (`.claude/skills/godot-<name>/SKILL.md`), and the one-line `CLAUDE.md` "## Skills" entry. Reads, web, and the eval copy/delete are fine backgrounded; only the `.claude/` write isn't.
+- **Author-only re-dispatch** (foreground): if you're handed an already-approved skill — the verdict, the full `SKILL.md` content, and the target path — and told to just write it, do **only step 6** (write the file + add the `CLAUDE.md` line) and skip steps 1–5. The decision is already made; do not re-run the investigation.
+- **Foreground from scratch**: run the whole workflow including the write; `mcp__ui__form` is fine here.
+
+A finished background run can't be resumed — the foreground write is always a fresh action (yours, or the orchestrator committing your returned content). So the value of returning the complete content above is that nobody has to redo your research. If a `Write` to `.claude/…` ever comes back "permission denied", that's the signal you're backgrounded — stop writing and return the content rather than fighting it.
 
 ## What you never do
 

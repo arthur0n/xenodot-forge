@@ -3,27 +3,27 @@
 // promotion is the deliberate, human-chosen step that globalizes it (the executor behind
 // the orchestrator's "promote to the framework?" gate). After the move the capability is
 // gone from this game and the next session loads it from the plugin as xenodot:<name>.
+// (Agnostic tools are then copied back into the game as a working copy by materialize.)
 //
-// Usage: npm run promote -- <skills|agents|tools> <name> [/path/to/game]
-//   e.g. npm run promote -- skills godot-decals
-//        npm run promote -- agents shader-author
-//        npm run promote -- tools profile_frame.gd
+// Two modes:
+//   • Explicit:        npm run promote -- <skills|agents|tools> <name> [/path/to/game]
+//                        e.g. npm run promote -- tools profile_frame.gd
+//   • Manifest-driven: npm run promote -- --pending [/path/to/game]
+//                        promotes every APPROVED entry in .xenodot/promotions.json (filed
+//                        via mcp__ui__promote, approved in the UI) and marks it `promoted`.
 import { existsSync, renameSync, rmSync, mkdirSync, cpSync } from "node:fs";
 import path from "node:path";
 import { PROJECT_DIR, FRAMEWORK_PLUGIN_DIR } from "./config.js";
+import { approvedPending, markPromoted, readPromotions, summarize } from "./promotions-store.js";
 
 const KINDS = new Set(["skills", "agents", "tools"]);
-const [kind, name, gameArg] = process.argv.slice(2);
-const game = gameArg ? path.resolve(gameArg) : PROJECT_DIR;
-
-if (!kind || !KINDS.has(kind) || !name) {
-  console.error("usage: npm run promote -- <skills|agents|tools> <name> [/path/to/game]");
-  process.exit(1);
-}
+const argv = process.argv.slice(2);
+const pending = argv.includes("--pending");
+const positional = argv.filter((a) => !a.startsWith("--"));
 
 /** Resolve the game-local source path and the plugin destination for this capability.
- * @param {string} kind @param {string} name */
-function locate(kind, name) {
+ * @param {string} kind @param {string} name @param {string} game */
+function locate(kind, name, game) {
   if (kind === "skills") {
     return {
       src: path.join(game, ".claude", "skills", name),
@@ -54,24 +54,62 @@ function movePath(src, dst) {
   }
 }
 
-const { src, dst } = locate(kind, name);
+/** Promote one capability game→plugin. Never throws on a skip — returns the outcome so
+ * the batch path can keep going. @param {string} kind @param {string} name @param {string} game
+ * @returns {{ ok: boolean, msg: string }} */
+function promoteOne(kind, name, game) {
+  if (!KINDS.has(kind)) return { ok: false, msg: `skip ${kind}/${name}: unknown kind` };
+  const { src, dst } = locate(kind, name, game);
+  if (!existsSync(src)) return { ok: false, msg: `skip ${kind}/${name}: not found at ${src}` };
+  if (existsSync(dst))
+    return { ok: false, msg: `skip ${kind}/${name}: already in the plugin (${dst})` };
+  mkdirSync(path.dirname(dst), { recursive: true });
+  movePath(src, dst);
+  return { ok: true, msg: `moved ${kind}/${name} → plugin` };
+}
 
-if (!existsSync(src)) {
-  console.error(`promote: nothing to promote — ${src} not found.`);
-  console.error(`  Author the ${kind.replace(/s$/, "")} game-local first, then promote it.`);
+if (pending) {
+  const game = positional[0] ? path.resolve(positional[0]) : PROJECT_DIR;
+  const queue = approvedPending();
+  if (!queue.length) {
+    console.log(`promote --pending: nothing approved-pending. ${summarize(readPromotions())}`);
+    process.exit(0);
+  }
+  let done = 0;
+  for (const p of queue) {
+    const r = promoteOne(p.kind, p.name, game);
+    console.log(`  ${r.ok ? "✓" : "–"} ${r.msg}`);
+    if (r.ok) {
+      markPromoted(p.id, new Date().toISOString());
+      done++;
+    }
+  }
+  console.log(
+    `promote --pending: ${done}/${queue.length} promoted. Restart the session to load them` +
+      (done ? "; `npm run badges` refreshes the README counts." : "."),
+  );
+  process.exit(0);
+}
+
+// Explicit mode.
+const [kind, name, gameArg] = positional;
+const game = gameArg ? path.resolve(gameArg) : PROJECT_DIR;
+if (!kind || !KINDS.has(kind) || !name) {
+  console.error("usage: npm run promote -- <skills|agents|tools> <name> [/path/to/game]");
+  console.error(
+    "   or: npm run promote -- --pending [/path/to/game]   (promote approved requests)",
+  );
   process.exit(1);
 }
-if (existsSync(dst)) {
-  console.error(`promote: ${dst} already exists in the plugin — remove or rename it first.`);
+const result = promoteOne(kind, name, game);
+if (!result.ok) {
+  console.error(`promote: ${result.msg}`);
+  if (result.msg.includes("not found")) {
+    console.error(`  Author the ${kind.replace(/s$/, "")} game-local first, then promote it.`);
+  }
   process.exit(1);
 }
-
-mkdirSync(path.dirname(dst), { recursive: true });
-movePath(src, dst);
-
 const label = name.replace(/\.md$/, "");
-console.log(`promote: moved ${kind}/${name}`);
-console.log(`  from game-local: ${src}`);
-console.log(`  into the plugin: ${dst}`);
+console.log(`promote: ${result.msg}`);
 console.log(`Now available to every game as xenodot:${label} — restart the session to load it.`);
 if (kind !== "tools") console.log("Tip: run `npm run badges` to refresh the README counts.");

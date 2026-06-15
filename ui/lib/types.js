@@ -90,6 +90,20 @@
  * @property {string} created - ISO timestamp
  */
 
+// ---------- Promotions (game-local → framework plugin) ----------
+/**
+ * A promotion request, persisted to <project>/.xenodot/promotions.json — the
+ * deterministic record of a capability asked to be promoted into the plugin.
+ * @typedef {object} Promotion
+ * @property {string} id - short slug, e.g. "p3"
+ * @property {"tools" | "skills" | "agents"} kind
+ * @property {string} name - the capability's game-local name (tools/ file, skill dir, or agent .md)
+ * @property {string} [reason] - one line: why it's broadly useful beyond this game
+ * @property {"requested" | "approved" | "rejected" | "promoted"} status
+ * @property {string} [by] - requesting agent label
+ * @property {string} at - ISO timestamp of the last state change
+ */
+
 // ---------- WebSocket messages ----------
 /** @typedef {{ role: "user" | "assistant", text: string }} HistoryItem */
 /**
@@ -103,7 +117,9 @@
  *   | { type: "policy", value: string }
  *   | { type: "history", items?: HistoryItem[] }
  *   | { type: "tasks", tasks: Task[] }
+ *   | { type: "promotions", items: Promotion[] }
  *   | { type: "permission_denied", toolName: string, agent?: string, reason?: string, background?: boolean }
+ *   | { type: "context", percentage: number, totalTokens: number, maxTokens: number }
  *   | { type: "idle" }
  * )} ServerMsg */
 
@@ -121,8 +137,10 @@
  *   | { type: "reply", id: number, payload: Reply }
  *   | { type: "policy", value: string }
  *   | { type: "task_update", op: "update" | "remove", id: string, status?: string, answer?: string }
+ *   | { type: "promotion_decide", id: string, decision: "approved" | "rejected" }
  *   | { type: "stop" }
  *   | { type: "stop_task", taskId: string }
+ *   | { type: "compact" }
  * )} ClientMsg */
 /** Pauses the session, sends the prompt, resolves when the browser replies.
  * @typedef {(type: string, payload: Record<string, unknown>) => Promise<Reply>} WaitFor */

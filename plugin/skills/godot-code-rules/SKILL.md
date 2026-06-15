@@ -5,34 +5,31 @@ description: Strict typed-GDScript rules (the tsconfig-strict + ESLint equivalen
 
 # Godot Code Rules (strict mode)
 
-GDScript is optionally typed; this project removes the option. The rules below are strict
-TypeScript translated to Godot, enforced by three mechanisms: `project.godot` `[debug]`
-warnings escalated to errors (the "tsconfig strict"), `gdlint`/`gdformat` with `gdlintrc`
-(the "eslint + prettier"), and this skill for what no tool checks (the agent is the linter).
+GDScript strict mode = TypeScript strict, enforced by: `project.godot [debug]` warnings→errors, `gdlint`/`gdformat` with `gdlintrc`, and this skill for what no tool checks.
 
-## The contract (strict TS → GDScript)
+## The contract
 
-| Strict TS / ESLint                     | Rule here                                                                                                                                                                         | Enforced by                                  |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `no-explicit-any`                      | No untyped declarations. Every `var`, parameter, and return is typed. `Variant` only at a `# SEAM:` (below)                                                                       | `untyped_declaration=2`                      |
-| type inference                         | `:=` is encouraged when the right side makes the type obvious (`var dir := Vector2.ZERO`) — inference is typing                                                                   | `inferred_declaration=0`, deliberate         |
-| explicit return types                  | `-> Type` on **every** func, including `-> void`                                                                                                                                  | `untyped_declaration=2`                      |
-| `no-unsafe-*`                          | No property/method access, cast, or call argument the analyzer can't prove. Fix with typed refs or a SEAM, never by weakening the config                                          | `unsafe_*=2`                                 |
-| `strict-boolean-expressions`           | Truthiness ONLY for Object null checks (`if node:` — TS's `allowNullableObject`). Never on String/int/float/Array/Dictionary/Vector: use `.is_empty()`, `!= 0`, `!= Vector3.ZERO` | **agent only — no tool checks this**         |
-| `no-unused-vars` + `^_`                | Unused locals are errors; an intentionally unused parameter gets a `_` prefix (`_delta`)                                                                                          | `unused_variable=2`, `unused_parameter` warn |
-| `max-lines` 500 etc.                   | File ≤ 500 lines, line ≤ 100 chars, params ≤ 8, returns ≤ 6, public methods ≤ 20                                                                                                  | gdlint                                       |
-| `max-lines-per-function`, `complexity` | Function ≤ ~100 effective lines, nesting ≤ 6 — gdlint has no rule for these                                                                                                       | **agent only**                               |
-| `no-console`                           | `print()` only as deliberate player/dev-facing output; problems use `push_warning()` / `push_error()`                                                                             | **agent only**                               |
+| Strict TS / ESLint           | Rule                                                                                                                                            | Enforced by                          |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `no-explicit-any`            | No untyped declarations. Every `var`, param, return typed. `Variant` only at `# SEAM:`                                                          | `untyped_declaration=2`              |
+| type inference               | `:=` encouraged when RHS makes type obvious (`var dir := Vector2.ZERO`)                                                                         | `inferred_declaration=0`, deliberate |
+| explicit return types        | `-> Type` on **every** func, including `-> void`                                                                                                | `untyped_declaration=2`              |
+| `no-unsafe-*`                | No property/method access, cast, or call argument the analyzer can't prove. Fix with typed refs or SEAM                                         | `unsafe_*=2`                         |
+| `strict-boolean-expressions` | Truthiness ONLY for Object null checks (`if node:`). Never on String/int/float/Array/Dict/Vector — use `.is_empty()`, `!= 0`, `!= Vector3.ZERO` | **agent only**                       |
+| `no-unused-vars` + `^_`      | Unused locals = errors; unused params get `_` prefix (`_delta`)                                                                                 | `unused_variable=2`                  |
+| `max-lines`                  | File ≤500 lines, line ≤100 chars, params ≤8, returns ≤6, public methods ≤20                                                                     | gdlint                               |
+| `max-lines-per-function`     | Func ≤~100 effective lines, nesting ≤6                                                                                                          | **agent only**                       |
+| `no-console`                 | `print()` only for deliberate player/dev-facing output; problems use `push_warning()`/`push_error()`                                            | **agent only**                       |
 
 ## File anatomy
 
-Every `.gd` file, in this order (order is gdlint-enforced via `class-definitions-order`):
+Every `.gd` in this order (gdlint-enforced via `class-definitions-order`):
 
 ```gdscript
 # entities/player/player.gd — player movement, jumping, and inventory.
 class_name Player
 extends CharacterBody3D
-## Optional ## docstring for scripts with public API.
+## Optional docstring for scripts with public API.
 
 signal died                                  # snake_case, past tense
 
@@ -44,19 +41,14 @@ var _gravity: float = 0.0                    # private: _ prefix
 @onready var _mesh: MeshInstance3D = $Mesh   # @onready last, typed
 ```
 
-- Line 1: `# <path from project root> — <one-line purpose>.` Greppable header, always.
-- `class_name`: required for any entity/component script other scripts reference by type.
-  Omit it for `main.gd` and `tools/` SceneTree scripts — nothing types against them.
-- Indentation: tabs (gdformat is tab-only). Line length ≤ 100.
-- Naming: snake*case functions/vars/signals, PascalCase classes/enums, UPPER_SNAKE consts,
-  `*`prefix = private. Signal handlers:`_on_<Source>\_<signal>`.
+- Line 1: `# <path from project root> — <one-line purpose>.` Always.
+- `class_name`: required for entity/component scripts other scripts reference by type. Omit for `main.gd` and `tools/` SceneTree scripts.
+- Indentation: tabs. Line length ≤100.
+- Naming: snake*case funcs/vars/signals, PascalCase classes/enums, UPPER_SNAKE consts, `*`prefix = private. Signal handlers:`_on_<Source>\_<signal>`.
 
 ## Escape hatches — exactly two greppable markers
 
-**1. `@warning_ignore` — never bare.** Every ignore carries a one-line reason comment
-immediately above it; a bare ignore is itself a violation. When the reason is a type
-boundary (duck typing across entities, heterogeneous Variant storage), the comment uses
-the `# SEAM:` prefix:
+**1. `@warning_ignore` — never bare.** Every ignore carries a one-line reason comment immediately above it. Type-boundary reasons use `# SEAM:` prefix:
 
 ```gdscript
 # SEAM: duck-typed pickup — any body with add_item() can collect (godot-composition rule).
@@ -64,79 +56,54 @@ the `# SEAM:` prefix:
 player.add_item(item_name)
 ```
 
-**2. `# FIXME(agent): <what and why>`** — a known deficiency left on purpose, phrased so a
-future agent can fix it without archaeology.
+**2. `# FIXME(agent): <what and why>`** — known deficiency left on purpose.
 
-Audit everything: `grep -rn "SEAM:\|FIXME(agent)" --include='*.gd' .`
-Block form `@warning_ignore_start`/`@warning_ignore_restore` is allowed only in `tools/`
-scripts, never in game code. A growing ignore count is a design smell — report it as friction.
+Audit: `grep -rn "SEAM:\|FIXME(agent)" --include='*.gd' .`
 
-**Typed ref vs SEAM — the decision rule:**
+Block form `@warning_ignore_start`/`@warning_ignore_restore` allowed only in `tools/`, never game code.
 
-- Wiring **down** to a known node (main → CameraRig, entity → its child): use the typed
-  `class_name` reference (`var rig: CameraRig = %CameraRig`). No ignore needed.
-- Calling **across** entities at a gameplay boundary (`body` from a collision signal):
-  duck typing + SEAM. Do NOT "fix" it with `is Player` / `as Player` — coupling entities
-  to concrete types is the violation; see godot-composition.
+**Typed ref vs SEAM:**
+
+- Wiring **down** to known node (main → CameraRig, entity → its child): typed `class_name` ref. No ignore.
+- Calling **across** entities at gameplay boundary (`body` from collision signal): duck typing + SEAM. Do NOT fix with `is Player`/`as Player` — coupling entities to concrete types is the violation (godot-composition).
 
 ## Boundary with godot-composition
 
-This skill is **mechanics**: typing, sizes, headers, naming, annotations, the gate.
-godot-composition is **structure**: when to extract components, signals up / calls down,
-when NOT to modularize. Load both when restructuring; never resolve an `unsafe_*` error
-by violating composition (concrete cross-entity types), and never justify a god script
-by pointing at passing types.
+This skill = **mechanics** (typing, sizes, headers, naming, gate). godot-composition = **structure** (when to extract components, signals up/calls down). Load both when restructuring.
 
 ## The gate — tools/validate.sh
 
-Run after every change to `.gd`/`.tscn`, before reporting. From the project root:
+Run after every `.gd`/`.tscn` change, before reporting:
 
 ```bash
-tools/validate.sh        # via rtk: rtk tools/validate.sh (passthrough)
+tools/validate.sh
 ```
 
-Steps: 1 format (`gdformat --check`) → 2 lint (`gdlint`) → 3 parse + analyzer
-warnings-as-errors per file → 4 scene properties (godot-verify layer 1) → 5 headless
-smoke run (layer 2). It stops at the first failure and ends with `validate: OK`.
-godot-verify layer 3 (render) is separate — run it when an entry-point scene changed.
+Steps: 1 format (`gdformat --check`) → 2 lint (`gdlint`) → 3 parse + analyzer warnings-as-errors → 4 scene properties (godot-verify layer 1) → 5 headless smoke run (layer 2). Stops at first failure; ends with `validate: OK`.
 
-Hard rules:
+- Never weaken `project.godot [debug]` warnings or `gdlintrc` caps to make the gate pass.
+- Never pipe gate output through `rtk grep` — hides FAIL lines; use plain `grep`.
 
-- Never weaken `project.godot` `[debug]` warnings or `gdlintrc` caps to make the gate
-  pass. Those are project-wide decisions for the human, recorded in CLAUDE.md.
-- Warnings-as-errors means a violating script blocks F5 entirely. That is intended.
-- Never pipe the gate's output through `rtk grep` — it summarizes and hides FAIL lines.
+## Error → Fix
 
-### Error → Fix
-
-| Output                                                     | Fix                                                                                                                                                                         |
-| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `would reformat <file>` (step 1)                           | Run `gdformat <file>` — never hand-format                                                                                                                                   |
-| `max-line-length` (step 2)                                 | Split the line; long comments wrap to their own `#` lines                                                                                                                   |
-| `class-definitions-order` (step 2)                         | Reorder members per File anatomy above                                                                                                                                      |
-| `UNTYPED_DECLARATION` (step 3)                             | Add `: Type` or use `:=` with an obvious right side                                                                                                                         |
-| `UNSAFE_PROPERTY_ACCESS` / `UNSAFE_METHOD_ACCESS`          | Typed ref if wiring down; SEAM + ignore if a gameplay boundary                                                                                                              |
-| `UNSAFE_CALL_ARGUMENT`                                     | Wrap engine Variants in a constructor: `float(ProjectSettings.get_setting(...))`                                                                                            |
-| `INTEGER_DIVISION`                                         | `float()` one operand, or reason + `@warning_ignore("integer_division")` if integral math is intended                                                                       |
-| `UNUSED_PARAMETER`                                         | Prefix with `_`                                                                                                                                                             |
-| `SHADOWED_VARIABLE_BASE_CLASS`                             | Rename the var/param — it collides with a base-class member (e.g. `root` on a `tools/` SceneTree script → `scene_root`). Match the name already used elsewhere in the file. |
-| Step 5 fails on an engine WARNING unrelated to your change | Still a failure — investigate; the smoke grep is deliberately strict                                                                                                        |
+| Output                                             | Fix                                                                                                                                                                                                            |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `would reformat <file>` (step 1)                   | Run `gdformat <file>` — never hand-format                                                                                                                                                                      |
+| `max-line-length` (step 2)                         | Split line; long comments wrap to own `#` lines                                                                                                                                                                |
+| `class-definitions-order` (step 2)                 | Reorder per File anatomy                                                                                                                                                                                       |
+| `UNTYPED_DECLARATION` (step 3)                     | Add `: Type` or use `:=` with obvious RHS                                                                                                                                                                      |
+| `UNSAFE_PROPERTY_ACCESS` / `UNSAFE_METHOD_ACCESS`  | Typed ref if wiring down; SEAM + ignore if gameplay boundary                                                                                                                                                   |
+| `UNSAFE_CALL_ARGUMENT`                             | Explicit-convert engine Variants `float(ProjectSettings.get_setting(...))` — prescribed form, but STILL needs `@warning_ignore("unsafe_call_argument")` (ignore moves here from `unsafe_cast`, not eliminated) |
+| `INTEGER_DIVISION`                                 | `float()` one operand, or reason + `@warning_ignore("integer_division")` if integral math intended                                                                                                             |
+| `UNUSED_PARAMETER`                                 | Prefix with `_`                                                                                                                                                                                                |
+| `SHADOWED_VARIABLE_BASE_CLASS`                     | Rename — collides with base-class member (e.g. `root` on SceneTree script → `scene_root`)                                                                                                                      |
+| Step 5 fails on engine WARNING unrelated to change | Still failure — investigate; smoke grep is deliberately strict                                                                                                                                                 |
 
 ## Warnings reference (ground truth = project.godot [debug])
 
-Escalated to error (2): `untyped_declaration`, `unsafe_property_access`,
-`unsafe_method_access`, `unsafe_cast`, `unsafe_call_argument`, `unused_variable`,
-`unused_local_constant`, `unused_private_class_variable`, `shadowed_variable`,
-`shadowed_variable_base_class`, `shadowed_global_identifier`, `unreachable_code`,
-`unreachable_pattern`, `standalone_expression`, `integer_division`,
-`incompatible_ternary`, `confusable_identifier`, `assert_always_true`,
-`assert_always_false`.
+Escalated to error (2): `untyped_declaration`, `unsafe_property_access`, `unsafe_method_access`, `unsafe_cast`, `unsafe_call_argument`, `unused_variable`, `unused_local_constant`, `unused_private_class_variable`, `shadowed_variable`, `shadowed_variable_base_class`, `shadowed_global_identifier`, `unreachable_code`, `unreachable_pattern`, `standalone_expression`, `integer_division`, `incompatible_ternary`, `confusable_identifier`, `assert_always_true`, `assert_always_false`.
 
-Deliberate non-rules (left at their default 0, do not "fix"):
+Deliberate non-rules (left at default 0):
 
-- `inferred_declaration=0` — `:=` is encouraged; strict TS allows inference too.
-- `return_value_discarded=0` — would fire on every `connect()` / `move_and_slide()`;
-  too noisy for GDScript. The TS analogue (`no-floating-promises`) has no clean mapping.
-
-Deferred option (not active): a PostToolUse hook running gdlint on edited `.gd` files —
-enforcement currently routes through agents running the gate.
+- `inferred_declaration=0` — `:=` encouraged; inference is typing.
+- `return_value_discarded=0` — fires on every `connect()`/`move_and_slide()`; no clean TS mapping.

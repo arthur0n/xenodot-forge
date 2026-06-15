@@ -10,6 +10,7 @@
 import { reduce } from "./reducer.js";
 
 /** @typedef {import("../lib/types.js").Task} Task */
+/** @typedef {import("../lib/types.js").Promotion} Promotion */
 /** @typedef {import("../lib/types.js").Todo} Todo */
 /** @typedef {import("../lib/types.js").LogEntry} LogEntry */
 /** @typedef {import("../lib/types.js").FormSpec} FormSpec */
@@ -43,6 +44,7 @@ import { reduce } from "./reducer.js";
 /**
  * @typedef {object} State
  * @property {Task[]} tasks               - replaced wholesale by every `tasks` snapshot
+ * @property {Promotion[]} promotions      - replaced wholesale by every `promotions` snapshot
  * @property {string} policy              - replaced by every `policy` snapshot
  * @property {RunningAgent[]} running      - folded from spawn / tool_result / task events
  * @property {Approval[]} approvals        - keyed by id; appended then settled in place
@@ -52,7 +54,7 @@ import { reduce } from "./reducer.js";
  * @property {Thinking} thinking
  * @property {{ cost: number, tokens: number }} usage
  * @property {{ open: boolean }} connection
- * @property {{ model: string, status: string }} session
+ * @property {{ model: string, status: string, contextPct?: number, contextTokens?: number, contextMax?: number }} session
  * @property {boolean} busy                - hive MAIN turn in flight (drives the composer button)
  */
 
@@ -60,6 +62,7 @@ import { reduce } from "./reducer.js";
 export function initialState() {
   return {
     tasks: [],
+    promotions: [],
     policy: "ask",
     running: [],
     approvals: [],

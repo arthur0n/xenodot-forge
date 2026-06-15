@@ -277,6 +277,81 @@ function renderSources(tree) {
   });
 }
 
+/** Format a token count as a compact string (e.g. 65.5M, 594K).
+ * @param {number} n @returns {string} */
+function fmtTokens(n) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
+  return String(n);
+}
+
+/** A key→value row for the tokens tab.
+ * @param {string} key @param {string} val @param {string} [extraCls] @returns {HTMLElement} */
+function tokensKv(key, val, extraCls) {
+  const row = el("div", "tokens-kv" + (extraCls ? " " + extraCls : ""));
+  row.append(el("span", "tokens-kv-key", key), el("span", "tokens-kv-val", val));
+  return row;
+}
+
+/** Fetch and render token usage stats into the tokens tab.
+ * @param {HTMLElement} tree */
+async function renderTokens(tree) {
+  tree.append(el("div", "tree-empty", "loading…"));
+  /** @type {{ sessionCount: number, totalCount: number, totals: { input: number, output: number, cacheCreate: number, cacheRead: number }, hitRate: number, topSessions: { name: string, input: number, output: number, cacheCreate: number, cacheRead: number, total: number }[] }} */
+  let data;
+  try {
+    data = /** @type {any} */ (await fetchJSON("/api/usage"));
+  } catch {
+    tree.replaceChildren(el("div", "tree-empty", "failed to load"));
+    return;
+  }
+  tree.replaceChildren();
+
+  const wrap = el("div", "tokens-tab");
+
+  // Refresh button
+  const refresh = el("button", "tokens-refresh", "↺ refresh");
+  refresh.onclick = () => {
+    tree.replaceChildren();
+    void renderTokens(tree);
+  };
+  wrap.append(refresh);
+
+  // Cache hit rate — prominent
+  wrap.append(tokensKv("cache hit rate", `${data.hitRate}%`, "tokens-hit"));
+  wrap.append(el("hr", "tokens-divider"));
+
+  // Token breakdown
+  wrap.append(tokensKv("input", fmtTokens(data.totals.input)));
+  wrap.append(tokensKv("output", fmtTokens(data.totals.output)));
+  wrap.append(tokensKv("cache write", fmtTokens(data.totals.cacheCreate)));
+  wrap.append(tokensKv("cache read", fmtTokens(data.totals.cacheRead)));
+  wrap.append(el("hr", "tokens-divider"));
+  wrap.append(tokensKv("sessions", `${data.sessionCount} / ${data.totalCount}`));
+
+  // Top sessions
+  if (data.topSessions.length) {
+    wrap.append(el("hr", "tokens-divider"));
+    wrap.append(el("div", "tokens-section-head", "top sessions"));
+    data.topSessions.forEach((s) => {
+      const item = el("div", "tokens-session");
+      const parts = s.name.match(/(\d{2})-(\d{2})T(\d{2})-(\d{2})/);
+      const label = parts ? `${parts[1]}-${parts[2]} ${parts[3]}:${parts[4]}` : s.name.slice(0, 16);
+      item.append(el("span", "tokens-session-name", label));
+      item.append(
+        el(
+          "span",
+          "tokens-session-meta",
+          `out ${fmtTokens(s.output)} · cR ${fmtTokens(s.cacheRead)}`,
+        ),
+      );
+      wrap.append(item);
+    });
+  }
+
+  tree.append(wrap);
+}
+
 /** Re-render the active tab panel from the cached state. */
 function renderTab() {
   const counts = state
@@ -295,6 +370,10 @@ function renderTab() {
   });
   const tree = $("project-tree");
   tree.replaceChildren();
+  if (activeTab === "tokens") {
+    void renderTokens(tree);
+    return;
+  }
   if (!state) return;
   if (activeTab === "agents") renderAgents(tree, state);
   else if (activeTab === "skills") renderSkills(tree, state);

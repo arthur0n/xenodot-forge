@@ -69,22 +69,19 @@ function setCollapsed(p, collapsed, persist) {
   }
 }
 
-/** @param {PanelToggle} p */
-function wireToggle(p) {
-  setCollapsed(p, readPref(p) ?? p.byDefault(), false);
-  $(p.btnId)?.addEventListener("click", () => {
-    setCollapsed(p, !document.body.classList.contains(p.bodyClass), true);
-  });
-}
-
-/** Wire both topbar panel toggles. The left side panel starts collapsed on
- * tall/narrow (portrait) monitors so a vertical screen opens roomy; the activity
- * panel starts open (it holds approvals you may need to answer) but can be hidden
- * for the widest possible chat. Either choice, once made, persists. */
+/** Wire both topbar panel toggles. On desktop they collapse grid columns; on
+ * phone-class widths (≤720px — covers the Z Fold 5 folded cover and unfolded
+ * inner screens) the panels are off-canvas drawers (see the mobile CSS), so the
+ * same keys open/close them, only one at a time, with a tap-to-dismiss scrim.
+ * The side panel starts collapsed on tall/narrow screens; the activity panel
+ * starts open on desktop (it holds approvals) but closed on phones. Persisted. */
 export function initPanelToggles() {
   const portraitOrNarrow = () =>
     window.matchMedia("(orientation: portrait)").matches || window.innerWidth < 1080;
-  wireToggle({
+  const small = () => window.innerWidth <= 720;
+
+  /** @type {PanelToggle} */
+  const sidebar = {
     key: SIDEBAR_KEY,
     bodyClass: "sidebar-collapsed",
     btnId: "sidebar-toggle",
@@ -92,15 +89,36 @@ export function initPanelToggles() {
     glyphOut: "«",
     label: "the side panel",
     byDefault: portraitOrNarrow,
-  });
-  wireToggle({
+  };
+  /** @type {PanelToggle} */
+  const activity = {
     key: ACTIVITY_KEY,
     bodyClass: "hide-activity",
     btnId: "activity-toggle",
     glyphIn: "«",
     glyphOut: "»",
     label: "the activity panel",
-    byDefault: () => false,
+    byDefault: small,
+  };
+
+  for (const p of [sidebar, activity]) setCollapsed(p, readPref(p) ?? p.byDefault(), false);
+
+  /** @param {PanelToggle} p @param {PanelToggle} other */
+  const wire = (p, other) => {
+    $(p.btnId)?.addEventListener("click", () => {
+      const opening = document.body.classList.contains(p.bodyClass);
+      setCollapsed(p, !opening, true);
+      if (opening && small()) setCollapsed(other, true, true); // one drawer at a time
+    });
+  };
+  wire(sidebar, activity);
+  wire(activity, sidebar);
+
+  // Tap the backdrop to dismiss whichever drawer is open (the scrim is
+  // display:none on desktop, so this is inert there).
+  $("scrim")?.addEventListener("click", () => {
+    setCollapsed(sidebar, true, true);
+    setCollapsed(activity, true, true);
   });
 }
 

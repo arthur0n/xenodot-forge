@@ -3,19 +3,19 @@ name: godot-verify
 description: Verify Godot scenes/scripts actually load, run, and visibly render — catching silently-dropped invalid properties and "valid but renders nothing" (black-screen, no-error) scenes. Use after ANY .tscn/.gd change and before claiming work done or verified — never assert a scene runs without these checks. Also when a scene loads but looks wrong (missing material/lighting — the silent-drop signature) or the window is empty/black with no errors.
 ---
 
-# Godot Verify (headless + render checks)
+# Godot Verify
 
-Three-layer verification, all required. Run from the project root (where `project.godot` is).
+Three-layer verification, all required. Run from project root (where `project.godot` is).
 
-Shortcut: `tools/validate.sh` bundles layers 1–2 plus format/lint/parse checks (skill: godot-code-rules) — when you've run it, only layer 3 remains.
+`tools/validate.sh` bundles layers 1–2 plus format/lint/parse (skill: godot-code-rules) — when you've run it, only layer 3 remains.
 
-The Godot binary on this machine: `/Applications/Godot.app/Contents/MacOS/Godot` (not on PATH — `which godot` fails). Define `GODOT=/Applications/Godot.app/Contents/MacOS/Godot` once per shell call.
+Godot binary: `/Applications/Godot.app/Contents/MacOS/Godot` (not on PATH). Define once: `GODOT=/Applications/Godot.app/Contents/MacOS/Godot`.
 
-## Why three layers (verified behavior, Godot 4.6)
+## Why three layers
 
-- **Exit codes lie.** Godot exits 0 even when `SCRIPT ERROR:` parse failures are printed. Never trust `$?`; grep the output.
-- **Unknown properties are silently dropped.** A `.tscn` with `energy_multiplier = 1.5` on a DirectionalLight3D (Godot 3 name) or `material/0` on a MeshInstance3D loads and runs with zero warnings — the property just vanishes. Runtime checks cannot catch this class of bug; only layer 1 does.
-- **A valid scene can render pure black with zero errors.** Real case: a hand-written `Transform3D` with transposed basis aimed the camera _away_ from the level — every property name valid, no runtime errors, black screen. Layers 1–2 are blind to this; only rendering actual frames (layer 3) catches it. The editor viewport does NOT catch it either — it uses the editor's camera, not the scene's.
+- **Exit codes lie.** Godot exits 0 even on `SCRIPT ERROR:` parse failures. Never trust `$?`; grep output.
+- **Unknown properties silently drop.** A `.tscn` with `energy_multiplier = 1.5` on `DirectionalLight3D` loads with zero warnings — property vanishes. Only layer 1 catches this.
+- **Valid scenes can render pure black with zero errors.** Transposed `Transform3D` basis aimed camera away from level — every property name valid, no errors, black screen. Only layer 3 catches this. Editor viewport doesn't catch it either (uses editor camera).
 
 ## Layer 1 — property validation (catches silent drops)
 
@@ -24,15 +24,13 @@ $GODOT --headless --path . --script tools/verify_scene.gd                       
 $GODOT --headless --path . --script tools/verify_scene.gd -- levels/basic_room.tscn  # one scene
 ```
 
-`tools/verify_scene.gd` instantiates each scene and checks every property assignment in the `.tscn` text against the live object's `get_property_list()`. Output:
+Instantiates each scene, checks every property assignment against live object's `get_property_list()`.
 
 - `VERIFY-FAIL <scene> [<node|sub_resource>] <reason>` — one line per problem
 - `VERIFY: OK — N scene(s) clean` or `VERIFY: FAIL — N problem(s)`
-- Exit code is meaningful here: 0 clean, 1 problems.
+- Exit code meaningful: 0 clean, 1 problems.
 
-Loading the scenes also surfaces `SCRIPT ERROR:` parse errors in attached scripts and missing ext_resource files.
-
-Known blind spots: `shader_parameter/*`, `metadata/*`, and `item/*` (MeshLibrary items, dynamic) are whitelisted; property _values_ are not checked, only names.
+Blind spots: `shader_parameter/*`, `metadata/*`, `item/*` whitelisted; property _values_ not checked, only names.
 
 ## Layer 2 — smoke run (catches runtime errors)
 
@@ -40,7 +38,7 @@ Known blind spots: `shader_parameter/*`, `metadata/*`, and `item/*` (MeshLibrary
 $GODOT --headless --path . --quit-after 3 2>&1 | grep -E "SCRIPT ERROR|ERROR|WARNING"
 ```
 
-Runs the main scene for 3 frames. Catches `_ready()`/`_process()` crashes, autoload failures, missing main scene. **Any matched line = failure**, regardless of exit code (grep exiting 1 = no matches = pass).
+Runs main scene 3 frames. Catches `_ready()`/`_process()` crashes, autoload failures, missing main scene. **Any matched line = failure** (grep exit 1 = no matches = pass).
 
 ## Layer 3 — render check (catches "renders nothing")
 
@@ -49,48 +47,49 @@ $GODOT --path . --resolution 640x360 -s tools/verify_render.gd                  
 $GODOT --path . --resolution 640x360 -s tools/verify_render.gd -- levels/foo.tscn    # one scene
 ```
 
-`tools/verify_render.gd` boots the scene, renders ~20 frames, samples the output, and fails if the image is a flat color (camera pointing at nothing, no current camera, missing sky/lights). Output is one line:
+Boots scene, renders ~20 frames, fails if image is flat color (camera at nothing, no camera, missing sky/lights).
 
 - `VERIFY-RENDER: OK — <scene> (avg luminance X, spread Y)`
 - `VERIFY-RENDER: FAIL — <scene>: <reason>`
 
 Notes:
 
-- **Not headless** — it needs a display; a small window flashes for under a second. If no display is available, say so explicitly and report layer 3 as not run.
-- The sampled frame is saved to `.godot/verify_render_last.png` for the human to inspect; never paste or read the image into chat.
-- Run it on `main.tscn` only (or any scene explicitly designed as a standalone entry point). Levels and entity scenes do not render standalone in a Main-shell architecture — Main provides the camera (skill: godot-main-scene). Layers 1–2 still run on all changed scenes; layer 3 only on entry-point scenes.
+- **Not headless** — needs display; small window flashes ~1 second. If no display: say so, report layer 3 as not run.
+- Frame saved to `.godot/verify_render_last.png` for human inspection — never paste/read it into chat.
+- Run on `main.tscn` only (or standalone entry-point scenes). Levels and entity scenes don't render standalone in Main-shell architecture (Main provides camera — skill: godot-main-scene). Layers 1–2 still run on all changed scenes.
 
 ## Hand-authoring .tscn rules
 
-Both are "valid but renders black" traps — layer 3 exists because of them:
+Both are "valid but renders black" traps:
 
-- NEVER write `transform = Transform3D(...)` matrices by hand — a transposed basis is still a valid rotation and renders a black screen with zero errors (this happened). Use `position = Vector3(...)` and `rotation_degrees = Vector3(...)` properties instead; both load correctly in .tscn.
-- An Environment with `background_mode = 2` (Sky) MUST have an actual Sky resource (e.g. ProceduralSkyMaterial) attached, or the background renders black.
-- In hand-authored `.tscn` files, keep the node hierarchy flat: all StaticBody3D and standalone MeshInstance3D nodes must be direct children of the root — no intermediate Node3D organisational groups. Nested groups make scenes load and run correctly but become uneditable in the Godot editor.
-- `#` comment lines are valid between `[sub_resource]` and `[ext_resource]` blocks (use them freely for readability). They must NOT appear between `[node]` blocks — Godot's parser fails to resolve parent paths when a `#` line interrupts the node section. To annotate a node, use `editor_description = "..."` on the node itself.
+- **NEVER write `transform = Transform3D(...)` by hand** — transposed basis is still valid rotation, renders black with zero errors. Use `position = Vector3(...)` and `rotation_degrees = Vector3(...)` instead.
+- `background_mode = 2` (Sky) **must** have an actual Sky resource (e.g. `ProceduralSkyMaterial`) or background is black.
+- Node hierarchy flat: `StaticBody3D` and standalone `MeshInstance3D` as direct children of root — no intermediate `Node3D` groups. (Groups make scenes editable-broken in the Godot editor.)
+- `#` comments valid between `[sub_resource]` and `[ext_resource]` blocks. **Must NOT appear between `[node]` blocks** — parser fails to resolve parent paths. Annotate nodes with `editor_description = "..."` instead.
+- A typed node-reference export (`@export var xs: Array[Marker3D]`) does **NOT** serialize in a hand-authored `.tscn` — the node types can't be resolved at property-assign, so the array loads empty with no error. Export `Array[NodePath]` and resolve to the typed array in `_ready()`.
 
 ## Pass criteria (all three required)
 
-1. Layer 1 prints `VERIFY: OK` and exits 0.
-2. Layer 2 grep finds nothing.
-3. Layer 3 prints `VERIFY-RENDER: OK` for every changed scene (and the main scene if it exists).
+1. Layer 1: `VERIFY: OK`, exits 0.
+2. Layer 2: grep finds nothing.
+3. Layer 3: `VERIFY-RENDER: OK` for every changed entry-point scene.
 
-Only then may you report the change as verified. If you cannot run the binary (no Godot on the machine), say so explicitly — do not claim verification.
+If Godot binary unavailable: say so explicitly — do not claim verification.
 
 ## Error → Fix
 
-| Symptom                                                             | Fix                                                                                                                                                                                                                      |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `VERIFY-FAIL ... unknown property "X"`                              | Godot 3 name or typo; find the Godot 4 name (e.g. `material/0` → `surface_material_override/0`, `energy_multiplier` → `light_energy`)                                                                                    |
-| `VERIFY-FAIL ... could not resolve node`                            | `parent=`/`name=` path in the .tscn doesn't match the tree — check section order and parent paths                                                                                                                        |
-| `SCRIPT ERROR: Parse Error` during layer 1                          | The attached .gd fails to compile; fix the script, not the scene                                                                                                                                                         |
-| `ERROR: ... Invalid UID`                                            | Hand-written uid string; remove the `uid="..."` attribute and let the editor assign one on save                                                                                                                          |
-| Layer 2 hangs                                                       | Scene waits on input/window; `--quit-after N` missing or a script blocks `_ready` — check for infinite loops                                                                                                             |
-| `VERIFY-RENDER: FAIL ... flat color` on `main.tscn`                 | Camera aimed at nothing (wrong transform — see "Hand-authoring .tscn rules" above), no current Camera3D in the viewport, or `background_mode = Sky` with no Sky resource attached                                        |
-| Layer 3 flat color on a level or entity scene                       | Expected in Main-shell architecture — levels and entities have no camera (Main provides it). Layer 3 does not apply to these scenes; only layers 1–2 are required                                                        |
-| Layer 3 looks wrong but says OK                                     | Spread check only proves _something_ rendered; composition/look is still the human's call — they must RUN the scene (F5/F6), not judge from the editor viewport                                                          |
-| `Leaked instance` / `RID allocations leaked at exit` at process end | Benign — Godot 4 headless renderer cleanup noise on teardown, NOT an error. Ignore; it does not fail any layer. Only matched lines from the layer-2 grep (`SCRIPT ERROR`/`ERROR`/`WARNING` during the run) are failures. |
+| Symptom                                              | Fix                                                                                                                                |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `VERIFY-FAIL ... unknown property "X"`               | Godot 3 name or typo — find Godot 4 name (e.g. `material/0` → `surface_material_override/0`, `energy_multiplier` → `light_energy`) |
+| `VERIFY-FAIL ... could not resolve node`             | `parent=`/`name=` path mismatch — check section order and parent paths                                                             |
+| `SCRIPT ERROR: Parse Error` during layer 1           | Attached `.gd` fails to compile — fix script, not scene                                                                            |
+| `ERROR: ... Invalid UID`                             | Hand-written uid — remove `uid="..."` attribute, let editor assign                                                                 |
+| Layer 2 hangs                                        | Scene waits on input/window; `--quit-after N` missing or script blocks `_ready`                                                    |
+| `VERIFY-RENDER: FAIL ... flat color` on `main.tscn`  | Camera aimed at nothing (wrong transform — see hand-authoring rules), no current Camera3D, or Sky with no Sky resource             |
+| Layer 3 flat color on level/entity scene             | Expected in Main-shell — levels/entities have no camera. Layer 3 doesn't apply; only layers 1–2 required                           |
+| Layer 3 looks wrong but says OK                      | Spread check only proves _something_ rendered — composition/look is human's call; run F5/F6                                        |
+| `Leaked instance` / `RID allocations leaked at exit` | Benign Godot 4 headless cleanup noise — NOT an error. Ignore                                                                       |
 
 ## RTK note
 
-When invoking from Claude Code Bash, prefix the binary call with `rtk` as usual (`rtk $GODOT --headless ...` passes through unfiltered). Do **not** pipe into `rtk grep` — it summarizes matches to a count and hides the `VERIFY-FAIL` lines; use plain `grep` inside the pipe. Never reference rtk inside `.gd` files — it is a shell-side proxy, not part of the project.
+Prefix binary call with `rtk` as usual (`rtk $GODOT --headless ...` passes through). **Do not** pipe into `rtk grep` — it hides `VERIFY-FAIL` lines; use plain `grep` inside the pipe. Never reference rtk inside `.gd` files.

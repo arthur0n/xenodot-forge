@@ -6,6 +6,7 @@ import { initStatusbar } from "./statusbar.js";
 import { initChat } from "./chat.js";
 import { initRunning } from "./running.js";
 import { initTasks } from "./tasks.js";
+import { initPromotions } from "./promotions.js";
 import { initTodos } from "./todos.js";
 import { initActivityLog } from "./activity-log.js";
 import { initApprovalsPill } from "./approvals.js";
@@ -26,6 +27,7 @@ initStatusbar();
 initChat();
 initRunning();
 initTasks();
+initPromotions();
 initTodos();
 initActivityLog();
 initApprovalsPill();
@@ -43,6 +45,9 @@ $("refresh").onclick = () => {
 };
 $("new-session").onclick = () => {
   location.href = location.pathname;
+};
+$("compact-session").onclick = () => {
+  send({ type: "compact" });
 };
 
 void loadState();

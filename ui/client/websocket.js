@@ -61,9 +61,11 @@ function handleMessage(ev) {
       if (m.message.type === "result") void loadState(); // agents may have created files
       break;
     case "tasks":
+    case "promotions":
     case "status":
     case "history":
     case "permission_denied":
+    case "context":
     case "idle":
       break; // fully handled by the store
   }

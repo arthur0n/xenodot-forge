@@ -11,6 +11,8 @@ import { makeFormTool } from "./form-tool.js";
 import { makeTaskTool } from "./task-tool.js";
 import { makeAssetTool } from "./asset-tool.js";
 import { makeAskTool } from "./ask-tool.js";
+import { makePromoteTool } from "./promote-tool.js";
+import { readPromotions, decide } from "./promotions-store.js";
 import {
   readTasks,
   applyOp,
@@ -26,12 +28,15 @@ import {
   TASK_TOOL,
   ASSET_TOOL,
   ASK_TOOL,
+  PROMOTE_TOOL,
+  AUTO_ALLOW_TOOLS,
   MODEL,
   EFFORT,
   ORCHESTRATOR_PROMPT,
   POLICIES,
   PROJECT_DIR,
   FRAMEWORK_PLUGIN_DIR,
+  ASSET_LIBRARY,
   LOG_DIR,
 } from "./config.js";
 
@@ -148,6 +153,11 @@ function makeCanUseTool({ session, sessionAllowed, waitFor, log, agentByTool, fo
     if (toolName === ASK_TOOL) {
       // UI-control tool: files an async question on the board, never pauses —
       // auto-allow. Stamp the calling agent (`_by`) so the question owner is known.
+      return { behavior: "allow", updatedInput: { ...input, _by: agent } };
+    }
+    if (toolName === PROMOTE_TOOL) {
+      // UI-control tool: files a promotion request, never pauses — auto-allow.
+      // Stamp the requesting agent (`_by`) for the record.
       return { behavior: "allow", updatedInput: { ...input, _by: agent } };
     }
     if (
@@ -302,6 +312,27 @@ function settleAllBackground({ bgBoard, runningByTask, send }) {
   }
 }
 
+/** Read the session's live context-window usage and push it to the UI meter.
+ * Best-effort: getContextUsage is a streaming-mode control request and can throw
+ * if the turn raced the session teardown — a missing meter update is harmless, so
+ * swallow errors rather than killing the message loop.
+ * @param {{ getContextUsage?: () => Promise<{ totalTokens: number, maxTokens: number, percentage: number }> }} q
+ * @param {(obj: OutMsg) => void} send */
+async function emitContextUsage(q, send) {
+  try {
+    const u = await q.getContextUsage?.();
+    if (!u) return;
+    send({
+      type: "context",
+      percentage: u.percentage,
+      totalTokens: u.totalTokens,
+      maxTokens: u.maxTokens,
+    });
+  } catch {
+    // session ended or control request unsupported — skip this meter update
+  }
+}
+
 /**
  * Drive the Claude Code session and stream its messages to the browser.
  * @param {{ resumeId: string | null, policy: string, inbox: ReturnType<typeof createInbox>, send: (obj: OutMsg) => void, canUseTool: import("@anthropic-ai/claude-agent-sdk").CanUseTool, abort: AbortController, waitFor: WaitFor, agentByTool: Map<string, string>, formAgentQueue: string[], session: { policy: string, query?: { interrupt?: () => Promise<void>, stopTask?: (taskId: string) => Promise<void> } } }} deps
@@ -327,8 +358,9 @@ function runSession({
   void (async () => {
     try {
       send({ type: "policy", value: policy });
-      // Paint the persisted task board immediately (fresh or resumed session).
+      // Paint the persisted task board + promotions board immediately (fresh or resumed).
       send({ type: "tasks", tasks: readTasks() });
+      send({ type: "promotions", items: readPromotions() });
       if (resumeId) {
         send({ type: "history", items: sessionHistory(resumeId) });
         send({ type: "status", text: `resumed session ${resumeId.slice(0, 8)}…` });
@@ -348,12 +380,20 @@ function runSession({
           // The framework knowledge base (plugin/library) and skill/agent sources live
           // in the plugin, OUTSIDE the game cwd. Mount the plugin as an extra working
           // root so researcher agents can read it AND write new knowledge / promoted
-          // capabilities back into the framework (the self-improvement loop) — all
-          // still gated by the permission policy + the destructive-action hooks.
-          additionalDirectories: [FRAMEWORK_PLUGIN_DIR],
+          // capabilities back into the framework (the self-improvement loop). ASSET_LIBRARY
+          // (the external shared-asset dir, mounted in the game as res://x-shared-assets) is
+          // also outside cwd, so mount it too — asset-advisor reads/verifies sourced files
+          // there and godot-dev imports them. All still gated by the permission policy + hooks.
+          additionalDirectories: [FRAMEWORK_PLUGIN_DIR, ASSET_LIBRARY],
           // Pick up the game's CLAUDE.md + any game-local .claude/ (game-specific
           // agents/skills the user hasn't promoted to the framework yet).
           settingSources: ["user", "project", "local"],
+          // Bare-name pre-approval for the read/research/exec toolset, so a
+          // BACKGROUNDED (headless) sub-agent — which has no approver and so auto-denies
+          // anything not pre-approved — can actually research. Argument-scoped settings
+          // rules (Bash(**), Read(**)) do NOT reach headless sub-agents; only bare names
+          // do (see config.js). Bash stays safe via the destructive-* PreToolUse hooks.
+          allowedTools: AUTO_ALLOW_TOOLS,
           model: MODEL,
           // Orchestrator routes more than it reasons; sub-agents override via their
           // own `effort:` frontmatter while active. Skill discovery stays default
@@ -372,6 +412,7 @@ function runSession({
                 makeTaskTool(send),
                 makeAssetTool(send),
                 makeAskTool(send),
+                makePromoteTool(send),
               ],
             }),
           },
@@ -381,6 +422,10 @@ function runSession({
       for await (const message of q) {
         trackMessage(message, { agentByTool, bgSpawns, bgBoard, runningByTask, send });
         send({ type: "event", message });
+        // Turn ended — read the live context-window usage and push it to the UI's
+        // session meter, so the user can see the orchestrator transcript growing and
+        // compact/reset before it gets expensive (each turn re-reads the whole prefix).
+        if (message.type === "result") void emitContextUsage(q, send);
       }
       send({ type: "status", text: "session ended" });
     } catch (err) {
@@ -396,6 +441,22 @@ function runSession({
       send({ type: "idle" });
     }
   })();
+}
+
+/** Board mutations that simply mutate a store and rebroadcast: a task status/removal
+ * (task_update) or a promotion approve/reject (promotion_decide). Split out of
+ * handleClientMessage to keep its branch complexity in check. Returns true if handled.
+ * @param {ClientMsg} msg @param {(obj: OutMsg) => void} send @returns {boolean} */
+function handleBoardMessage(msg, send) {
+  if (msg.type === "task_update") {
+    send({ type: "tasks", tasks: applyOp(msg, new Date().toISOString()) });
+    return true;
+  }
+  if (msg.type === "promotion_decide") {
+    send({ type: "promotions", items: decide(msg.id, msg.decision, new Date().toISOString()) });
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -429,10 +490,34 @@ function handleClientMessage(raw, { log, send, inbox, pending, session }) {
     }
   } else if (msg.type === "policy" && POLICIES.includes(msg.value)) {
     session.policy = msg.value;
-  } else if (msg.type === "task_update") {
-    // User toggled a status or removed a task from the UI — mutate the store
-    // and broadcast the new list back.
-    send({ type: "tasks", tasks: applyOp(msg, new Date().toISOString()) });
+  } else if (handleBoardMessage(msg, send)) {
+    // A board mutation (task status/removal, or a promotion approve/reject) —
+    // handled and rebroadcast inside the helper.
+  } else {
+    handleControlMessage(msg, { send, inbox, session });
+  }
+}
+
+/** Session-control messages: compact (trim transcript in place), stop (interrupt
+ * the turn), stop_task (kill one background worker). Split out of handleClientMessage
+ * to keep its branch complexity in check.
+ * @param {ClientMsg} msg
+ * @param {{ send: (obj: OutMsg) => void, inbox: ReturnType<typeof createInbox>, session: { query?: { interrupt?: () => Promise<void>, stopTask?: (taskId: string) => Promise<void> } } }} deps */
+function handleControlMessage(msg, { send, inbox, session }) {
+  if (msg.type === "compact") {
+    // Trim the orchestrator's transcript in place: push the /compact slash command
+    // as a user turn (the SDK processes slash commands). This summarizes history and
+    // sheds the bulk while keeping the SAME session alive — plugin, skills, warm
+    // cache and the task board all survive (unlike "+ new", a full cold restart).
+    inbox.push({
+      type: "user",
+      parent_tool_use_id: null,
+      message: { role: "user", content: [{ type: "text", text: "/compact" }] },
+    });
+    send({
+      type: "status",
+      text: "compacting the session — trimming transcript, keeping context…",
+    });
   } else if (msg.type === "stop") {
     // Interrupt the current turn — stops in-flight sub-agents but keeps the
     // session alive for the next input.

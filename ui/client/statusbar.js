@@ -18,6 +18,29 @@ function paintModel(s) {
       : "connecting…";
 }
 
+/** Paint the session's context-window meter: bar width = % of the window used,
+ * coloured green/amber/red so the user can compact or reset before a long session
+ * gets expensive. Red (≥70%) lands before the SDK's own auto-compact (~80–92%), so
+ * the user acts on their own schedule, not mid-task.
+ * @param {import("./store.js").State["session"]} sess */
+function paintContextMeter(sess) {
+  const pct = sess.contextPct;
+  const bar = $("ctx-bar");
+  const label = $("ctx-label");
+  if (pct == null) {
+    bar.style.width = "0";
+    label.textContent = "";
+    return;
+  }
+  const level = pct >= 70 ? "ctx-hot" : pct >= 50 ? "ctx-warn" : "";
+  bar.style.width = `${Math.min(100, Math.round(pct))}%`;
+  bar.className = `ctx-bar${level ? " " + level : ""}`;
+  label.className = `ctx-label${level === "ctx-hot" ? " ctx-hot" : ""}`;
+  const used = Math.round((sess.contextTokens ?? 0) / 1000);
+  const max = Math.round((sess.contextMax ?? 0) / 1000);
+  label.textContent = `context ${used}k / ${max}k · ${Math.round(pct)}%`;
+}
+
 export function initStatusbar() {
   subscribe("connection", (conn, s) => {
     if (conn.open) everOpen = true;
@@ -28,6 +51,7 @@ export function initStatusbar() {
   subscribe("session", (sess, s) => {
     $("session-model").textContent = sess.model || "starting…";
     if (sess.status) $("session-meta").textContent = sess.status;
+    paintContextMeter(sess);
     paintModel(s);
   });
   subscribe("usage", (u) => {

@@ -3,79 +3,65 @@ name: godot-gridmap-level
 description: Build a tile-based 3D level from a drawn grid (levels/drawn/current.json) with GridMap + MeshLibrary so geometry is computed and grid-snapped, not hand-authored. Use for any Draw-level brief citing current.json, a level with more than ~10 wall/floor pieces, or when hand-typed Transform3D walls clip, mis-size, or drift off their colliders. Covers MeshLibrary tile authoring, the @tool grid importer, the GridMap+instanced-props hybrid, and verify additions. NOT for a tiny hand-built blockout of a few boxes.
 ---
 
-# godot-gridmap-level — grid-snapped levels via GridMap + MeshLibrary
+# godot-gridmap-level
 
-## Why this exists
-
-`levels/blockout_01.tscn` (7 boxes, clean round-number transforms) renders correctly. `levels/shared_apartment.tscn` (~40 hand-authored nodes) does not: on the hard runs the agent nudged the **mesh and the collider separately, by eye**, and they drifted —
-
-- `WallCorrMBDiv`: the visible wall mesh is scaled to 0.55 and shifted **+6.1 m** off its collider — you collide with a wall that isn't where it's drawn.
-- `WallIntSharedBedBath` / `WallSBSouthStub`: mesh and collider given different scales and offsets.
-
-Hand-authoring dozens of `Transform3D` matrices is the failure mode. **GridMap fixes the bug class structurally**: cells snap to a grid, and each cell's mesh _and_ its collision come from one MeshLibrary item — they cannot drift apart. This is the build method for any level that comes from the drawn grid.
+Hand-authoring `Transform3D` matrices fails: mesh and collider get nudged separately and drift (`shared_apartment.tscn` — `WallCorrMBDiv` mesh shifted +6.1 m off its collider). GridMap fixes this structurally: each cell's mesh + collision come from one MeshLibrary item — they cannot drift.
 
 ## When to use
 
-- The brief cites `levels/drawn/current.json` (the Draw-level pipeline). **Always** use GridMap.
-- Any level with more than ~10 wall/floor pieces.
-- A hand-authored level whose walls clip or whose colliders no longer match the meshes.
+- Brief cites `levels/drawn/current.json` → **always** GridMap.
+- Level has >~10 wall/floor pieces.
+- Hand-authored level with clipping/drifting walls.
 
-**When NOT to use:** a small hand-built blockout (≲10 primitives, no grid) — the hand-authored `StaticBody3D` + `MeshInstance3D` + `CollisionShape3D` pattern (skill: godot-verify "Hand-authoring .tscn rules") is fine there.
+**NOT:** small blockout (≲10 primitives, no grid) — plain `StaticBody3D` + `MeshInstance3D` + `CollisionShape3D`.
 
-## The grid → world contract
+## Grid → world contract
 
-`levels/drawn/current.json` = `{ width, height, cell_size, cells, items, rooms }`, row-major. Structure codes: **0 floor · 1 wall · 2 door · 3 window · 4 item**. `items` = `{ id, x, y }` (same id = the same item); `rooms` = `{ id, x, y }` grouping cells into numbered room regions (same id = one room → a per-zone wall colour / tile variant). The file's `cell_size` is a hint only — the **metres-per-cell and wall height come from the level-designer brief**.
+`levels/drawn/current.json` = `{ width, height, cell_size, cells, items, rooms }`, row-major. Codes: **0 floor · 1 wall · 2 door · 3 window · 4 item**. `items` = `{ id, x, y }`; `rooms` = `{ id, x, y }` (same id = one zone → per-zone wall colour). File `cell_size` is a hint — metres-per-cell and wall height come from the brief.
 
-Cell `(col, row)` → GridMap cell `Vector3i(col, 0, row)`. `set_cell_item` places the item at the cell centre (see `cell_center_*` properties); model each tile with its **origin at the tile centre** so it sits correctly. World position of a cell is `cell * cell_size`. **There is no by-eye step.**
+Cell `(col, row)` → `Vector3i(col, 0, row)`. World pos = `cell * cell_size`. **No by-eye step.**
 
 ## Method
 
-### 1. MeshLibrary of structure tiles (the part that can't drift)
+### 1. MeshLibrary tiles
 
-Build a tile source scene — root `Node3D`, one child per tile:
+Tile source scene: root `Node3D`, one child per tile type, each = `MeshInstance3D` + `StaticBody3D`/`CollisionShape3D`. Export: `Scene → Export As… → MeshLibrary…` → `resources/<name>.meshlib.tres`.
 
-- a `MeshInstance3D` (the visual), and
-- a `StaticBody3D` with a `CollisionShape3D` child (the collision).
+Tile types:
 
-Then `Scene → Export As… → MeshLibrary…` and save a `.tres` (project convention: resources live in `resources/`, e.g. `resources/apartment_tiles.meshlib.tres`). One item per tile id you need:
-
-- **floor** (thin slab filling the cell footprint) — or skip and use one big floor slab (see step 3),
-- **wall** — a solid box filling the cell: `Vector3(cell_size.x, wall_height, cell_size.z)`. In a grid blockout a wall **cell** is a solid block, not a thin plane between cells — this removes all thin-wall edge ambiguity and is why nothing clips.
-- **door-frame**, **window-sill** (short wall) — as needed.
+- **floor** — thin slab (or skip; use one big slab in step 3)
+- **wall** — solid box `Vector3(cell_size.x, wall_height, cell_size.z)` (full block, not a thin plane)
+- **door-frame**, **window-sill** — as needed
 
 Gotchas:
 
-- **Materials must live on the MESH, not the node.** Godot's MeshLibrary export uses only the mesh's own material; a `surface_material_override` on the node is ignored. For **per-zone wall colours**, make a separate tile item per colour (`wall_cool`, `wall_cream`, `wall_grey`), each with its colour baked into its mesh material. The importer maps a **room id** (from the `rooms` list) → wall tile id.
-- Collision shape comes from the tile's `StaticBody3D`/`CollisionShape3D` child and is welded to that item — **mesh and collider are one unit, forever in sync.**
-- **Sub-cell-height tiles (window sills, low walls, counters):** a tile shorter than `wall_height` must be Y-shifted so it seats on the floor, not floating at the cell centre. Set the `MeshInstance3D` origin to `Vector3(0, -(wall_height - tile_height) / 2, 0)` inside the tile source scene before exporting. Without this, a 1.5 m sill in a 3 m cell floats 0.75 m off the floor.
-- **Layered tiles (sill + glass pane):** a window tile can carry two `BoxMesh` surfaces in one MeshLibrary item — a solid sill (opaque `StandardMaterial3D`) and a taller glass pane (transparent `StandardMaterial3D`, `albedo_color.a ≈ 0.3`, `transparency = BaseMaterial3D.TRANSPARENCY_ALPHA`). Share the item's single `StaticBody3D`/`CollisionShape3D` sized to the sill — the glass pane is visual only. This is standard MeshLibrary authoring, not a GridMap limitation.
-- **Headless collision (no editor):** the `StaticBody3D`/`CollisionShape3D` child authoring above is the _editor_ MeshLibrary-export path. From a headless `@tool extends SceneTree` builder (step 4b) you set an item's collision directly: `mesh_library.set_item_shapes(id, [shape, transform, ...])` — a **FLAT, untyped `Array`** alternating a `Shape3D` then its `Transform3D` (e.g. `mesh_library.set_item_shapes(0, [BoxShape3D.new(), Transform3D.IDENTITY])`). There is **no `ShapePrimitive3D` type** in Godot 4 — only `set_item_shapes` with this flat array. Size the shape to the tile box so collider and mesh stay welded, exactly as the editor child would.
+- **Materials on the MESH, not the node.** `surface_material_override` ignored by export. Per-zone colours = separate tile items (`wall_cool`, `wall_cream`, …) with colour baked into mesh material.
+- Collision is welded to the tile item — can never drift.
+- **Sub-cell-height tiles:** set `MeshInstance3D` origin to `Vector3(0, -(wall_height - tile_height) / 2, 0)` in the source scene or it floats at cell centre.
+- **Layered tiles:** one item can carry two `BoxMesh` surfaces (e.g. sill + glass pane with `transparency = TRANSPARENCY_ALPHA, albedo_color.a ≈ 0.3`). Single `StaticBody3D` sized to the sill.
+- **Headless collision:** `mesh_library.set_item_shapes(id, [BoxShape3D.new(), Transform3D.IDENTITY])` — flat untyped `Array` alternating `Shape3D` + `Transform3D`. No `ShapePrimitive3D` type in Godot 4.
 
-### 2. GridMap node + cell size
+### 2. GridMap node
 
-Add a `GridMap` to the level scene, assign the `.tres` MeshLibrary, and set
-`cell_size = Vector3(metres_per_cell, wall_height, metres_per_cell)` (footprint × wall height, from the brief).
+Add `GridMap`, assign MeshLibrary `.tres`, set `cell_size = Vector3(metres_per_cell, wall_height, metres_per_cell)`.
 
-### 3. Hybrid — structure in the GridMap, the floor and props outside it
+### 3. Hybrid: structure in GridMap, floor and props outside
 
-- **Floor:** simplest is **one `StaticBody3D` floor slab** (a single `BoxMesh` + `BoxShape3D`) sized to the grid extent (`width*cell_size.x` × thin × `height*cell_size.z`), not a per-cell floor tile. (One slab beats hundreds of floor cells and never seams.)
-- **Furniture / items (code 4 + the `items` list ids):** beds span two cells, a nightstand is 0.5 m inside a 1.5 m cell — these do **not** fit uniform cells. Group item cells by id (same id = same prop) and instance small **prop scenes** at **computed** world positions (`Vector3(col*cell_size.x, y, row*cell_size.z)` + a fixed offset), as direct children of the root. Computed, never eyeballed — same discipline as the GridMap.
-- **Collision is part of the build, NOT a parked extra.** Every prop holder is a `StaticBody3D` (not a plain `Node3D`) with a `CollisionShape3D` + its OWN `BoxShape3D` (one unique shape per prop, never shared) sized to the model's mesh AABB and centred on it — so the player can't walk through furniture. Compute the AABB **headlessly at build time**: instance the model, walk its `MeshInstance3D`s accumulating each node's `Transform3D` from the holder origin, and enclose the 8 transformed corners (no `get_global_transform()` / live SceneTree needed). A simple per-prop box — never trimesh (static-only + expensive). This applies to every prop, including multi-cell ones (box matches the model AABB, not the cell span).
-- **Multi-cell same-id groups are ONE instance, not a per-cell count.** A 2-cell wardrobe or a 2-cell bed is a _single_ prop placed at the group's centre (the mean of its cells) and scaled/oriented to span them — never N separate instances. A design doc that writes a prop as `×N` is ambiguous (N units vs one N-cell piece); read a same-id cell group as one spanning instance at the centre, and if the doc truly meant N distinct props it must give them distinct ids.
+- **Floor:** one `StaticBody3D` slab sized to `(width*cell_size.x × thin × height*cell_size.z)` — beats per-cell tiles, no seams.
+- **Props (code 4 / `items`):** group same-id cells → one instance at computed world pos `Vector3(col*cell_size.x, y, row*cell_size.z)` + offset. Never eyeballed.
+- **Collision is pipeline default** (not parked). Prop holder = `StaticBody3D` + `CollisionShape3D` + unique `BoxShape3D` sized to model AABB. Compute AABB headlessly: instance model, walk `MeshInstance3D`s accumulating `Transform3D` from holder origin, enclose 8 corners. Box, never trimesh.
+- **Multi-cell same-id = ONE instance** at group centre, not N copies.
 
-### 4. The importer (`@tool`, author-time only)
+### 4. Editor importer (`@tool extends GridMap`)
 
-A small `@tool` script populates the GridMap from the grid **in the editor**, then you **save the scene** — GridMap serialises its cells into the `.tscn`. At runtime nothing reads the JSON (honours the "grid is a reference, not a runtime source" rule).
+Populates GridMap from JSON in editor → save scene → cells bake into `.tscn`. Nothing reads JSON at runtime.
 
-Shape (typed GDScript — load `godot-code-rules` before writing it):
-
-> **SEAM:** `JSON.parse_string` returns untyped `Variant`. This project's strict config (`unsafe_cast=2`) requires a type-guard (`if not parsed is Dictionary`) plus `@warning_ignore("unsafe_cast")` on every subsequent cast. The bare `var grid: Dictionary = JSON.parse_string(...)` pattern fails `tools/validate.sh` on first try.
+> **SEAM:** `JSON.parse_string` returns `Variant`. Strict config (`unsafe_cast=2`) requires type-guard + `@warning_ignore` on every cast.
 
 ```gdscript
 @tool
 extends GridMap
-## Author-time importer. Set rebuild = true in the inspector to repopulate from the grid,
-## then save the scene. Never reads the grid at runtime.
+## Author-time importer. Set rebuild = true in inspector to repopulate, then save.
 
 @export var rebuild: bool = false:
 	set(value):
@@ -88,7 +74,6 @@ func _build_from_grid() -> void:
 	if not parsed is Dictionary:
 		push_error("gridmap importer: grid JSON is not a Dictionary")
 		return
-	# SEAM: JSON.parse_string returns Variant; strict config (unsafe_cast=2) requires explicit casts.
 	@warning_ignore("unsafe_cast")
 	var grid: Dictionary = parsed as Dictionary
 	@warning_ignore("unsafe_cast")
@@ -100,18 +85,16 @@ func _build_from_grid() -> void:
 		@warning_ignore("unsafe_cast")  # SEAM: Array element is Variant
 		var code: int = int(cells[i] as float)
 		var col: int = i % w
-		@warning_ignore("integer_division")  # SEAM: intentional integer division
+		@warning_ignore("integer_division")
 		var row: int = i / w
-		var item: int = _item_for(code, col, row)  # zone → tile id (incl. per-zone colour)
+		var item: int = _item_for(code, col, row)
 		if item >= 0:
 			set_cell_item(Vector3i(col, 0, row), item)
 ```
 
-`_item_for()` maps tile code (and zone, for per-zone colour) to a MeshLibrary item id; returns `-1` for floor/door/empty (door = passable gap; place a separate frame mesh if the brief wants one). Keep it deterministic.
+`_item_for()` maps code + zone → MeshLibrary item id; returns `-1` for floor/door/empty.
 
-### 4b. Headless build path (no editor open)
-
-When the scene must be generated without an editor session — the normal case for a Draw-level godot-dev dispatch — write a `@tool extends SceneTree` script under `tools/build_<name>.gd` instead:
+### 4b. Headless build path (`@tool extends SceneTree`)
 
 ```gdscript
 @tool
@@ -127,7 +110,7 @@ func _init() -> void:
 	grid_map.cell_center_x = false
 	grid_map.cell_center_y = false
 	grid_map.cell_center_z = false
-	_populate_from_grid(grid_map)  # use the SEAM casting pattern from step 4
+	_populate_from_grid(grid_map)  # use SEAM casting pattern from step 4
 	root.add_child(grid_map)
 	grid_map.owner = root
 	# add floor slab, DirectionalLight3D, WorldEnvironment, Player...
@@ -137,23 +120,21 @@ func _init() -> void:
 	quit()
 ```
 
-Run headlessly: `$GODOT --headless --path . --script tools/build_<name>.gd`
+Run: `$GODOT --headless --path . --script tools/build_<name>.gd`
 
-**Rule: pick one build path per scene.** Do not author both a headless builder and an editor `@tool` importer for the same scene — they duplicate the JSON-parsing logic and diverge over time.
+**One build path per scene** — don't duplicate JSON-parsing logic.
 
-- **Editor path (step 4):** attach the `@tool extends GridMap` script, flip `rebuild = true` in the inspector, save, commit the baked `.tscn`. Best when iterating in the editor.
-- **Headless path (step 4b):** write `tools/build_<name>.gd`, run once to generate the `.tscn`, keep for future rebuilds. Best for agent-driven builds with no editor open.
+- **Editor (step 4):** flip `rebuild`, save, commit baked `.tscn`. Best for editor iteration.
+- **Headless (step 4b):** run once → `.tscn`, keep for rebuilds. Best for agent-driven builds.
 
-## Verify additions (on top of godot-verify)
+## Verify additions (+ standard godot-verify)
 
-After building, in addition to the standard 3-layer godot-verify:
+1. GridMap has MeshLibrary assigned + `get_used_cells()` not empty (unassigned = silent empty render).
+2. `cell_size` matches brief metres-per-cell × wall height.
+3. Scene **saved after** importer ran (cells baked into `.tscn`).
+4. Floor slab covers grid extent; props at sensible scale.
+5. F5 in `Main/LevelHost`: no wall clips, collider matches every visible wall.
 
-1. The GridMap has a MeshLibrary assigned and **non-empty** cells (`get_used_cells()` not empty) — an unassigned library renders nothing silently.
-2. `cell_size` matches the brief's metres-per-cell × wall height.
-3. The scene was **saved after** the importer ran (cells are baked into the `.tscn`); confirm no `@tool` build runs at runtime.
-4. Floor slab present and covers the grid extent; props sit at sensible scale.
-5. Walk it in an F5 run under `Main/LevelHost`: no wall clips, and a collider matches every visible wall (the `shared_apartment` 6 m gap must be impossible).
+## Loading & style
 
-## Loading & style (unchanged)
-
-A GridMap level is just another `.tscn`: it loads under `Main/LevelHost` like every level (skill: godot-main-scene) and registers in `main.gd`'s `_levels`. It renders normally inside the orthographic SubViewport pixelation rig; keep the flat `StandardMaterial3D` pixel-art look on the tile meshes, and the level's `DirectionalLight3D` + `WorldEnvironment` (Sky) exactly as blockout levels do (skills: godot-pixel-lighting, godot-3d-pixelation).
+Loads under `Main/LevelHost` like any level (`main.gd`'s `_levels`). Flat `StandardMaterial3D` pixel-art look on tile meshes. `DirectionalLight3D` + `WorldEnvironment` (Sky) as blockout levels (skills: godot-pixel-lighting, godot-3d-pixelation).

@@ -4,6 +4,7 @@ description: Transcript researcher agent for the DiceOfFate project — the fram
 model: opus
 tools: Read, Glob, Grep, Write, Bash, Skill, mcp__ui__tasks, mcp__ui__ask
 skills:
+  - caveman
   - tasks-mcp
 effort: high
 permission-mode: acceptEdits

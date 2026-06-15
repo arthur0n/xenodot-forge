@@ -2,6 +2,7 @@ node_modules/
 .DS_Store
 logs/
 opendocs/
+game_assets/
 
 # Your saved game-project path (written by `npm run setup`). Local to each
 # fork — the framework is independent of which project it points at.

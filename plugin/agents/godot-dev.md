@@ -4,6 +4,7 @@ description: Godot 4.x development agent for the DiceOfFate project. Implements 
 model: sonnet
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__ui__tasks
 skills:
+  - caveman
   - godot-code-rules
   - godot-verify
   - godot-composition

@@ -4,6 +4,7 @@ description: Addon researcher agent for the DiceOfFate project — the framework
 model: sonnet
 tools: Read, Glob, Grep, Write, Bash, WebSearch, WebFetch, mcp__ui__form, mcp__ui__tasks, mcp__ui__ask
 skills:
+  - caveman
   - tasks-mcp
 effort: medium
 permission-mode: acceptEdits
