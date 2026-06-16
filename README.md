@@ -111,12 +111,12 @@ Every command runs **from inside `xenodot-forge/`** and takes the game path as a
 
 ### Let Claude do it for you
 
-Open Claude Code inside the cloned repo and paste, filling the one blank:
+Open Claude Code in your workspace and paste this:
 
 ```text
-Read this repo's README and follow its Quickstart to set up and run it against my Godot
-game at: <PATH TO MY GODOT GAME>. Run the commands yourself, fix anything that fails, and
-tell me the URL when it's up.
+Read https://raw.githubusercontent.com/arthur0n/xenodot-forge/main/README.md and follow its
+Quickstart to set up and run it against my Godot game at: <PATH TO MY GODOT GAME>. Run the
+commands yourself, fix anything that fails, and tell me when it's running.
 ```
 
 ### Terminal Claude Code instead of the web UI
