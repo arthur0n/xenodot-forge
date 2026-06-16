@@ -58,6 +58,8 @@ Three options:
 
 The greybox node you own = parent; model PackedScene = child. Never make-local a sourced prop.
 
+> **Recolouring a nested GLB's mesh from a PARENT (inherited or instanced) scene is NOT reliable by hand-authored `surface_material_override`** — the mesh node sits inside a nested instance, so Godot silently drops the override and emits "node was modified but has vanished" (fails the godot-verify smoke gate). Apply it from a small `_ready()` script via `set_surface_override_material(0, ...)` on the GLB mesh node(s). A design doc must NOT assume "no script" for tinting a nested-GLB entity.
+
 **5. Swap greybox 1:1**
 
 Keep node **name** (`Wardrobe`) and **position** (computed transform). Make the named node the owner (`Node3D` or `StaticBody3D`). Nest the `.glb` instance at local origin scaled per step 3.
@@ -93,21 +95,22 @@ F5: prop renders as model (not flat box), right size, sits on floor, crisp/block
 
 ## Error → Fix
 
-| Symptom                                 | Fix                                                                            |
-| --------------------------------------- | ------------------------------------------------------------------------------ |
-| Prop giant / speck                      | Step 3 — near-uniform Root Scale from dominant dimension                       |
-| Prop floats / sinks                     | Step 3 — align model AABB lowest point to y 0                                  |
-| Prop crushed / bloated                  | Step 3 — per-axis scale used; re-scale near-uniformly                          |
-| Texture blurry                          | Step 2 — Make Unique surface material, `texture_filter = 1`                    |
-| Model black / unlit                     | No material or unshaded no albedo — Make Unique, set albedo, confirm scene sun |
-| Half model invisible / inside-out       | Inverted normals — material cull mode Disabled, or re-export double-sided      |
-| `.gltf` rejected                        | Convert to `.glb` (self-contained binary)                                      |
-| Box AND model visible                   | Greybox `MeshInstance3D` not replaced — swap content, keep name/position       |
-| Stray light / camera / mesh from model  | Step 1a — Advanced Import → Skip (or `-noimp`)                                 |
-| Material won't take NEAREST filter      | Embedded — Step 1a → Storage = Files → extract `.tres` to `resources/`         |
-| Lit surface inverted (bumps = dents)    | Normal map Y convention — Step 1a → Normal Map = Flip Y                        |
-| Re-import doesn't change prop           | Prop was made-local — must be nested instance                                  |
-| Editing one collider changed all copies | Shared shape resource — right-click → Make Unique                              |
+| Symptom                                                             | Fix                                                                                                                                                                                                                            |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Prop giant / speck                                                  | Step 3 — near-uniform Root Scale from dominant dimension                                                                                                                                                                       |
+| Prop floats / sinks                                                 | Step 3 — align model AABB lowest point to y 0                                                                                                                                                                                  |
+| Prop crushed / bloated                                              | Step 3 — per-axis scale used; re-scale near-uniformly                                                                                                                                                                          |
+| Texture blurry                                                      | Step 2 — Make Unique surface material, `texture_filter = 1`                                                                                                                                                                    |
+| Model black / unlit                                                 | No material or unshaded no albedo — Make Unique, set albedo, confirm scene sun                                                                                                                                                 |
+| Half model invisible / inside-out                                   | Inverted normals — material cull mode Disabled, or re-export double-sided                                                                                                                                                      |
+| `.gltf` rejected                                                    | Convert to `.glb` (self-contained binary)                                                                                                                                                                                      |
+| Box AND model visible                                               | Greybox `MeshInstance3D` not replaced — swap content, keep name/position                                                                                                                                                       |
+| Stray light / camera / mesh from model                              | Step 1a — Advanced Import → Skip (or `-noimp`)                                                                                                                                                                                 |
+| Material won't take NEAREST filter                                  | Embedded — Step 1a → Storage = Files → extract `.tres` to `resources/`                                                                                                                                                         |
+| Lit surface inverted (bumps = dents)                                | Normal map Y convention — Step 1a → Normal Map = Flip Y                                                                                                                                                                        |
+| Re-import doesn't change prop                                       | Prop was made-local — must be nested instance                                                                                                                                                                                  |
+| Editing one collider changed all copies                             | Shared shape resource — right-click → Make Unique                                                                                                                                                                              |
+| "node was modified but has vanished" on a `.tscn` material override | Mesh is a nested GLB inside an inherited/instanced scene — hand-authored `surface_material_override` is silently dropped. Recolour from a script: `_ready()` → `set_surface_override_material(0, mat)` on the GLB mesh node(s) |
 
 ---
 
