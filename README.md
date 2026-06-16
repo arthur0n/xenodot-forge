@@ -2,7 +2,7 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Godot-family 4.x](https://img.shields.io/badge/Godot--family-4.x-blue.svg)
-![Skills: 23](https://img.shields.io/badge/Skills-23-purple.svg)
+![Skills: 24](https://img.shields.io/badge/Skills-24-purple.svg)
 ![Agents: 11](https://img.shields.io/badge/Agents-11-orange.svg)
 ![Status: POC](https://img.shields.io/badge/Status-POC-yellow.svg)
 
@@ -303,7 +303,6 @@ If you want broad coverage now, go use GodotPrompter. If you want to experiment 
 ### Activities List
 
 <img width="343" height="691" alt="image" src="https://github.com/user-attachments/assets/b8c0a286-ded8-493b-8994-bcaf571b5815" />
-
 
 ### Session Management
 

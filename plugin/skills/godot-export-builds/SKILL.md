@@ -59,6 +59,7 @@ rtk $GODOT --headless --path . --export-release "Windows" build/windows/diceofat
 ```
 
 - Preset name in quotes must match `export_presets.cfg` exactly.
+- **macOS-only prereq:** the macOS preset needs `textures/vram_compression/import_etc2_astc=true` in `project.godot` `[rendering]` (ASTC-only templates) — set it once or the macOS export aborts.
 - **Exit codes lie** (Godot habit): grep stderr for `ERROR`/`template`; confirm the artifact
   exists and is non-trivially sized (`ls -la build/...`). A 0-byte or missing output = failure
   even on exit 0.
@@ -102,14 +103,15 @@ itch's per-platform download buttons; an `html5` channel embeds as the playable 
 
 ## Error → Fix
 
-| Symptom                                                    | Fix                                                                                                                   |
-| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `No export template found at the expected path`            | Templates for this exact engine version not installed — see Prerequisite.                                             |
-| `Cannot export project with preset "X" ... no matching`    | `name=` in `export_presets.cfg` differs from the CLI string (case-sensitive).                                         |
-| Export "succeeds" (exit 0) but output is 0 bytes / missing | Template mismatch or bad `export_path` — grep stderr for `ERROR`; check the preset platform string.                   |
-| macOS build won't open ("damaged") on another Mac          | Unsigned POC build — right-click→Open, or `xattr -dr com.apple.quarantine`. Signing/notarization is out of POC scope. |
-| Web build blank / wasm errors in console                   | Served without COOP/COEP, or Forward+ feature unsupported under WebGL2 — apply the Web caveat verdict.                |
-| `butler: command not found`                                | Install butler (itch app → "install butler", or from itch.io/docs/butler) and `butler login`.                         |
+| Symptom                                                                   | Fix                                                                                                                                                                                                                                         |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `No export template found at the expected path`                           | Templates for this exact engine version not installed — see Prerequisite.                                                                                                                                                                   |
+| `Cannot export project with preset "X" ... no matching`                   | `name=` in `export_presets.cfg` differs from the CLI string (case-sensitive).                                                                                                                                                               |
+| Export "succeeds" (exit 0) but output is 0 bytes / missing                | Template mismatch or bad `export_path` — grep stderr for `ERROR`; check the preset platform string.                                                                                                                                         |
+| macOS build won't open ("damaged") on another Mac                         | Unsigned POC build — right-click→Open, or `xattr -dr com.apple.quarantine`. Signing/notarization is out of POC scope.                                                                                                                       |
+| `Target platform requires 'ETC2/ASTC' texture compression` (macOS export) | Set `textures/vram_compression/import_etc2_astc=true` under `[rendering]` in `project.godot`, then re-export. macOS templates ship only ASTC-compressed texture variants; default-off means none get imported. Linux/Windows don't need it. |
+| Web build blank / wasm errors in console                                  | Served without COOP/COEP, or Forward+ feature unsupported under WebGL2 — apply the Web caveat verdict.                                                                                                                                      |
+| `butler: command not found`                                               | Install butler (itch app → "install butler", or from itch.io/docs/butler) and `butler login`.                                                                                                                                               |
 
 ## Notes
 

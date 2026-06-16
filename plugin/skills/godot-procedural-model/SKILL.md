@@ -20,7 +20,9 @@ $GODOT --headless --path . --import                        # Godot auto-generate
 
 ## Add a prop (the reuse path)
 
-Append one entry to `_props` in `tools/gen_models.gd` and re-run. Schema:
+- **Specs live in a sibling file (default structure).** Keep prop specs in `tools/gen_models_props.gd` (a `class_name GenModelsProps` with a static `get_props()` returning the `_props` array); `gen_models.gd` holds only the build/export logic and calls `GenModelsProps.get_props()`. Specs grow with every prop — separating them from the generator keeps `gen_models.gd` under the 500-line cap (skill `godot-code-rules`) by construction, instead of forcing a reactive split the moment one prop's spec pushes it over.
+
+Append one entry to the `_props` array (in `gen_models_props.gd`) and re-run. Schema:
 
 ```gdscript
 { "name": String, "parts": Array[Dictionary] }

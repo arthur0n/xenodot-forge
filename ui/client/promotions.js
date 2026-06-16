@@ -11,7 +11,7 @@ import { subscribe } from "./store.js";
 
 const STATUS_LABEL = {
   requested: "wants promoting",
-  approved: "approved · run `npm run promote -- --pending`",
+  approved: "approved · ready to forge",
   rejected: "rejected",
   promoted: "promoted ✓",
 };
@@ -36,6 +36,18 @@ function row(p) {
     };
     actions.append(approve, reject);
     node.append(actions);
+  } else if (p.status === "approved") {
+    // Gated through — one click runs the move server-side and marks it promoted.
+    const actions = el("div", "promo-actions");
+    const run = /** @type {HTMLButtonElement} */ (el("button", "btn primary", "Promote now"));
+    run.title = "Move it into the framework plugin now";
+    run.onclick = () => {
+      run.disabled = true;
+      run.textContent = "promoting…";
+      send({ type: "promotion_run", id: p.id });
+    };
+    actions.append(run);
+    node.append(actions);
   }
   return node;
 }
@@ -45,12 +57,14 @@ function render(items) {
   // Hide settled noise: drop promoted/rejected entries from the panel (the manifest
   // keeps them as the audit trail). Show only live requests + approved-pending.
   const live = items.filter((p) => p.status === "requested" || p.status === "approved");
-  const panel = $("promotions-panel");
   const list = $("promotions-list");
   list.replaceChildren();
   for (const p of live) list.append(row(p));
-  $("promotions-badge").textContent = String(live.filter((p) => p.status === "requested").length);
-  panel.style.display = live.length ? "" : "none";
+  // Pending-request count rides on the Promote tab; the pane shows an empty
+  // placeholder when there's nothing waiting.
+  const pending = live.filter((p) => p.status === "requested").length;
+  $("promote-tabcount").textContent = pending ? String(pending) : "";
+  $("promotions-empty").style.display = live.length ? "none" : "";
 }
 
 export function initPromotions() {

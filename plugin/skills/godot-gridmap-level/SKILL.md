@@ -120,9 +120,11 @@ func _init() -> void:
 	quit()
 ```
 
-Run: `$GODOT --headless --path . --script tools/build_<name>.gd`
+Run: `$GODOT --headless --path . --script scripts/build_<name>.gd`
 
-**One build path per scene** — don't duplicate JSON-parsing logic.
+**One build path per scene, one tracked location.** The builder is game-authored content — keep it in `scripts/` (tracked), NOT in `tools/` (gitignored, reserved for plugin-generated files and clobbered on regen). Never let a second copy drift; don't duplicate JSON-parsing logic.
+
+**The baked `.tscn` is generated output — never hand-edit it.** Any node, property, or dependency a fix adds directly to the baked scene (a `NavigationRegion3D`, a marker, a group) is silently overwritten on the next builder run, and the bug returns looking like a fresh regression. Every persistent node AND every baked asset the scene needs MUST be produced by the builder. Baked resources (navmesh, MeshLibrary) load from a tracked `.tres` the builder instances — e.g. `add_navmesh()` loads `res://levels/<level>_navmesh.tres` into a `NavigationRegion3D` the builder adds; do not bake the region into the `.tscn` by hand. Re-bake that `.tres` whenever the floor/level geometry changes — the builder does not regenerate it.
 
 - **Editor (step 4):** flip `rebuild`, save, commit baked `.tscn`. Best for editor iteration.
 - **Headless (step 4b):** run once → `.tscn`, keep for rebuilds. Best for agent-driven builds.
@@ -134,6 +136,7 @@ Run: `$GODOT --headless --path . --script tools/build_<name>.gd`
 3. Scene **saved after** importer ran (cells baked into `.tscn`).
 4. Floor slab covers grid extent; props at sensible scale.
 5. F5 in `Main/LevelHost`: no wall clips, collider matches every visible wall.
+6. **Actor inventory after a builder refactor/split.** When the builder is split into phase scripts (geometry/props/hazards/…), assert the rebuilt scene still contains every gameplay node the old one had — spawn manager, spawn markers, patrol waypoints, player. A regenerated `.tscn` missing a wired node renders fine and throws no error; it just stops spawning (the actor block is the easiest thing to drop on the way into a new sub-script). List the expected actor nodes and confirm each is present (`get_node_or_null("WaveManager")`, marker/waypoint counts > 0) before claiming the build done — a render-only verify will not catch it.
 
 ## Loading & style
 

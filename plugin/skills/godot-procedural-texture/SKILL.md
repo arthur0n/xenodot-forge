@@ -20,7 +20,9 @@ $GODOT --headless --path . --import                          # Godot bakes the .
 
 ## Add a texture (the reuse path)
 
-Append one entry to `_specs` in `tools/gen_textures.gd` and re-run. Schema:
+- **Specs live in a sibling file (default structure).** Keep texture specs in `tools/gen_textures_specs.gd` (a `class_name GenTexturesSpecs` with a static `get_specs()` returning the `_specs` array); `gen_textures.gd` holds only the draw/save/import logic and calls `GenTexturesSpecs.get_specs()`. Specs grow with every texture — separating them from the generator keeps `gen_textures.gd` under the 500-line cap (skill `godot-code-rules`) by construction, instead of forcing a reactive split the moment one spec pushes it over.
+
+Append one entry to the `_specs` array (in `gen_textures_specs.gd`) and re-run. Schema:
 
 ```gdscript
 { "name": String, "size": int (32), "kind": String, "seed": int, "palette": PackedColorArray }

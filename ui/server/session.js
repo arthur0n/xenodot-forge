@@ -12,7 +12,8 @@ import { makeTaskTool } from "./task-tool.js";
 import { makeAssetTool } from "./asset-tool.js";
 import { makeAskTool } from "./ask-tool.js";
 import { makePromoteTool } from "./promote-tool.js";
-import { readPromotions, decide } from "./promotions-store.js";
+import { readPromotions, decide, markPromoted } from "./promotions-store.js";
+import { promoteOne } from "./promote-run.js";
 import {
   readTasks,
   applyOp,
@@ -443,9 +444,32 @@ function runSession({
   })();
 }
 
+/** Execute an approved promotion: move the capability game→plugin and mark it
+ * promoted, all server-side, so the user's one click on the board IS the
+ * deliberate promotion (no orchestrator round-trip, no raw shell). A skip
+ * (already in the plugin, source missing) leaves the entry approved and reports
+ * why. @param {string} id @param {(obj: OutMsg) => void} send */
+function runPromotion(id, send) {
+  const entry = readPromotions().find((p) => p.id === id && p.status === "approved");
+  if (!entry) {
+    send({ type: "promotions", items: readPromotions() });
+    return;
+  }
+  const result = promoteOne(entry.kind, entry.name, PROJECT_DIR);
+  const items = result.ok ? markPromoted(id, new Date().toISOString()) : readPromotions();
+  send({ type: "promotions", items });
+  send({
+    type: "status",
+    text: result.ok
+      ? `Promoted ${entry.kind.replace(/s$/, "")} "${entry.name}" → framework plugin. Start a new session to load it as xenodot:${entry.name.replace(/\.md$/, "")}.`
+      : `Couldn't promote "${entry.name}": ${result.msg}`,
+  });
+}
+
 /** Board mutations that simply mutate a store and rebroadcast: a task status/removal
- * (task_update) or a promotion approve/reject (promotion_decide). Split out of
- * handleClientMessage to keep its branch complexity in check. Returns true if handled.
+ * (task_update), a promotion approve/reject (promotion_decide), or running an
+ * approved promotion (promotion_run). Split out of handleClientMessage to keep its
+ * branch complexity in check. Returns true if handled.
  * @param {ClientMsg} msg @param {(obj: OutMsg) => void} send @returns {boolean} */
 function handleBoardMessage(msg, send) {
   if (msg.type === "task_update") {
@@ -454,6 +478,10 @@ function handleBoardMessage(msg, send) {
   }
   if (msg.type === "promotion_decide") {
     send({ type: "promotions", items: decide(msg.id, msg.decision, new Date().toISOString()) });
+    return true;
+  }
+  if (msg.type === "promotion_run") {
+    runPromotion(msg.id, send);
     return true;
   }
   return false;
