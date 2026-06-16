@@ -64,45 +64,91 @@
 
       <div class="app-body">
         <aside class="sidebar">
-          <div class="side-section">
-            <div class="side-head">
-              <span class="side-label">Session</span>
-              <span class="side-head-actions">
-                <button class="icon-btn" id="compact-session" title="Trim the transcript, keep the session, skills and task board">compact</button>
+          <!-- Session — reference-only status (the values here are "stale" in
+               normal use), so it's pared to a single status line + hairline meter. -->
+          <div class="session-strip" id="session-card">
+            <div class="session-strip-row">
+              <span class="dot idle" id="session-dot"></span>
+              <span class="session-strip-model mono" id="session-model">starting…</span>
+              <span class="session-strip-meta" id="session-meta"></span>
+              <span class="session-strip-actions">
+                <button
+                  class="icon-btn"
+                  id="compact-session"
+                  title="Trim the transcript, keep the session, skills and task board"
+                >
+                  compact
+                </button>
                 <button class="icon-btn" id="new-session">+ new</button>
               </span>
             </div>
-            <div class="session-card active" id="session-card">
-              <span class="name"
-                ><span class="dot idle" id="session-dot"></span
-                ><span id="session-model">starting…</span></span
-              >
-              <span class="meta" id="session-meta"></span>
-              <div class="ctx-meter" id="ctx-meter" title="Context window used this session">
-                <div class="ctx-bar" id="ctx-bar"></div>
-              </div>
-              <span class="ctx-label" id="ctx-label"></span>
-              <span class="plan-label" id="plan-label" title="Your claude.ai plan usage (the binding rate-limit window)"></span>
+            <div class="ctx-meter" id="ctx-meter" title="Context window used this session">
+              <div class="ctx-bar" id="ctx-bar"></div>
             </div>
+            <div class="session-strip-foot">
+              <span class="ctx-label" id="ctx-label"></span>
+              <span
+                class="plan-label"
+                id="plan-label"
+                title="Your claude.ai plan usage (the binding rate-limit window)"
+              ></span>
+            </div>
+          </div>
+          <div class="session-recent">
             <div id="recent-sessions"></div>
             <button class="expand-toggle" id="sessions-toggle" style="display: none">expand</button>
           </div>
 
-          <div class="side-section">
-            <div class="side-head">
-              <span class="side-label">Project</span>
-              <button class="icon-btn" id="refresh">refresh</button>
+          <!-- Workbench — the working surfaces, tabbed. Primary: Tasks · Promote ·
+               Design. Secondary (project meta, lower priority): Agents · Skills · Tokens. -->
+          <div class="workbench">
+            <div class="wb-tabs">
+              <div class="wb-tabs-primary" role="tablist">
+                <button class="wb-tab on" data-tab="tasks">
+                  Tasks<span class="wb-count" id="tasks-tabcount"></span>
+                </button>
+                <button class="wb-tab" data-tab="promote">
+                  Promote<span class="wb-count" id="promote-tabcount"></span>
+                </button>
+                <button class="wb-tab" data-tab="assets">
+                  Design<span class="wb-count" id="design-tabcount"></span>
+                </button>
+              </div>
+              <div class="wb-tabs-secondary" role="tablist">
+                <button class="wb-subtab" data-tab="agents">
+                  Agents<span class="count"></span>
+                </button>
+                <button class="wb-subtab" data-tab="skills">
+                  Skills<span class="count"></span>
+                </button>
+                <button class="wb-subtab" data-tab="tokens">Tokens</button>
+                <button
+                  class="icon-btn wb-refresh"
+                  id="refresh"
+                  title="Rescan the project"
+                  aria-label="Rescan the project"
+                >
+                  ↺
+                </button>
+              </div>
             </div>
-            <div class="project-banner" id="project-banner" style="display: none"></div>
-            <div class="side-tabs" role="tablist">
-              <button class="side-tab on" data-tab="assets">
-                Game Files<span class="count"></span>
-              </button>
-              <button class="side-tab" data-tab="agents">Agents<span class="count"></span></button>
-              <button class="side-tab" data-tab="skills">Skills<span class="count"></span></button>
-              <button class="side-tab" data-tab="tokens">Tokens</button>
+
+            <div class="wb-body">
+              <div class="wb-pane" id="tasks-pane">
+                <div id="tasks-list"></div>
+                <div class="tree-empty" id="tasks-empty">the bench is clear</div>
+              </div>
+
+              <div class="wb-pane" id="promotions-pane" hidden>
+                <div id="promotions-list"></div>
+                <div class="tree-empty" id="promotions-empty">nothing waiting to promote</div>
+              </div>
+
+              <div class="wb-pane" id="project-pane" hidden>
+                <div class="project-banner" id="project-banner" style="display: none"></div>
+                <div id="project-tree"></div>
+              </div>
             </div>
-            <div id="project-tree"></div>
           </div>
         </aside>
 
@@ -166,23 +212,6 @@
             </div>
             <div id="approvals-list"></div>
             <div class="tree-empty" id="approvals-empty">nothing needs your hand</div>
-          </div>
-
-          <div class="tasks-panel">
-            <div class="side-head">
-              <span class="side-label">Tasks</span>
-              <span class="badge" id="tasks-badge">0</span>
-            </div>
-            <div id="tasks-list"></div>
-            <div class="tree-empty" id="tasks-empty">the bench is clear</div>
-          </div>
-
-          <div class="promotions-panel" id="promotions-panel" style="display: none">
-            <div class="side-head">
-              <span class="side-label">Promote to framework</span>
-              <span class="badge" id="promotions-badge">0</span>
-            </div>
-            <div id="promotions-list"></div>
           </div>
 
           <div class="activity-head">

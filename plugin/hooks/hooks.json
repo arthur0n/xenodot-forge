@@ -1,5 +1,5 @@
 {
-  "description": "Xenodot Forge safety guards — block destructive git/shell operations before they run. (rtk token-proxy is the user's own global hook, not shipped here.)",
+  "description": "Xenodot Forge hooks — block destructive git/shell ops before they run, and re-inject the caveman terse-output rule on every sub-agent tool call so it survives long turns. (rtk token-proxy is the user's own global hook, not shipped here.)",
   "hooks": {
     "PreToolUse": [
       {
@@ -12,6 +12,15 @@
           {
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/block-destructive-shell.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/caveman-reminder.sh\""
           }
         ]
       }

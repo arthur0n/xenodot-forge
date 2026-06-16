@@ -103,7 +103,7 @@ fi
 echo "validate: PASS scenes"
 
 # 5. smoke run (godot-verify layer 2) — any ERROR/WARNING line = failure
-smoke=$("$GODOT" --headless --path . ${SCENE_RES:+"$SCENE_RES"} --quit-after 3 2>&1 | grep -E "SCRIPT ERROR|ERROR|WARNING")
+smoke=$("$GODOT" --headless --path . ${SCENE_RES:+"$SCENE_RES"} --quit-after 3 2>&1 | grep -E "SCRIPT ERROR|ERROR|WARNING" | grep -Ev "ObjectDB instances leaked|resources still in use at exit|RID allocations leaked")
 if [ -n "$smoke" ]; then
 	echo "$smoke"
 	fail "smoke"

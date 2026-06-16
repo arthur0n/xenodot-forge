@@ -139,6 +139,7 @@
  *   | { type: "policy", value: string }
  *   | { type: "task_update", op: "update" | "remove", id: string, status?: string, answer?: string }
  *   | { type: "promotion_decide", id: string, decision: "approved" | "rejected" }
+ *   | { type: "promotion_run", id: string }
  *   | { type: "stop" }
  *   | { type: "stop_task", taskId: string }
  *   | { type: "compact" }
