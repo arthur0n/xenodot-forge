@@ -19,6 +19,7 @@ The tools are here. The shape of the framework is yours to decide.
 ### Roadmap:
 
 ✅ [Foundation POC](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/first_game.md)) is complete and retired.
+
 🔨 [FPS POC](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/fps_poc.md), the active roadmap.
 
 ## Why this exists
@@ -289,6 +290,8 @@ If you want broad coverage now, go use GodotPrompter. If you want to experiment 
 
 ## Framework UI
 
+<img width="1722" height="882" alt="image" src="https://github.com/user-attachments/assets/0b6b3223-ac6e-48c1-99c6-208f7e311370" />
+
 ### Functional Questions - Approval Gate
 
 <img width="581" height="606" alt="image" src="https://github.com/user-attachments/assets/8c4acf45-dda3-44b4-8be5-d204bdfffdc6" />
@@ -299,11 +302,20 @@ If you want broad coverage now, go use GodotPrompter. If you want to experiment 
 
 ### Activities List
 
-<img width="517" height="750" alt="image" src="https://github.com/user-attachments/assets/e9f7f50d-622d-4183-9f72-a7e828d79b3c" />
+<img width="343" height="691" alt="image" src="https://github.com/user-attachments/assets/b8c0a286-ded8-493b-8994-bcaf571b5815" />
+
 
 ### Session Management
 
-<img width="372" height="661" alt="image" src="https://github.com/user-attachments/assets/c0454de1-6962-43fb-b8c3-27de68cef965" />
+<img width="403" height="394" alt="image" src="https://github.com/user-attachments/assets/8b8ac8ae-1134-4bd3-9dd7-c6fb98e8befc" />
+
+### Agents
+
+<img width="411" height="339" alt="image" src="https://github.com/user-attachments/assets/f3e3b2f9-561b-45de-956d-80156054da0c" />
+
+### Draw Level
+
+<img width="642" height="649" alt="image" src="https://github.com/user-attachments/assets/6f6d4e2d-1ca0-4d8f-aa17-ee3a199e349b" />
 
 ## License
 
