@@ -20,7 +20,7 @@ The tools are here. The shape of the framework is yours to decide.
 
 ✅ [Foundation POC](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/first_game.md)) is complete and retired.
 
-🔨 [FPS POC](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/fps_poc.md), the active roadmap.
+✅ [FPS POC](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/fps_poc.md), Part 1 completed.
 
 ## Why this exists
 
