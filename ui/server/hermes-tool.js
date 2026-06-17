@@ -6,6 +6,17 @@
 // files or adopts anything — its findings come back as the tool result, which the Hive
 // hands to a Xenodot researcher for the human verdict + the in-convention library write.
 //
+// API contract (Hermes "runs" API — docs/user-guide/features/api-server):
+//   POST /v1/runs               {input, instructions?} -> {run_id, status}
+//   GET  /v1/runs/{id}/events   SSE; OpenAI Responses event types
+//                               (response.output_text.delta carries `.delta`,
+//                                response.completed is terminal)
+//   GET  /v1/runs/{id}          -> {status, output}  (authoritative final text)
+//   POST /v1/runs/{id}/stop     interrupt a run
+//   Auth: Authorization: Bearer <API_SERVER_KEY>
+// The request `model` field is server-side/cosmetic on a single-profile Hermes, so we
+// don't send it; the effective model lives in Hermes' own ~/.hermes/config.yaml.
+//
 // Graceful absence: if Hermes is off/unconfigured the handler returns a plain advisory
 // string (never throws), so the framework runs exactly as today and the Hive falls back
 // to dispatching the researcher sub-agents itself.
@@ -14,19 +25,14 @@ import { z } from "zod";
 import { parseJSON } from "../lib/json.js";
 import { getHermesConfig } from "./config.js";
 
-/** The Hermes `runs` event fields we read (everything else is ignored).
- * @typedef {{ run_id?: string, id?: string, output_text?: string, delta?: string, text?: string, message?: string, status?: string }} HermesEvent */
+/** One SSE event we care about (OpenAI Responses shape). Other fields are ignored.
+ * @typedef {{ type?: string, delta?: string, item?: { type?: string, name?: string } }} StreamEvent */
 /** @typedef {(obj: import("../lib/types.js").OutMsg) => void} Send */
 
-/** A single relayed progress line, pushed to the UI activity log via `send`.
+/** A relayed progress line, pushed to the UI activity log via `send`.
  * @param {Send} send @param {"start" | "progress" | "done"} phase @param {string} text @param {string} [runId] */
 function relay(send, phase, text, runId) {
   send({ type: "hermes", phase, runId, text });
-}
-
-/** The most useful text on one event. @param {HermesEvent} e @returns {string} */
-function eventText(e) {
-  return e.output_text ?? e.delta ?? e.text ?? e.message ?? e.status ?? "";
 }
 
 /** Join the `data:` lines of one raw SSE block ("" for a keepalive/comment).
@@ -39,67 +45,28 @@ function sseData(block) {
     .join("\n");
 }
 
-/** Parse one SSE data payload into a typed event, or null if it isn't JSON.
- * @param {string} data @returns {HermesEvent | null} */
-function parseEvent(data) {
+/** Parse a JSON payload, or null if it isn't JSON. Callers cast the result.
+ * @param {string} data @returns {unknown} */
+function parseAs(data) {
   try {
-    return /** @type {HermesEvent} */ (parseJSON(data));
+    return parseJSON(data);
   } catch {
     return null;
   }
 }
 
-/** Read a streamed (SSE) Hermes run: relay each progress event, return the final text.
- * @param {ReadableStream<Uint8Array>} body @param {Send} send @returns {Promise<string>} */
-async function readStream(body, send) {
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
-  let buf = "";
-  let last = "";
-  /** @type {string | undefined} */
-  let runId;
-  for (;;) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
-    // SSE events are separated by a blank line.
-    let sep;
-    while ((sep = buf.indexOf("\n\n")) !== -1) {
-      const data = sseData(buf.slice(0, sep));
-      buf = buf.slice(sep + 2);
-      if (!data || data === "[DONE]") continue;
-      const evt = parseEvent(data);
-      if (!evt) continue;
-      runId ??= evt.run_id ?? evt.id;
-      if (evt.output_text) last = evt.output_text;
-      const text = eventText(evt).trim();
-      if (text) relay(send, "progress", text.slice(0, 240), runId);
-    }
-  }
-  return last || "(Hermes returned no final text)";
-}
+const authHeaders = (/** @type {string} */ key) => ({ authorization: `Bearer ${key}` });
+const baseOf = (/** @type {string} */ url) => url.replace(/\/+$/, "");
 
-/** Read a non-streamed JSON response and return its final text.
- * @param {Response} res @returns {Promise<string>} */
-async function readWhole(res) {
-  const body = parseEvent(await res.text().catch(() => "{}")) ?? {};
-  return body.output_text ?? body.text ?? "(Hermes returned no final text)";
-}
-
-/** Open a Hermes `runs` session, relay progress to the UI, return the final findings.
- * @param {{ apiUrl: string, apiKey: string, model: string }} cfg
- * @param {{ task: string, context?: string }} input @param {Send} send @param {AbortSignal} signal
- * @returns {Promise<string>} */
-async function runHermes(cfg, input, send, signal) {
-  const prompt = input.context ? `${input.task}\n\n## Context\n${input.context}` : input.task;
-  const res = await fetch(`${cfg.apiUrl.replace(/\/+$/, "")}/v1/runs`, {
+/** Create a run and return its id. @param {string} base @param {string} key
+ * @param {{ task: string, context?: string }} input @param {AbortSignal} signal @returns {Promise<string>} */
+async function createRun(base, key, input, signal) {
+  const res = await fetch(`${base}/v1/runs`, {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${cfg.apiKey}`,
-      accept: "text/event-stream",
-    },
-    body: JSON.stringify({ model: cfg.model, input: prompt, stream: true }),
+    headers: { "content-type": "application/json", ...authHeaders(key) },
+    body: JSON.stringify(
+      input.context ? { input: input.task, instructions: input.context } : { input: input.task },
+    ),
     signal,
   });
   if (!res.ok) {
@@ -108,9 +75,86 @@ async function runHermes(cfg, input, send, signal) {
       `Hermes ${res.status} ${res.statusText}${detail ? ` — ${detail.slice(0, 300)}` : ""}`,
     );
   }
-  return res.body && typeof res.body.getReader === "function"
-    ? readStream(res.body, send)
-    : readWhole(res);
+  const body = /** @type {{ run_id?: string } | null} */ (
+    parseAs(await res.text().catch(() => "{}"))
+  );
+  const runId = body?.run_id;
+  if (!runId) throw new Error("Hermes did not return a run_id");
+  return runId;
+}
+
+/** Stream a run's SSE events, relaying progress; resolves when the run ends.
+ * @param {string} base @param {string} key @param {string} runId @param {Send} send @param {AbortSignal} signal */
+async function streamEvents(base, key, runId, send, signal) {
+  const res = await fetch(`${base}/v1/runs/${runId}/events`, {
+    headers: { accept: "text/event-stream", ...authHeaders(key) },
+    signal,
+  });
+  if (!res.ok || !res.body || typeof res.body.getReader !== "function") return;
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let sep;
+    while ((sep = buf.indexOf("\n\n")) !== -1) {
+      const data = sseData(buf.slice(0, sep));
+      buf = buf.slice(sep + 2);
+      if (!data || data === "[DONE]") continue;
+      const evt = /** @type {StreamEvent | null} */ (parseAs(data));
+      if (!evt) continue;
+      if (evt.type === "response.completed" || evt.type === "response.failed") return;
+      const line = progressLine(evt);
+      if (line) relay(send, "progress", line, runId);
+    }
+  }
+}
+
+/** The one informative progress line for an event, or "" to skip it.
+ * @param {StreamEvent} evt @returns {string} */
+function progressLine(evt) {
+  if (evt.type === "response.output_text.delta" && evt.delta) return evt.delta.trim().slice(0, 240);
+  if (evt.item?.type === "function_call" && evt.item.name) return `tool: ${evt.item.name}`;
+  return "";
+}
+
+/** Read the authoritative final text from the run record. @param {string} base @param {string} key
+ * @param {string} runId @param {AbortSignal} signal @returns {Promise<string>} */
+async function finalText(base, key, runId, signal) {
+  const res = await fetch(`${base}/v1/runs/${runId}`, { headers: authHeaders(key), signal });
+  if (!res.ok) return "";
+  const state = /** @type {{ output?: string } | null} */ (
+    parseAs(await res.text().catch(() => "{}"))
+  );
+  return state?.output ?? "";
+}
+
+/** Best-effort interrupt; errors are swallowed. @param {string} base @param {string} key @param {string} runId */
+function stopRun(base, key, runId) {
+  void fetch(`${base}/v1/runs/${runId}/stop`, { method: "POST", headers: authHeaders(key) }).catch(
+    () => {},
+  );
+}
+
+/** Create → stream → finalize one Hermes run, returning its findings.
+ * @param {{ apiUrl: string, apiKey: string }} cfg @param {{ task: string, context?: string }} input
+ * @param {Send} send @param {AbortSignal} signal @returns {Promise<string>} */
+async function runHermes(cfg, input, send, signal) {
+  const base = baseOf(cfg.apiUrl);
+  const runId = await createRun(base, cfg.apiKey, input, signal);
+  // If the run is aborted (timeout), tell Hermes to stop rather than just dropping the socket.
+  signal.addEventListener(
+    "abort",
+    () => {
+      stopRun(base, cfg.apiKey, runId);
+    },
+    { once: true },
+  );
+  await streamEvents(base, cfg.apiKey, runId, send, signal);
+  const out = await finalText(base, cfg.apiKey, runId, signal);
+  return out || "(Hermes returned no final text)";
 }
 
 /** @param {Send} send */
@@ -131,7 +175,7 @@ export function makeHermesTool(send) {
         .string()
         .optional()
         .describe(
-          "Optional background: what we already know, constraints, what a good answer looks like.",
+          "Optional background passed as Hermes `instructions`: what we know, constraints, what a good answer looks like.",
         ),
       timeout_s: z
         .number()
@@ -162,7 +206,7 @@ export function makeHermesTool(send) {
       try {
         // cfg.apiUrl/apiKey are non-null past the guard; pass a narrowed copy.
         const findings = await runHermes(
-          { apiUrl: cfg.apiUrl, apiKey: cfg.apiKey, model: cfg.model },
+          { apiUrl: cfg.apiUrl, apiKey: cfg.apiKey },
           input,
           send,
           ctrl.signal,
