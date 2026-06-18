@@ -13,3 +13,6 @@ fi
 # update-badges git-adds what it touches so it lands in the commit.
 node ui/server/cli/update-badges.js
 npx lint-staged
+
+# Enforce the by-domain layout: no loose modules at the top of ui/server or ui/client.
+node ui/structure.check.js

@@ -19,12 +19,13 @@
     "badges": "node ui/server/cli/update-badges.js",
     "release": "node ui/server/cli/release-stage.js",
     "check": "tsc --noEmit",
+    "check:structure": "node ui/structure.check.js",
     "test": "node ui/reducer.check.js",
     "test:onboarding": "node ui/server/cli/onboarding.check.js",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix --max-warnings 0",
     "format": "prettier --write .",
-    "validate": "npm run check && npm run lint",
+    "validate": "npm run check && npm run lint && npm run check:structure",
     "prepare": "husky || true"
   },
   "dependencies": {

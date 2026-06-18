@@ -17,6 +17,8 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
+      # Enforce the by-domain folder layout (no loose modules at the top of ui/server|client).
+      - run: npm run check:structure
       # Exports the repo as a forker receives it (git archive of tracked files),
       # installs into a fixture game, and asserts agents/skills/hook-merge.
       # Tier 2 self-skips here — no Godot on this runner.
