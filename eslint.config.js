@@ -70,7 +70,9 @@ const viewLimits = {
 };
 
 export default [
-  { ignores: ["node_modules/", "logs/"] },
+  // vendor/ holds gitignored third-party plugins (e.g. codex-plugin-cc, cloned by
+  // `npm run codex:setup`) — not our code, never linted to our rules.
+  { ignores: ["node_modules/", "logs/", "vendor/"] },
   js.configs.recommended,
 
   // Node side — server, shared lib, smoke test, and *.check.js scripts run with
