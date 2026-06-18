@@ -11,7 +11,7 @@
 export const researcher = {
   id: "researcher",
   name: "Researcher",
-  color: "oklch(0.78 0.1 195)", // teal
+  color: "#3b2aff", // electric indigo — Hermes brand
   brief:
     "You are a Researcher coworker for the Xenodot Forge game-development framework " +
     "(Godot / Redot / Blazium, GDScript). Investigate the task rigorously and return FINDINGS ONLY — " +
