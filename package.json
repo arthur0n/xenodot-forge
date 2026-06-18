@@ -9,6 +9,8 @@
     "hermes": "node ui/server/setup.js",
     "hermes:setup": "node ui/server/hermes-setup.js",
     "hermes:check": "node ui/server/hermes-check.js",
+    "codex:setup": "node ui/server/codex-setup.js",
+    "codex:check": "node ui/server/codex-check.js",
     "new": "node ui/server/new.js",
     "promote": "node ui/server/promote.js",
     "materialize": "node ui/server/materialize.js",

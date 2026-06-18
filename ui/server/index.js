@@ -21,8 +21,11 @@ import {
   saveHermesConfig,
   hermesPublicConfig,
   getHermesConfig,
+  saveCodexConfig,
+  codexPublicConfig,
 } from "./config.js";
 import { checkHermes } from "./hermes-check.js";
+import { checkCodex } from "./codex-check.js";
 import { maybeStartHermesGateway } from "./hermes-gateway.js";
 import { projectState } from "./project-state.js";
 import { recentSessions, deleteSession } from "./transcripts.js";
@@ -116,10 +119,12 @@ function handleLevelPost(req, res) {
   });
 }
 
-/** Persist the Hermes settings block the UI panel submitted (enable, apiUrl, model, and
- * optionally a new apiKey) into .xenodot.json, then respond with the key-free public view
- * so the panel re-renders from truth. Takes effect immediately — getHermesConfig re-reads
- * the file per call, so no server restart is needed.
+/** Persist the settings the ⚙ panel submitted into .xenodot.json — the Hermes block (enable,
+ * apiUrl, model, and optionally a new apiKey) and/or the Codex block (just `enabled`; Codex
+ * auth lives in the `codex` CLI, so there's no secret here) — then respond with the
+ * secret-free public views so the panel re-renders from truth. Each block is optional; only
+ * what the panel sent is written. Takes effect immediately — getHermesConfig / getCodexConfig
+ * re-read the file per call, so no server restart is needed.
  * @param {import("node:http").IncomingMessage} req @param {import("node:http").ServerResponse} res */
 function handleSettingsPost(req, res) {
   /** @type {Buffer[]} */
@@ -128,21 +133,52 @@ function handleSettingsPost(req, res) {
     chunks.push(c);
   });
   req.on("end", () => {
-    /** @type {{ hermes?: import("../lib/types.js").HermesPublicConfig } | { error: string }} */
+    /** @type {{ hermes?: import("../lib/types.js").HermesPublicConfig, codex?: import("../lib/types.js").CodexPublicConfig } | { error: string }} */
     let result;
     try {
       const body =
-        /** @type {{ hermes?: { enabled?: boolean, apiUrl?: string, apiKey?: string, model?: string } }} */ (
+        /** @type {{ hermes?: { enabled?: boolean, apiUrl?: string, apiKey?: string, model?: string }, codex?: { enabled?: boolean } }} */ (
           parseJSON(Buffer.concat(chunks).toString("utf8"))
         );
-      const saved = saveHermesConfig(body.hermes ?? {});
-      result = "error" in saved ? saved : { hermes: hermesPublicConfig() };
+      const errors = [];
+      if (body.hermes) {
+        const saved = saveHermesConfig(body.hermes);
+        if ("error" in saved) errors.push(saved.error);
+      }
+      if (body.codex) {
+        const saved = saveCodexConfig(body.codex);
+        if ("error" in saved) errors.push(saved.error);
+      }
+      result = errors.length
+        ? { error: errors.join("; ") }
+        : { hermes: hermesPublicConfig(), codex: codexPublicConfig() };
     } catch {
       result = { error: "bad request" };
     }
     res.writeHead("error" in result ? 400 : 200, { "content-type": "application/json" });
     res.end(JSON.stringify(result));
   });
+}
+
+/** Probe the local Codex install and respond with the verdict — is the `codex` CLI on PATH,
+ * are you logged in, is the plugin vendored? No body, no network, no billing (it's all local).
+ * @param {import("node:http").IncomingMessage} _req @param {import("node:http").ServerResponse} res */
+function handleCodexCheckPost(_req, res) {
+  let result;
+  try {
+    result = checkCodex();
+  } catch (e) {
+    result = {
+      ok: false,
+      enabled: false,
+      cli: false,
+      authOk: false,
+      vendored: false,
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+  res.writeHead(200, { "content-type": "application/json" });
+  res.end(JSON.stringify(result));
 }
 
 /** A trimmed typed value, or the saved fallback when it's blank/missing.
@@ -228,6 +264,7 @@ const POST_ROUTES = {
   "/api/level": handleLevelPost,
   "/api/settings": handleSettingsPost,
   "/api/hermes/check": handleHermesCheckPost,
+  "/api/codex/check": handleCodexCheckPost,
 };
 
 const server = http.createServer((req, res) => {

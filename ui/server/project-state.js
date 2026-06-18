@@ -8,6 +8,7 @@ import {
   ENGINE,
   FRAMEWORK_PLUGIN_DIR,
   hermesPublicConfig,
+  codexPublicConfig,
 } from "./config.js";
 
 /**
@@ -122,5 +123,7 @@ export function projectState() {
     ]),
     // External Hermes researcher config for the settings panel — key-free (hasKey only).
     hermes: hermesPublicConfig(),
+    // Optional Codex reviewer config for the settings panel — secret-free (enabled + vendored).
+    codex: codexPublicConfig(),
   };
 }

@@ -3235,6 +3235,11 @@ input.cmd::placeholder {
 .settings-status.bad {
   color: var(--red);
 }
+.settings-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 16px 0 8px;
+}
 
 .muted {
   color: var(--text-3);

@@ -8,3 +8,7 @@ game_assets/
 # fork — the framework is independent of which project it points at.
 .xenodot.json
 
+# Optional, vendored-on-demand third-party plugins (e.g. OpenAI's codex-plugin-cc,
+# cloned by `npm run codex:setup`). Not part of the framework — never committed.
+vendor/
+

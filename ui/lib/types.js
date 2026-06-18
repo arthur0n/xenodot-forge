@@ -10,6 +10,9 @@
 /** @typedef {{ name: string, model: string | null }} AgentEntry */
 /** Browser-safe Hermes config (no API key — `hasKey` only). @typedef {{ enabled: boolean, apiUrl: string | null, model: string, hasKey: boolean, models: string[] }} HermesPublicConfig */
 /** Verdict from probing a Hermes gateway (`POST /api/hermes/check`). @typedef {{ ok: boolean, reachable: boolean, authOk: boolean, status?: number, models?: string[], tools?: string[], error?: string }} HermesCheck */
+/** Browser-safe Codex config (no secrets — auth lives in the local `codex` CLI). `vendored` =
+ * the optional plugin has been cloned on disk. @typedef {{ enabled: boolean, vendored: boolean }} CodexPublicConfig */
+/** Verdict from probing the local Codex install (`POST /api/codex/check`). @typedef {{ ok: boolean, enabled: boolean, cli: boolean, version?: string, authOk: boolean, authMode?: string, vendored: boolean, error?: string }} CodexCheck */
 /**
  * @typedef {object} ProjectState
  * @property {string} name
@@ -22,6 +25,7 @@
  * @property {AgentEntry[]} agents
  * @property {string[]} skills
  * @property {HermesPublicConfig} hermes - external Hermes researcher config (key-free)
+ * @property {CodexPublicConfig} codex - optional Codex reviewer config (secret-free)
  */
 
 /** @typedef {{ id: string, title: string, when: string }} RecentSession */

@@ -453,6 +453,41 @@ hermes gateway</pre>
           model with the request.
         </p>
         <div class="settings-status" id="hermes-status"></div>
+
+        <hr class="settings-divider" />
+        <p class="modal-sub">
+          <strong>Codex</strong> — OpenAI's
+          <a href="https://developers.openai.com/codex/" target="_blank" rel="noreferrer">Codex</a>
+          as an <strong>optional, on-demand</strong> code reviewer. When on, type
+          <code>/codex:review</code> (or <code>/codex:adversarial-review</code>) in a session to
+          review the current diff. It's advisory and never auto-runs. Billed to your
+          ChatGPT/OpenAI account — your Anthropic plan doesn't cover it.
+        </p>
+        <details class="settings-install">
+          <summary>First time? Install the Codex CLI &amp; vendor the plugin ▾</summary>
+          <p class="modal-sub muted">
+            One command does it all: installs the <code>@openai/codex</code> CLI (if missing),
+            clones OpenAI's review plugin into the gitignored <code>vendor/</code> dir, and switches
+            it on. Then log in once (a browser sign-in or an API key — Codex owns the credential,
+            Xenodot never sees it).
+          </p>
+          <pre class="settings-code">
+npm run codex:setup     # install check + vendor the plugin + enable
+codex login             # ChatGPT account (incl. Free) or API key</pre>
+          <p class="modal-sub muted">
+            Full runbook: <code>CODEX.md</code>. Verify anytime with <strong>Test Codex</strong>
+            below or <code>npm run codex:check</code>.
+          </p>
+        </details>
+        <label class="form-label settings-toggle">
+          <input type="checkbox" id="codex-enabled" />
+          Enable Codex review
+        </label>
+        <div class="settings-status" id="codex-status"></div>
+        <div class="modal-actions" style="justify-content: flex-start">
+          <button class="btn ghost" id="codex-test" type="button">Test Codex</button>
+        </div>
+
         <div class="modal-error" id="settings-error"></div>
         <div class="modal-actions">
           <button class="btn ghost" id="settings-cancel">Cancel</button>

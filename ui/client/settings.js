@@ -1,9 +1,10 @@
-// Settings panel — currently the home of the external Hermes researcher switch.
-// Reads the key-free public config from /api/state, writes changes back via
-// POST /api/settings (which merges the `hermes` block into .xenodot.json and takes
-// effect immediately — the server re-reads the config per Hermes call). The API key
-// is write-only here: it's never sent back to the browser (we show only whether one
-// is saved), and a blank key field on save keeps the existing key.
+// Settings panel — the home of the external Hermes researcher switch and the optional
+// Codex code-reviewer switch. Reads the secret-free public config from /api/state, writes
+// changes back via POST /api/settings (which merges the `hermes` / `codex` blocks into
+// .xenodot.json and takes effect immediately — the server re-reads each per call). The
+// Hermes API key is write-only here: it's never sent back to the browser (we show only
+// whether one is saved), and a blank key field on save keeps the existing key. Codex has
+// no secret to manage — its auth lives in the local `codex` CLI (`codex login`).
 import { $, $input, el } from "./dom.js";
 import { fetchJSON, postJSON } from "../lib/json.js";
 
@@ -65,10 +66,38 @@ async function testConnection() {
   }
 }
 
+/** Probe the LOCAL Codex install (CLI on PATH? logged in? plugin vendored?) and show a
+ * one-line verdict. No network, no billing — it's all local. */
+async function testCodex() {
+  const status = $("codex-status");
+  $("settings-error").textContent = "";
+  status.className = "settings-status pending";
+  status.textContent = "Checking…";
+  try {
+    const r = /** @type {import("../lib/types.js").CodexCheck} */ (
+      await postJSON("/api/codex/check", {})
+    );
+    if (r.ok) {
+      const ver = r.version ? ` — codex v${r.version}` : "";
+      const mode = r.authMode ? ` (${r.authMode})` : "";
+      status.className = "settings-status ok";
+      status.textContent = `✓ Ready${ver}${mode}`;
+    } else {
+      status.className = "settings-status bad";
+      status.textContent = `✗ ${r.error ?? "Not ready."}`;
+    }
+  } catch {
+    status.className = "settings-status bad";
+    status.textContent = "✗ Test failed — is the UI server up to date? (restart with npm start)";
+  }
+}
+
 async function open() {
   $("settings-error").textContent = "";
   $("hermes-status").textContent = "";
   $("hermes-status").className = "settings-status";
+  $("codex-status").textContent = "";
+  $("codex-status").className = "settings-status";
   try {
     const state = /** @type {import("../lib/types.js").ProjectState} */ (
       await fetchJSON("/api/state")
@@ -81,6 +110,12 @@ async function open() {
       ? "key saved — leave blank to keep it"
       : "paste your Hermes API key";
     fillModels(h.models, h.model);
+    const c = state.codex;
+    $input("codex-enabled").checked = c.enabled;
+    if (c.enabled && !c.vendored) {
+      $("codex-status").textContent =
+        "Switched on, but the plugin isn't vendored — run npm run codex:setup.";
+    }
   } catch {
     $("settings-error").textContent = "Couldn't load settings — is the server up to date?";
   }
@@ -104,8 +139,11 @@ async function save() {
     model,
   };
   if (key) hermes.apiKey = key; // blank → server keeps the saved key
+  const codex = { enabled: $input("codex-enabled").checked };
   try {
-    const res = /** @type {{ error?: string }} */ (await postJSON("/api/settings", { hermes }));
+    const res = /** @type {{ error?: string }} */ (
+      await postJSON("/api/settings", { hermes, codex })
+    );
     if (res.error) {
       err.textContent = res.error;
       return;
@@ -127,6 +165,9 @@ export function initSettings() {
   };
   $("hermes-test").onclick = () => {
     void testConnection();
+  };
+  $("codex-test").onclick = () => {
+    void testCodex();
   };
   $("hermes-model").addEventListener("change", () => {
     toggleCustom("");

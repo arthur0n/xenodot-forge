@@ -2,7 +2,7 @@
 // connection handler is decomposed here into small single-purpose helpers
 // (logger, inbox, waitFor, canUseTool, run, client-message, close) so each
 // stays well under the complexity/size limits.
-import { createWriteStream } from "node:fs";
+import { createWriteStream, existsSync } from "node:fs";
 import path from "node:path";
 import { createSdkMcpServer, query } from "@anthropic-ai/claude-agent-sdk";
 import { parseJSON } from "../lib/json.js";
@@ -38,6 +38,8 @@ import {
   POLICIES,
   PROJECT_DIR,
   FRAMEWORK_PLUGIN_DIR,
+  CODEX_PLUGIN_DIR,
+  getCodexConfig,
   ASSET_LIBRARY,
   LOG_DIR,
 } from "./config.js";
@@ -378,7 +380,26 @@ function runSession({
           // of truth), not from copies in the game — so the game folder stays pure.
           // Plugins load regardless of cwd. noMcp: the UI owns its MCP tools (below),
           // so don't wire the plugin's own MCP. Capabilities namespace as `xenodot:`.
-          plugins: [{ type: "local", path: FRAMEWORK_PLUGIN_DIR, skipMcpDiscovery: true }],
+          // The xenodot spine is always loaded. The OPTIONAL Codex reviewer is a SECOND local
+          // plugin (OpenAI's `codex-plugin-cc`, vendored on disk) appended ONLY when the user
+          // enabled it AND it's actually been cloned — so a disabled/absent Codex changes
+          // nothing. Gating is array inclusion: the SDK has no per-plugin enable flag, and
+          // `plugins` only accepts `{ type: "local" }`, which is why we vendor it. Its slash
+          // commands (`/codex:review`) expand from the user's prompt text (typed in the UI),
+          // and its `codex:codex-rescue` subagent becomes delegable. skipMcpDiscovery: the UI
+          // owns MCP. We do NOT enable its opt-in review-gate Stop hook (on-demand only).
+          plugins: [
+            { type: "local", path: FRAMEWORK_PLUGIN_DIR, skipMcpDiscovery: true },
+            ...(getCodexConfig().enabled && existsSync(CODEX_PLUGIN_DIR)
+              ? [
+                  /** @type {import("@anthropic-ai/claude-agent-sdk").SdkPluginConfig} */ ({
+                    type: "local",
+                    path: CODEX_PLUGIN_DIR,
+                    skipMcpDiscovery: true,
+                  }),
+                ]
+              : []),
+          ],
           // The framework knowledge base (plugin/library) and skill/agent sources live
           // in the plugin, OUTSIDE the game cwd. Mount the plugin as an extra working
           // root so researcher agents can read it AND write new knowledge / promoted

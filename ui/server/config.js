@@ -21,12 +21,30 @@ export const FRAMEWORK_PLUGIN_DIR = path.join(FRAMEWORK_DIR, "plugin");
  * remembers its own game project without committing it. */
 export const CONFIG_FILE = path.join(FRAMEWORK_DIR, ".xenodot.json");
 
+/** OpenAI's official `codex-plugin-cc`, vendored on disk so the SDK can load it as a
+ * SECOND local plugin (the SDK `plugins` option only accepts `{ type: "local" }`, no
+ * marketplace/git refs). OFF by default and OUTSIDE the framework spine: nothing is
+ * committed — `npm run codex:setup` clones it here (gitignored `vendor/`). The loadable
+ * plugin root is `plugins/codex/` inside the cloned repo (it carries its own
+ * `.claude-plugin/plugin.json`). session.js appends it only when `getCodexConfig().enabled`
+ * AND this path exists, so a missing/disabled Codex changes nothing. */
+export const CODEX_PLUGIN_DIR = path.join(
+  FRAMEWORK_DIR,
+  "vendor",
+  "codex-plugin-cc",
+  "plugins",
+  "codex",
+);
+
 const args = process.argv.slice(2);
 
 /** @typedef {{ name?: string, projectFile?: string, bin?: string }} EngineConfig */
 /** Persisted Hermes block (see getHermesConfig). The apiKey lives only here (the
  * file is gitignored) or in env — it is never returned to the browser.
  * @typedef {{ enabled?: boolean, apiUrl?: string, apiKey?: string, model?: string }} HermesConfig */
+/** Persisted Codex block (see getCodexConfig). Just an on/off switch — auth is owned by
+ * the local `codex` CLI (`codex login`), so there is no key or URL to store here.
+ * @typedef {{ enabled?: boolean }} CodexConfig */
 
 /** Parsed `.xenodot.json` (written by `npm run setup`), or `{}` if absent/invalid.
  * Read once: it carries both the saved project path and the engine block. */
@@ -236,6 +254,57 @@ export function saveHermesConfig(patch) {
   if (patch.apiKey) next.apiKey = patch.apiKey; // blank/undefined → keep existing
   try {
     writeFileSync(CONFIG_FILE, JSON.stringify({ ...saved, hermes: next }, null, 2) + "\n");
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "write failed" };
+  }
+}
+
+/** Effective Codex config, resolved fresh on every call (env `CODEX_ENABLED` →
+ * `.xenodot.json` `codex` block → disabled), so toggling it from the UI or the CLI takes
+ * effect WITHOUT a server restart (session.js re-reads it when a new session starts).
+ * There is no secret here — Codex auth lives in the local `codex` CLI (`codex login`).
+ * @returns {{ enabled: boolean }} */
+export function getCodexConfig() {
+  /** @type {CodexConfig} */
+  let saved = {};
+  try {
+    saved =
+      /** @type {{ codex?: CodexConfig }} */ (parseJSON(readFileSync(CONFIG_FILE, "utf8"))).codex ??
+      {};
+  } catch {
+    /* absent/invalid — treat as no saved block */
+  }
+  const env = process.env;
+  const enabled = env.CODEX_ENABLED != null ? env.CODEX_ENABLED === "true" : Boolean(saved.enabled);
+  return { enabled };
+}
+
+/** Browser-safe view of the Codex config for /api/state: `enabled` plus whether the plugin
+ * has actually been vendored on disk (so the settings panel can tell "switched on but not yet
+ * installed" from "ready"). No secrets — there are none. Deliberately does NOT shell out to
+ * `codex` (that probe is the Settings "Test" button → codex-check.js), keeping /api/state cheap.
+ * @returns {{ enabled: boolean, vendored: boolean }} */
+export function codexPublicConfig() {
+  return { enabled: getCodexConfig().enabled, vendored: existsSync(CODEX_PLUGIN_DIR) };
+}
+
+/** Merge a partial Codex block into `.xenodot.json`, preserving every other field
+ * (projectDir, engine, hermes, …). @param {CodexConfig} patch @returns {{ ok: true } | { error: string }} */
+export function saveCodexConfig(patch) {
+  /** @type {Record<string, unknown>} */
+  let saved = {};
+  try {
+    saved = /** @type {Record<string, unknown>} */ (parseJSON(readFileSync(CONFIG_FILE, "utf8")));
+  } catch {
+    /* absent/invalid — start fresh */
+  }
+  const prev = /** @type {CodexConfig} */ (saved.codex ?? {});
+  /** @type {CodexConfig} */
+  const next = { ...prev };
+  if (patch.enabled != null) next.enabled = patch.enabled;
+  try {
+    writeFileSync(CONFIG_FILE, JSON.stringify({ ...saved, codex: next }, null, 2) + "\n");
     return { ok: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "write failed" };
