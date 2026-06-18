@@ -32,6 +32,7 @@ import { writeLevel } from "./level-write.js";
 import { listLevels } from "./level-read.js";
 import { readTasks } from "./tasks-store.js";
 import { serveStatic } from "./static.js";
+import { reclaimPortIfBusy } from "./port.js";
 import { handleConnection } from "./session.js";
 import { prepareGame } from "./materialize.js";
 import { computeUsage } from "./usage.js";
@@ -255,7 +256,8 @@ const server = http.createServer((req, res) => {
 const wss = new WebSocketServer({ server });
 wss.on("connection", handleConnection);
 
-server.listen(PORT, () => {
+/** What runs once the server is actually listening. */
+function onListening() {
   console.log(`UI on http://localhost:${PORT} — project: ${PROJECT_DIR}`);
   // Bring up the Hermes gateway too when Hermes is on (opt-in, skipped if already up).
   // Non-blocking and non-fatal: the UI is fully usable whether or not this succeeds.
@@ -274,4 +276,28 @@ server.listen(PORT, () => {
       ].join("\n"),
     );
   }
+}
+
+/** Clean one-line report for a startup-time error (instead of an unhandled-error stack dump), then
+ * exit. Only wired during listen — e.g. the port was taken in the race after the preflight check.
+ * @param {Error & { code?: string }} err */
+function onStartError(err) {
+  console.error(
+    err.code === "EADDRINUSE"
+      ? `\n⚠  Port ${PORT} is in use — could not start. Stop it, or use \`PORT=<n> npm start\`.`
+      : `\nCould not start the UI server: ${err.message}`,
+  );
+  process.exit(1);
+}
+
+// Preflight: if our port is already held (usually a stray `npm start`), name it and — interactively
+// — ask before stopping it, rather than dying on EADDRINUSE. The once-handlers are a backstop for
+// the slim race between the check and listen; removed the moment we're listening.
+await reclaimPortIfBusy(PORT);
+server.once("error", onStartError);
+wss.once("error", onStartError);
+server.listen(PORT, () => {
+  server.removeListener("error", onStartError);
+  wss.removeListener("error", onStartError);
+  onListening();
 });
