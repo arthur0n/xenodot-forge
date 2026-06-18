@@ -1,6 +1,6 @@
 {
   "name": "xenodot-forge",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Xenodot Forge — POC web UI + agent workflow (design -> implement -> verify) for building Godot-family (Godot / Redot / Blazium) games with Claude Code",
   "type": "module",
   "private": true,

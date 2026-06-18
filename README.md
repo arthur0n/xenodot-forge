@@ -22,6 +22,19 @@ The tools are here. The shape of the framework is yours to decide.
 
 ✅ [FPS POC](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/fps_poc.md) Part 1 completed.
 
+## Weekly progress
+
+> **Disclaimer:** I don't have much time to speed this up, so progress has been a bit slower
+> than I was expecting — but I'll keep the updates coming as fast as I can.
+
+A weekly log of how the framework and its reference game
+([Itch](https://arthur0n.itch.io)) are evolving, so the pace is visible at a
+glance. Full history lives in [Releases](https://github.com/arthur0n/xenodot-forge/releases).
+
+| Week            | Version  | Highlights                                                                                                                  |
+| --------------- | -------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Jun 16–22, 2026 | `v0.1.8` | External Codex reviewer (opt-in), domain-grouped UI refactor, Hermes findings-delivery fixes, background sub-agent edit fix |
+
 ## Why this exists
 
 Most AI-assisted game dev setups hand you a frontier model and a blank prompt. Describe your game, get some code, paste it in, pray it runs. That works, until you want to ship something repeatable, reviewable, and actually _yours_.
