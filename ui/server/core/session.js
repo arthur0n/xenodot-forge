@@ -12,7 +12,7 @@ import { makeTaskTool } from "../mcp-tools/task-tool.js";
 import { makeAssetTool } from "../mcp-tools/asset-tool.js";
 import { makeAskTool } from "../mcp-tools/ask-tool.js";
 import { makePromoteTool } from "../mcp-tools/promote-tool.js";
-import { makeHermesTool } from "../mcp-tools/hermes-tool.js";
+import { makeHermesTool, makeHermesFeedbackTool } from "../mcp-tools/hermes-tool.js";
 import { readPromotions, decide, markPromoted } from "../features/promotions/promotions-store.js";
 import { promoteOne } from "../features/promotions/promote-run.js";
 import {
@@ -35,6 +35,9 @@ import {
   MODEL,
   EFFORT,
   ORCHESTRATOR_PROMPT,
+  HERMES_BLOCK,
+  CODEX_BLOCK,
+  getHermesConfig,
   POLICIES,
   PROJECT_DIR,
   FRAMEWORK_PLUGIN_DIR,
@@ -423,7 +426,18 @@ function runSession({
           // ("all") so sub-agents can still invoke + preload the project's skills.
           effort: EFFORT,
           // Keep Claude Code's tooling behavior, append the orchestrator role.
-          systemPrompt: { type: "preset", preset: "claude_code", append: ORCHESTRATOR_PROMPT },
+          // Hermes and Codex blocks are injected only when those integrations are active,
+          // so the orchestrator's routing instructions match the actual team each session.
+          systemPrompt: {
+            type: "preset",
+            preset: "claude_code",
+            append:
+              ORCHESTRATOR_PROMPT +
+              (getHermesConfig().enabled ? "\n\n" + HERMES_BLOCK : "") +
+              (getCodexConfig().enabled && existsSync(CODEX_PLUGIN_DIR)
+                ? "\n\n" + CODEX_BLOCK
+                : ""),
+          },
           canUseTool,
           abortController: abort,
           mcpServers: {
@@ -437,6 +451,7 @@ function runSession({
                 makeAskTool(send),
                 makePromoteTool(send),
                 makeHermesTool(send, inbox.push),
+                makeHermesFeedbackTool(send),
               ],
             }),
           },

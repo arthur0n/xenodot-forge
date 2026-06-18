@@ -339,6 +339,8 @@ export const EFFORT = /** @type {import("@anthropic-ai/claude-agent-sdk").Effort
   args.find((a) => a.startsWith("--effort="))?.split("=")[1] ?? "medium"
 );
 export const ORCHESTRATOR_PROMPT = readFileSync(path.join(UI_DIR, "orchestrator.md"), "utf8");
+export const HERMES_BLOCK = readFileSync(path.join(UI_DIR, "hermes-block.md"), "utf8");
+export const CODEX_BLOCK = readFileSync(path.join(UI_DIR, "codex-block.md"), "utf8");
 
 // Claude Code's own transcript store for this project — every session here is
 // listed and resumable, terminal ones included.

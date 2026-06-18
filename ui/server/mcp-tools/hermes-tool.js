@@ -372,6 +372,120 @@ async function watchRun(base, key, runId, persona, send, push) {
   }
 }
 
+const FEEDBACK_WALLCLOCK_MS = 3 * 60_000;
+
+/** Build the Hermes feedback tool. Fires a short self-update run so Hermes can record the team's
+ * verdict in its own memory/skills — non-blocking, no findings delivery.
+ * @param {Send} send */
+export function makeHermesFeedbackTool(send) {
+  return tool(
+    "hermes_feedback",
+    "Send the team's verdict on a Hermes findings delivery back to Hermes so it can update its " +
+      "own memory/skills. Call this ONCE per delivery — after the matching xenodot:*-researcher " +
+      "has written the verdict to library/verdicts/. Fire-and-forget: returns immediately, no " +
+      "findings come back. Even 'not-useful' runs deserve feedback so Hermes learns what to avoid.",
+    {
+      runId: z.string().describe("The run id from the findings message header (run <id>)."),
+      verdict: z
+        .enum(["useful", "partial", "not-useful"])
+        .describe(
+          "'useful' = cited, actionable, novel; 'partial' = some findings helped, others stale/off-topic; 'not-useful' = off-topic, uncited, or no value found.",
+        ),
+      notes: z
+        .string()
+        .describe("1–3 lines on what was good, missing, or wrong with the findings."),
+    },
+    async (input) => {
+      const cfg = getHermesConfig();
+      if (!cfg.enabled || !cfg.apiUrl || !cfg.apiKey) {
+        return ok("Hermes is off or not configured — feedback skipped.");
+      }
+      const apiUrl = cfg.apiUrl;
+      const apiKey = cfg.apiKey;
+      const base = baseOf(apiUrl);
+      const task = `Process feedback on run ${input.runId}: verdict=${input.verdict}. Update your memory/skills based on this lesson.`;
+      const instructions =
+        `The Xenodot Hive reviewed your run ${input.runId}.\n` +
+        `Verdict: ${input.verdict}\n` +
+        `Notes: ${input.notes}\n\n` +
+        "Update your memory and/or skills to reflect this lesson — record what worked, " +
+        "what to avoid, or how to improve similar investigations. " +
+        "Do NOT research further. This is a self-update task only. " +
+        "Your FINAL message IS your deliverable.";
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => {
+        ctrl.abort();
+      }, CREATE_TIMEOUT_MS);
+      let runId;
+      try {
+        runId = await createRun(base, apiKey, task, instructions, ctrl.signal);
+      } catch (err) {
+        const msg = ctrl.signal.aborted
+          ? "Hermes did not accept the feedback run within 30s."
+          : `Hermes feedback call failed: ${err instanceof Error ? err.message : String(err)}`;
+        return ok(`${msg} Feedback not recorded.`);
+      } finally {
+        clearTimeout(timer);
+      }
+      relay(
+        send,
+        "researcher",
+        "start",
+        `Feedback on run ${input.runId} (${input.verdict})`,
+        runId,
+      );
+      // Watch with a short cap — memory writes are fast; no findings delivery on completion.
+      void (async () => {
+        const deadline = Date.now() + FEEDBACK_WALLCLOCK_MS;
+        const pollCtrl = new AbortController();
+        try {
+          for (;;) {
+            if (Date.now() > deadline) {
+              await stopRun(base, apiKey, runId);
+              relay(send, "researcher", "done", `Feedback run ${runId} timed out.`, runId);
+              return;
+            }
+            await sleep(POLL_INTERVAL_MS, pollCtrl.signal);
+            if (pollCtrl.signal.aborted) return;
+            let state;
+            try {
+              state = await fetchRun(base, apiKey, runId, pollCtrl.signal);
+            } catch {
+              continue;
+            }
+            const verdict = classifyRun(state);
+            if (verdict.kind === "pending") continue;
+            if (verdict.kind === "approval") {
+              await stopRun(base, apiKey, runId);
+              relay(
+                send,
+                "researcher",
+                "done",
+                `Feedback run ${runId} stopped (approval gate).`,
+                runId,
+              );
+              return;
+            }
+            relay(
+              send,
+              "researcher",
+              "done",
+              `Hermes recorded feedback for run ${input.runId}.`,
+              runId,
+            );
+            return;
+          }
+        } finally {
+          pollCtrl.abort();
+        }
+      })();
+      return ok(
+        `Feedback dispatched to Hermes (run ${runId}). It will update its own memory. Fire-and-forget — move on.`,
+      );
+    },
+  );
+}
+
 /** Build the Hermes start tool. Fire-and-forget: POST the run, kick off a background watcher that
  * reads it to completion (mcp-callback-free), return at once.
  * @param {Send} send @param {Push} push the session inbox.push — how findings re-enter the Hive */
