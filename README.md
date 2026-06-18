@@ -345,6 +345,9 @@ If you want broad coverage now, go use GodotPrompter. If you want to experiment 
 
 <img width="1722" height="882" alt="image" src="https://github.com/user-attachments/assets/0b6b3223-ac6e-48c1-99c6-208f7e311370" />
 
+<img width="1612" height="1084" alt="image" src="https://github.com/user-attachments/assets/bd2e67f8-04e3-4b43-85f1-da199208073a" />
+
+
 ### Functional Questions - Approval Gate
 
 <img width="581" height="606" alt="image" src="https://github.com/user-attachments/assets/8c4acf45-dda3-44b4-8be5-d204bdfffdc6" />
