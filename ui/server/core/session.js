@@ -22,6 +22,7 @@ import {
   addBackgroundTask,
   closeOpenByAgent,
   closeStragglerTasks,
+  findOpenQuestion,
 } from "../features/tasks/tasks-store.js";
 import {
   DEFAULT_POLICY,
@@ -51,6 +52,7 @@ import {
 /** @typedef {import("../../lib/types.js").Reply} Reply */
 /** @typedef {import("../../lib/types.js").ClientMsg} ClientMsg */
 /** @typedef {import("../../lib/types.js").WaitFor} WaitFor */
+/** @typedef {import("../../lib/types.js").Task} Task */
 /** @typedef {import("@anthropic-ai/claude-agent-sdk").SDKUserMessage} SDKUserMessage */
 /** @typedef {Map<number, { type: string, resolve: (value: Reply) => void }>} Pending */
 
@@ -124,6 +126,41 @@ function makeWaitFor(send, pending) {
   };
 }
 
+/** One-channel guard for inline asks: if any question in an `AskUserQuestion` call
+ * matches an already-open board question (filed via `mcp__ui__ask`), return a deny
+ * result pointing at it; else null. Stops a second, divergent record (t224/t140).
+ * @param {unknown} input @returns {{ behavior: "deny", message: string } | null} */
+function denyIfQuestionOpen(input) {
+  if (!input || typeof input !== "object") return null;
+  const raw = /** @type {{ questions?: unknown }} */ (input).questions;
+  const questions = /** @type {Array<{ question?: unknown }>} */ (Array.isArray(raw) ? raw : []);
+  for (const q of questions) {
+    const text = q && typeof q.question === "string" ? q.question : "";
+    const open = text ? findOpenQuestion(text) : undefined;
+    if (open) {
+      return {
+        behavior: /** @type {const} */ ("deny"),
+        message:
+          `A question on this decision is already open on the board (${open.id}: "${open.title}"). ` +
+          "Don't ask inline — its answer will arrive as a turn. Wait for it, or act on your best judgment.",
+      };
+    }
+  }
+  return null;
+}
+
+/** Handle an inline `AskUserQuestion`: deny it when the decision is already open on
+ * the board (one-channel guard), otherwise pause for the user's pick. Extracted so
+ * makeCanUseTool's arrow stays under the complexity cap. @param {unknown} input
+ * @param {string} agent @param {WaitFor} waitFor */
+async function handleAskQuestion(input, agent, waitFor) {
+  const denied = denyIfQuestionOpen(input);
+  if (denied) return denied;
+  const answers = await waitFor("ask", { input, agent });
+  const base = /** @type {Record<string, unknown>} */ (input);
+  return { behavior: /** @type {const} */ ("allow"), updatedInput: { ...base, ...answers } };
+}
+
 /**
  * @param {{ session: { policy: string }, sessionAllowed: Set<string>, waitFor: WaitFor, log: (dir: string, obj: OutMsg) => void, agentByTool: Map<string, string>, formAgentQueue: string[] }} deps
  * @returns {import("@anthropic-ai/claude-agent-sdk").CanUseTool}
@@ -133,10 +170,7 @@ function makeCanUseTool({ session, sessionAllowed, waitFor, log, agentByTool, fo
     // Which agent raised this call (main loop or a sub-agent), so the UI can
     // label concurrent approvals. opts.toolUseID is set by the SDK.
     const agent = agentByTool.get(opts.toolUseID) ?? "main";
-    if (toolName === "AskUserQuestion") {
-      const answers = await waitFor("ask", { input, agent });
-      return { behavior: "allow", updatedInput: { ...input, ...answers } };
-    }
+    if (toolName === "AskUserQuestion") return handleAskQuestion(input, agent, waitFor);
     if (toolName === FORM_TOOL) {
       // The tool handler does the waiting; hand it this call's agent (FIFO,
       // since canUseTool and the handler run 1:1 and order-aligned per tool).
@@ -504,14 +538,45 @@ function runPromotion(id, send) {
   });
 }
 
+/** The synthetic user turn that pushes a freshly answered async question back to
+ * the orchestrator the moment the user replies — so the answer is delivered, not
+ * polled (kills the "answered question left unread" stall). Same shape as a real
+ * user message / Hermes findingsTurn. @param {Task} task @returns {SDKUserMessage} */
+function answerTurn(task) {
+  return {
+    type: "user",
+    parent_tool_use_id: null,
+    message: {
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text:
+            `[User answered question ${task.id} — "${task.title}"]\n\nAnswer: ${task.answer}\n\n` +
+            "Act on this now: relay/apply it and move dependent work. (Already marked done on the board.)",
+        },
+      ],
+    },
+  };
+}
+
 /** Board mutations that simply mutate a store and rebroadcast: a task status/removal
  * (task_update), a promotion approve/reject (promotion_decide), or running an
  * approved promotion (promotion_run). Split out of handleClientMessage to keep its
  * branch complexity in check. Returns true if handled.
- * @param {ClientMsg} msg @param {(obj: OutMsg) => void} send @returns {boolean} */
-function handleBoardMessage(msg, send) {
+ * @param {ClientMsg} msg @param {(obj: OutMsg) => void} send
+ * @param {ReturnType<typeof createInbox>} inbox @returns {boolean} */
+function handleBoardMessage(msg, send, inbox) {
   if (msg.type === "task_update") {
-    send({ type: "tasks", tasks: applyOp(msg, new Date().toISOString()) });
+    const list = applyOp(msg, new Date().toISOString());
+    send({ type: "tasks", tasks: list });
+    // Push the answer to the orchestrator instead of relying on it to scan the
+    // board. Only on an actual answer submission, and only for async questions,
+    // so status toggles / removals / re-clicks don't spawn spurious turns.
+    if (msg.answer != null) {
+      const task = list.find((t) => t.id === msg.id);
+      if (task?.kind === "question") inbox.push(answerTurn(task));
+    }
     return true;
   }
   if (msg.type === "promotion_decide") {
@@ -556,7 +621,7 @@ function handleClientMessage(raw, { log, send, inbox, pending, session }) {
     }
   } else if (msg.type === "policy" && POLICIES.includes(msg.value)) {
     session.policy = msg.value;
-  } else if (handleBoardMessage(msg, send)) {
+  } else if (handleBoardMessage(msg, send, inbox)) {
     // A board mutation (task status/removal, or a promotion approve/reject) —
     // handled and rebroadcast inside the helper.
   } else {

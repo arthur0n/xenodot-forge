@@ -147,14 +147,51 @@ export function addBackgroundTask(title, note, now) {
   return { list, id: task.id };
 }
 
+/** Normalize a question title for idempotent matching: trim, lowercase, collapse
+ * internal whitespace. The single source of truth for "same question" used by both
+ * the addQuestion dedup and the inline-ask block (session.js canUseTool).
+ * @param {string} s @returns {string} */
+export function normalizeQ(s) {
+  return String(s ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+/** Find an already-open (`status !== "done"`) async question whose title matches
+ * `title` (normalized). Returns the existing task, or undefined. Lets a second
+ * channel coalesce onto the first instead of opening a divergent record.
+ * @param {string} title @returns {Task | undefined} */
+export function findOpenQuestion(title) {
+  const want = normalizeQ(title);
+  return readTasks().find(
+    (t) => t.kind === "question" && t.status !== "done" && normalizeQ(t.title) === want,
+  );
+}
+
 /** File an async question onto the board (see mcp__ui__ask / ask-tool.js) as an
  * `owner:"user"` item the user answers inline. owner:"user" keeps it clear of the
  * pruner and the sub-agent task-closers, so it survives until the user answers and
  * the orchestrator relays it — exactly the durability a fire-and-forget worker's
- * question needs. @param {string} question @param {string[] | undefined} options
- * @param {string | undefined} agent @param {string} now @returns {Task[]} */
+ * question needs. Idempotent: a re-spawned/looping worker filing the same question
+ * coalesces onto the open one (refreshing its options) rather than stacking a
+ * duplicate (the addPromotion pattern). @param {string} question
+ * @param {string[] | undefined} options @param {string | undefined} agent
+ * @param {string} now @returns {Task[]} */
 export function addQuestion(question, options, agent, now) {
   const list = readTasks();
+  const open = list.find(
+    (t) =>
+      t.kind === "question" && t.status !== "done" && normalizeQ(t.title) === normalizeQ(question),
+  );
+  if (open) {
+    // Duplicate of a still-open question: refresh options, don't stack a second record.
+    if (Array.isArray(options) && options.length) {
+      open.options = options.map((o) => String(o).slice(0, 120)).slice(0, 8);
+    }
+    writeTasks(list);
+    return list;
+  }
   list.push(
     makeTask(
       list,

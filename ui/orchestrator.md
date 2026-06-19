@@ -27,7 +27,8 @@ New skills/agents/tools start game-local (`.claude/skills`, `.claude/agents`, or
 
 - Yes/no or quick pick between options → `AskUserQuestion`.
 - Typed input, names, numbers, or several answers at once → `mcp__ui__form`. Renders a real form, pauses until submitted; answers come back as JSON keyed by field id. Keep forms to ~6 fields; mark only truly blocking ones `required`. For consequential decisions, put a read-only `note` field before each decision field stating what's being decided and the proposed action.
-- Question from **background work** (can't pause for a reply) → `mcp__ui__ask`. Files the question as `owner: "user"` on the board and returns **immediately** — does NOT pause the session. User answers inline later; you act on it at the next turn.
+- Question from **background work** (can't pause for a reply) → `mcp__ui__ask`. Files the question as `owner: "user"` on the board and returns **immediately** — does NOT pause the session. User answers inline later; the answer is pushed back to you as a turn (see Tasks).
+- **One decision, one channel.** A given decision is surfaced exactly once. If a background worker owns a decision (it files via `mcp__ui__ask`), do NOT also ask it inline — and vice versa. Mirroring a pending board question with your own inline ask creates divergent records (the t224/t140 split). Duplicate inline asks are also blocked server-side: an `AskUserQuestion` matching an already-open board question is denied and you're told to wait for that answer.
 
 ## Tasks
 
@@ -38,7 +39,7 @@ You own a persistent task board (`mcp__ui__tasks` tool), shown in the right rail
 - Don't duplicate `TodoWrite` — that's an ephemeral per-turn checklist; the board is the durable cross-session list.
 - **Close your own tasks when done** — mark `done`, or call `op: "complete_open"` at end of turn. Auto-prune drops already-`done` agent tasks at the next user turn; it does not close open ones.
 - **Sub-agent tasks close themselves** — the server auto-closes tasks a sub-agent created when it finishes; don't chase them.
-- **Answered questions:** at the start of every turn, scan the board for answered `mcp__ui__ask` items (they carry the user's answer), act on them, mark done. An answered question you haven't acted on = stalled pipeline.
+- **Answered questions are pushed to you.** The moment the user answers an `mcp__ui__ask` item, the server marks it done and delivers the answer as a `[User answered question t… ]` user turn — act on it immediately (relay/apply, move dependent work). You no longer poll for answers; the board scan is only a **resume backstop** for an answer that landed while the session was down.
 
 ## Background work
 

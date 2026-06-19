@@ -289,9 +289,23 @@ async function streamProgress(base, key, runId, onText, signal) {
   }
 }
 
+/** Run ids already reported to the session (delivered or failed). Guards against a duplicate
+ * watcher re-delivering the same run as a second findings turn / board task (idempotent delivery,
+ * one record per run). @type {Set<string>} */
+const settledRuns = new Set();
+
+/** Claim a run for its one-and-only report; true the first time, false thereafter.
+ * @param {string} runId @returns {boolean} */
+function settleRun(runId) {
+  if (settledRuns.has(runId)) return false;
+  settledRuns.add(runId);
+  return true;
+}
+
 /** Watch a fired run to its end and report back to the session: stream progress to the feed, push
  * the final `output` into the inbox as a Hive turn, or report failure/approval/timeout. Runs in the
- * background (the tool call has already returned). @param {string} base @param {string} key
+ * background (the tool call has already returned). Reports each run at most once (see settleRun).
+ * @param {string} base @param {string} key
  * @param {string} runId @param {HermesPersona} persona @param {Send} send @param {Push} push */
 async function watchRun(base, key, runId, persona, send, push) {
   const ctrl = new AbortController();
@@ -299,6 +313,7 @@ async function watchRun(base, key, runId, persona, send, push) {
   // A run that didn't deliver: a `done` pill AND a fallback turn, so the Hive is re-engaged and
   // its prompt fallback (dispatch the researcher) fires instead of the pipeline stalling silently.
   const fail = (/** @type {string} */ reason) => {
+    if (!settleRun(runId)) return; // already reported by another watcher — don't double-deliver
     relay(send, persona.id, "done", `Hermes run ${runId} ${reason}.`, runId);
     try {
       push(fallbackTurn(runId, persona, reason));
@@ -342,6 +357,7 @@ async function watchRun(base, key, runId, persona, send, push) {
         return;
       }
       // completed
+      if (!settleRun(runId)) return; // already reported by another watcher — don't double-deliver
       relay(send, persona.id, "done", "Hermes delivered its findings.", runId);
       try {
         push(findingsTurn(runId, persona, verdict.output));
@@ -373,6 +389,43 @@ async function watchRun(base, key, runId, persona, send, push) {
 }
 
 const FEEDBACK_WALLCLOCK_MS = 3 * 60_000;
+
+/** Watch a fired feedback run to completion on a short cap — memory writes are fast and there is no
+ * findings delivery, so this only relays a terminal pill (done/timeout/approval) to the feed.
+ * @param {string} base @param {string} apiKey @param {string} runId the feedback run
+ * @param {string} origRunId the original delivery being graded @param {Send} send */
+async function watchFeedbackRun(base, apiKey, runId, origRunId, send) {
+  const deadline = Date.now() + FEEDBACK_WALLCLOCK_MS;
+  const pollCtrl = new AbortController();
+  try {
+    for (;;) {
+      if (Date.now() > deadline) {
+        await stopRun(base, apiKey, runId);
+        relay(send, "researcher", "done", `Feedback run ${runId} timed out.`, runId);
+        return;
+      }
+      await sleep(POLL_INTERVAL_MS, pollCtrl.signal);
+      if (pollCtrl.signal.aborted) return;
+      let state;
+      try {
+        state = await fetchRun(base, apiKey, runId, pollCtrl.signal);
+      } catch {
+        continue;
+      }
+      const verdict = classifyRun(state);
+      if (verdict.kind === "pending") continue;
+      if (verdict.kind === "approval") {
+        await stopRun(base, apiKey, runId);
+        relay(send, "researcher", "done", `Feedback run ${runId} stopped (approval gate).`, runId);
+        return;
+      }
+      relay(send, "researcher", "done", `Hermes recorded feedback for run ${origRunId}.`, runId);
+      return;
+    }
+  } finally {
+    pollCtrl.abort();
+  }
+}
 
 /** Build the Hermes feedback tool. Fires a short self-update run so Hermes can record the team's
  * verdict in its own memory/skills — non-blocking, no findings delivery.
@@ -435,50 +488,7 @@ export function makeHermesFeedbackTool(send) {
         runId,
       );
       // Watch with a short cap — memory writes are fast; no findings delivery on completion.
-      void (async () => {
-        const deadline = Date.now() + FEEDBACK_WALLCLOCK_MS;
-        const pollCtrl = new AbortController();
-        try {
-          for (;;) {
-            if (Date.now() > deadline) {
-              await stopRun(base, apiKey, runId);
-              relay(send, "researcher", "done", `Feedback run ${runId} timed out.`, runId);
-              return;
-            }
-            await sleep(POLL_INTERVAL_MS, pollCtrl.signal);
-            if (pollCtrl.signal.aborted) return;
-            let state;
-            try {
-              state = await fetchRun(base, apiKey, runId, pollCtrl.signal);
-            } catch {
-              continue;
-            }
-            const verdict = classifyRun(state);
-            if (verdict.kind === "pending") continue;
-            if (verdict.kind === "approval") {
-              await stopRun(base, apiKey, runId);
-              relay(
-                send,
-                "researcher",
-                "done",
-                `Feedback run ${runId} stopped (approval gate).`,
-                runId,
-              );
-              return;
-            }
-            relay(
-              send,
-              "researcher",
-              "done",
-              `Hermes recorded feedback for run ${input.runId}.`,
-              runId,
-            );
-            return;
-          }
-        } finally {
-          pollCtrl.abort();
-        }
-      })();
+      void watchFeedbackRun(base, apiKey, runId, input.runId, send);
       return ok(
         `Feedback dispatched to Hermes (run ${runId}). It will update its own memory. Fire-and-forget — move on.`,
       );
