@@ -9,6 +9,15 @@
             "command": "command -v rtk >/dev/null 2>&1 && rtk hook claude || true"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // empty' | grep -qE '(lint-staged\\.config\\.mjs|eslint\\.config\\.js)' && echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"ask\",\"permissionDecisionReason\":\"This is a quality gate file — editing it can silently disable linting or formatting for committed files. Confirm this change is intentional.\"}}' || true"
+          }
+        ]
       }
     ]
   }
