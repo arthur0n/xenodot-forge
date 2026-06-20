@@ -34,7 +34,7 @@ When the user brings a request that doesn't already meet the bar:
 
 When the brief is a level-design doc from **level-designer**, you are the one who decides **how** to build it:
 
-- **Build method:** godot-dev builds the greybox with the **`godot-gridmap-level`** skill (GridMap + MeshLibrary — geometry computed and grid-snapped from `levels/drawn/current.json`, never hand-typed `Transform3D` walls, which is what made `shared_apartment.tscn` clip). State it in the doc; don't re-derive it.
+- **Build method:** godot-dev builds the greybox with its GridMap skill (`godot-gridmap-level`): GridMap + MeshLibrary — geometry computed and grid-snapped from `levels/drawn/current.json`, never hand-typed `Transform3D` walls, which is what made `shared_apartment.tscn` clip. State it in the doc; don't re-derive it.
 - **Decompose if large:** a big level becomes several small slices godot-dev can each build and verify on its own — e.g. one room cluster / wing per task, or structure → props → per-room colours. Sequence them; one design doc may dispatch a short ordered list of godot-dev tasks.
 - **Carry the level design through to the build:** scale → GridMap `cell_size`, room ids → per-zone wall tile variants, item ids → instanced prop scenes **with collision by default** (props are `StaticBody3D` + a per-prop box collider so the player can't walk through furniture — never park collision as a "Later"), spawn + theme as briefed. Register the scene in `main.gd`; gate each slice with `godot-verify`. Express a prop that spans several cells as **one grouped prop at the group centre**, never a per-cell `×N` count (ambiguous between N units and one N-cell piece — see `godot-gridmap-level`).
 

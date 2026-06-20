@@ -72,15 +72,20 @@ for (const [id, have] of actual) {
     );
 }
 
-// Body-reference warnings (heuristic — guidance, not a gate): a body that says to load/follow a skill
-// it doesn't list (possible on-demand gap), or references a `name` skill that doesn't exist.
+// Body-reference checks: an agent body that names a skill it doesn't list. Two cases —
+//   - the skill EXISTS on disk → ERROR (real drift: the prose claims a skill the agent isn't wired to
+//     load). Fix by adding it to skills:, OR — if the skill belongs to another agent and the body is
+//     just cross-referencing it — reword the prose so it doesn't read as a self-claim. (You cannot
+//     simply add a builder-scoped skill to a non-builder here: that trips the D2 audience check above.)
+//   - the skill is NOT on disk and looks godot-/gd- → WARNING (heuristic: may be a game-local skill).
 for (const [name, a] of agents) {
   const listed = new Set(a.skills);
   for (const ref of bodySkillRefs(a.body)) {
     if (onDisk.has(ref)) {
       if (!listed.has(ref))
-        warnings.push(
-          `agent \`${name}\` body references the \`${ref}\` skill but its frontmatter skills: omits it`,
+        errors.push(
+          `agent \`${name}\` body references the \`${ref}\` skill but its frontmatter skills: omits it ` +
+            `(add it to skills:, or reword the prose as a cross-reference if the skill belongs to another agent)`,
         );
     } else if (/^godot-|^gd-/.test(ref)) {
       warnings.push(
@@ -108,12 +113,10 @@ if (process.argv.includes("--write")) {
 
 for (const w of warnings) console.warn(`⚠ skill-scope: ${w}`);
 if (errors.length) {
-  console.error(
-    `✗ skill-scope: ${errors.length} drift error(s) between skill \`agents:\` tags and agent \`skills:\`:`,
-  );
+  console.error(`✗ skill-scope: ${errors.length} drift error(s) in skill scoping:`);
   for (const e of errors) console.error(`    ${e}`);
   console.error(
-    "  Fix the skill tag or the agent frontmatter so they agree (run --write to see the expected blocks).",
+    "  Fix the skill tag, the agent frontmatter, or the body reference so they agree (run --write to see the expected blocks).",
   );
   process.exit(1);
 }
