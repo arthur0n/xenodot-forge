@@ -469,7 +469,15 @@ export const EFFORT = /** @type {import("@anthropic-ai/claude-agent-sdk").Effort
 );
 export const ORCHESTRATOR_PROMPT = readFileSync(path.join(UI_DIR, "orchestrator.md"), "utf8");
 export const HERMES_BLOCK = readFileSync(path.join(UI_DIR, "hermes-block.md"), "utf8");
-export const CODEX_BLOCK = readFileSync(path.join(UI_DIR, "codex-block.md"), "utf8");
+/** Absolute path to the vendored Codex companion CLI — the same Node script the `/codex:*`
+ * slash commands wrap. Injected into CODEX_BLOCK (replacing the `{{CODEX_COMPANION}}`
+ * placeholder) so the orchestrator can launch reviews/tasks ITSELF via Bash, not just tell the
+ * user to type a slash command. The launch path is consent-gated by policy, not by capability. */
+export const CODEX_COMPANION = path.join(CODEX_PLUGIN_DIR, "scripts", "codex-companion.mjs");
+export const CODEX_BLOCK = readFileSync(path.join(UI_DIR, "codex-block.md"), "utf8").replaceAll(
+  "{{CODEX_COMPANION}}",
+  CODEX_COMPANION,
+);
 export const DOCS_BLOCK = readFileSync(path.join(UI_DIR, "docs-block.md"), "utf8");
 
 // Claude Code's own transcript store for this project — every session here is

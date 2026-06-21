@@ -86,11 +86,18 @@ expands against the game's working tree, just like in terminal Claude Code:
 /codex:adversarial-review "focus on the save/load path"
 ```
 
-Codex posts its findings back into the session. The orchestrator can also delegate a fix-it
-task to the `codex:codex-rescue` subagent. Everything is advisory — nothing auto-applies.
+Codex posts its findings back into the session. You don't have to type the slash command
+yourself: the orchestrator can launch a review directly by calling the vendored companion CLI
+(`node vendor/codex-plugin-cc/plugins/codex/scripts/codex-companion.mjs review …` — the same
+script the slash command wraps) and can delegate a fix-it pass to the `codex:codex-rescue`
+subagent. Everything is advisory — nothing auto-applies.
 
-> Slash commands only run when **you** type them (the SDK can't invoke them on its own), so
-> Codex never fires unprompted.
+> **Consent-gated, not incapable.** Slash commands only run when **you** type them (the SDK
+> can't expand a slash command on its own) — but the orchestrator _can_ run Codex directly via
+> that companion CLI. Because Codex has its own billing and takes time, the framework's policy is
+> that it **offers first and runs only on your OK**, so it never fires a review unprompted. That's
+> a deliberate guardrail, not a capability limit — don't let the agent tell you it "can't" launch
+> Codex.
 
 ## Reviewing the **framework**
 
