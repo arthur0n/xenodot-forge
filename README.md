@@ -22,18 +22,14 @@ The tools are here. The shape of the framework is yours to decide.
 
 ✅ [FPS POC](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/fps_poc.md) Part 1 completed.
 
-## Weekly progress
+## Progress
 
-> **Disclaimer:** I don't have much time to speed this up, so progress has been a bit slower
-> than I was expecting — but I'll keep the updates coming as fast as I can.
+> **Disclaimer:** I don't have much time, so progress is slower than I'd like — but I'll keep the updates coming.
 
-A weekly log of how the framework and its reference game
-([Itch](https://arthur0n.itch.io)) are evolving, so the pace is visible at a
-glance. Full history lives in [Releases](https://github.com/arthur0n/xenodot-forge/releases).
-
-| Week            | Version  | Highlights                                                                                                                                                                               |
-| --------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Jun 16–22, 2026 | `v0.1.8` | External Codex reviewer (opt-in), domain-grouped UI refactor, Hermes findings-delivery fixes, FleetView stale-card fix (authoritative running snapshot) + orchestrator concurrency rules |
+**Latest: `v0.1.9`** — FleetView stale-card fix (authoritative running snapshot), orchestrator
+concurrency rules, opt-in Codex reviewer, domain-grouped UI refactor. Full history in
+[Releases](https://github.com/arthur0n/xenodot-forge/releases); the reference game is on
+[Itch](https://arthur0n.itch.io).
 
 ## Why this exists
 
@@ -90,23 +86,22 @@ separation) is in [What ships](#what-ships) below. The reference project during 
 
 ## Cost & subscriptions
 
-Two separate bills, by design. The **Hive** (orchestrator + sub-agents) runs on your local
-Claude Code login. **Hermes** (optional researcher) is a separate runtime with its own provider.
+Separate bills, by design — only the **Hive** is required. The Hive (orchestrator + sub-agents)
+runs on your local Claude Code login. **Hermes** (optional researcher) and **Codex** (optional
+reviewer) are separate runtimes, each with its own provider and billing.
 
-| Rail                  | What runs                                                                             | How you pay                                                                                                              | Switch it                                                                      |
-| --------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
-| **Hive** (required)   | Claude Code via the Agent SDK, pinned to Opus 4.8                                     | Claude **subscription** (Pro ~$20 / Max ~$100–200 mo, usage-capped) **or** Anthropic **API key** (~$5/$25 per 1M in/out) | subscription: `claude` `/login`; API key: set `ANTHROPIC_API_KEY`              |
-| **Hermes** (optional) | External [Hermes Agent](https://hermes-agent.nousresearch.com/), model of your choice | Provider it points at — **OpenRouter** / Nous Portal / your own key, metered per token (~$0.25–$2.50 per deep run)       | install + setup: [`HERMES.md`](HERMES.md); then ⚙ Settings or `npm run hermes` |
+| Rail                  | What runs                                                                             | How you pay                                                                                                                       | Switch it                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Hive** (required)   | Claude Code via the Agent SDK, pinned to Opus 4.8                                     | Claude **subscription** (Pro ~$20 / Max ~$100–200 mo, usage-capped) **or** Anthropic **API key** (~$5/$25 per 1M in/out)          | subscription: `claude` `/login`; API key: set `ANTHROPIC_API_KEY`                         |
+| **Hermes** (optional) | External [Hermes Agent](https://hermes-agent.nousresearch.com/), model of your choice | Provider it points at — **OpenRouter** / Nous Portal / your own key, metered per token (~$0.25–$2.50 per deep run)                | install + setup: [`HERMES.md`](HERMES.md); then ⚙ Settings or `npm run hermes`            |
+| **Codex** (optional)  | OpenAI's Codex reviewer (`/codex:review`), on-demand                                  | a **ChatGPT subscription with Codex access** (Plus / Pro / Business) **or** an OpenAI **API key** — billed to your OpenAI account | setup: [`CODEX.md`](CODEX.md) (`npm run codex:setup` + `codex login`); ⚙ Settings → Codex |
 
-- A Antropic **subscription does not cover Hermes** — Hermes always needs its own API key.
-- Closest to "one bill": point Hermes's `~/.hermes/config.yaml` at your own Anthropic key so both rails hit the same account (still two auth contexts).
-- Hermes is **off by default**; the framework runs fully on the Hive alone.
-- You **can** point the Hive at the Anthropic API (or a compatible endpoint) via env vars instead of the subscription login. I don't — in my experience a subscription beats an API key for heavy use; API keys are better for ad-hoc requests.
+- **Your Anthropic plan covers only the Hive.** Hermes and Codex each bring their own account and billing — Hermes always needs its own API key; Codex bills to your ChatGPT/OpenAI account.
+- **Codex on a plain ChatGPT subscription.** A Plus (or higher) plan with Codex access works — no separate API key needed. On a ChatGPT login, point Codex at a general model (`gpt-5.5`), not a `*-codex` variant (those are rejected). Details in [`CODEX.md`](CODEX.md).
+- **Hermes and Codex are off by default**; the framework runs fully on the Hive alone.
+- You **can** point the Hive at the Anthropic API (or a compatible endpoint) via env vars instead of the subscription login. I don't — a subscription beats an API key for heavy use; API keys are better for ad-hoc requests.
 
-> **Disclaimer (maintainer's setup):** I run on a paid on AI subscriptions(all providers) (~$150/mo, as company
-> expense) because I work across several projects, so the flat fee pays off for me. That is **not
-> required** — the framework runs on Pro, or pay-per-token API, or with Hermes off entirely. If you
-> want a cheaper setup, open an issue and I'll help you wire one.
+> **Disclaimer (maintainer's setup):** I run on paid AI subscriptions across providers (~$150/mo, a company expense) because I work across several projects, so the flat fee pays off. That is **not required** — the framework runs on Pro, on pay-per-token API, or with the optional rails off entirely. If you want a cheaper setup, open an issue and I'll help you wire one.
 
 ## Quickstart
 
@@ -184,29 +179,16 @@ gitignored and regenerated on demand: `tools/` (copied, Godot runs `.gd` helpers
 `res://`) and `library/` (a symlink to the plugin's knowledge base). Your committed game
 stays pure game.
 
-**Example assets, kept out of your game (`x-shared-assets`).** Free CC0 example assets
-(models/textures from Poly Pizza, Kenney, Quaternius, …) live in an **external shared asset
-library** so your game tree stays clean, they're used by the game but never part of it. The
-framework mounts that library into the game as a gitignored symlink at `res://x-shared-assets/`
-(with `models/` + `textures/` subdirs); **unlike `library/`, Godot scans and imports it**, so a
-model resolves at `res://x-shared-assets/models/<name>.glb`. The location defaults to a sibling
-`x-shared-assets/` folder next to your game and **may start empty**, the framework just needs to
-know where it is; override it with the `assetLibrary` key in `.xenodot.json` or the
-`XENODOT_ASSET_LIBRARY` env var (same precedence as the engine block). In the web UI's **Get
-Assets** modal, pick the **Place**, Game (`assets/`) or Shared (`x-shared-assets/`), when you
-supply a file; the `asset-advisor` → `godot-dev` loop verifies and wires it either way.
+**Example assets stay out of your game.** Free CC0 models/textures live in an external
+`x-shared-assets/` library, mounted into the game as a gitignored symlink Godot imports
+(`res://x-shared-assets/`). Override its location with `assetLibrary` in `.xenodot.json`; you
+place files into the game or the shared library from the **Get Assets** modal. See
+[FEATURES.md](FEATURES.md).
 
-**Growing the framework.** A new skill/agent/tool starts **game-local** in `<game>/.claude/`
-and is usable immediately. When one proves broadly useful, promote it into the plugin so every
-game gets it, the orchestrator offers this; the executor is:
-
-```bash
-npm run promote -- skills <name>     # or: agents <name> | tools <file>
-```
-
-The hook is `rtk hook claude`, guarded so it **no-ops safely if `rtk` isn't installed**. The
-whole clone → new → run path is guarded by `npm run test:onboarding` (and CI), so it can't
-silently break.
+**Growing the framework.** New skills/agents/tools start **game-local** in `<game>/.claude/`
+and are usable immediately; you **promote** the keepers into the plugin
+(`npm run promote -- skills <name>`). The clone → new → run path is guarded by
+`npm run test:onboarding` (and CI). Full growth loop in [FEATURES.md](FEATURES.md).
 
 ## Using the web UI
 
@@ -251,7 +233,7 @@ npm run setup -- /path/to/your/game
 
 This framework isn't trying to beat Claude Code, [Hermes](https://hermes-agent.org/), or any model provider. It's built to **use them under the hood, with you still holding the wheel.** The bet isn't "our agent vs theirs", it's "the right tools composed behind one honest, human-gated loop."
 
-- **Bring your own provider.** The framework drives Claude Code through the Agent SDK, which already speaks to more than Anthropic's direct API: **Amazon Bedrock, Google Vertex, Azure Foundry, and enterprise gateways** are first-class backends (`apiProvider` in the SDK; flip the standard `CLAUDE_CODE_USE_BEDROCK` / `CLAUDE_CODE_USE_VERTEX` / gateway env vars and the SDK inherits them). Non-Claude models can be routed through an Anthropic-API-compatible proxy (LiteLLM, claude-code-router). You're tied to an API _shape_, not a vendor.
+- **Bring your own provider.** The Hive drives Claude Code through the Agent SDK, so Bedrock / Vertex / Foundry / enterprise gateways are first-class backends and non-Claude models route through an Anthropic-compatible proxy — you're tied to an API _shape_, not a vendor. (Setup details in [FEATURES.md](FEATURES.md#provider-flexibility).)
 - **Other agents as delegated workers, not bosses.** The Hive stays the orchestrator and you keep approving its moves; a persistent agent like Hermes plugs in _underneath_ as a sub-agent the Hive dispatches to (over Hermes's OpenAI-compatible HTTP API), useful for work outside Godot's core: long-running memory, web research, multi-step ops. Anything it produces re-enters the same verification gates before it counts as done. (Running such an agent _on top_ as the conductor is possible too, but only on a leash that checkpoints with you, we compose autonomy, we don't surrender it.)
 - **The one rule that doesn't bend: human in the loop.** Every other piece, provider, model, outer orchestrator, is swappable. The approval gates, the designer interview, and the human-run `promote` are not.
 
