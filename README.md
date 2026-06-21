@@ -31,9 +31,9 @@ A weekly log of how the framework and its reference game
 ([Itch](https://arthur0n.itch.io)) are evolving, so the pace is visible at a
 glance. Full history lives in [Releases](https://github.com/arthur0n/xenodot-forge/releases).
 
-| Week            | Version  | Highlights                                                                                                                  |
-| --------------- | -------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Jun 16–22, 2026 | `v0.1.8` | External Codex reviewer (opt-in), domain-grouped UI refactor, Hermes findings-delivery fixes, background sub-agent edit fix |
+| Week            | Version  | Highlights                                                                                                                                                                               |
+| --------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Jun 16–22, 2026 | `v0.1.8` | External Codex reviewer (opt-in), domain-grouped UI refactor, Hermes findings-delivery fixes, FleetView stale-card fix (authoritative running snapshot) + orchestrator concurrency rules |
 
 ## Why this exists
 
@@ -75,13 +75,9 @@ _points at_ your Godot project wherever it lives (by default a sibling folder na
 `game/`), reads it in place, and never tracks it. Your project stays in its own git
 repo; the framework drives Claude Code against it.
 
-**The framework's capabilities ship as a Claude Code plugin** (`plugin/`), the agents,
-`godot-*` skills, verification tools, safety hooks and knowledge base, the single source of
-truth. The web UI loads it automatically (the Agent SDK `plugins` option); terminal Claude
-Code installs it once. Nothing is copied into your game, so **your game stays pure game**, only its own scenes, scripts and design docs are committed. Per-game working files (`tools/`,
-`library/`) appear as gitignored, generated paths. New, game-specific skills you author start
-local in `<game>/.claude/`, and you **promote** the ones worth sharing into the plugin
-(`npm run promote -- …`). The reference project during this POC is
+**The full capability catalog lives in [FEATURES.md](FEATURES.md)** — agents, skills, the
+web UI, verification, autonomous mode, and integrations. How it ships (the plugin vs. game
+separation) is in [What ships](#what-ships) below. The reference project during this POC is
 [DiceOfFate](https://github.com/Coghatch-ai/dicefate).
 
 ## Requirements
@@ -214,9 +210,8 @@ silently break.
 
 ## Using the web UI
 
-The web UI runs the same agents from a browser: designer questions become
-clickable forms, tool approvals become allow/deny buttons, and a live feed shows
-what's happening.
+The web UI runs the same agents from a browser (full feature list in
+[FEATURES.md](FEATURES.md)):
 
 ```bash
 cd xenodot-forge
