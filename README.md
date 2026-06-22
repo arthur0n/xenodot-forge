@@ -2,7 +2,7 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Godot-family 4.x](https://img.shields.io/badge/Godot--family-4.x-blue.svg)
-![Skills: 30](https://img.shields.io/badge/Skills-30-purple.svg)
+![Skills: 32](https://img.shields.io/badge/Skills-32-purple.svg)
 ![Agents: 17](https://img.shields.io/badge/Agents-17-orange.svg)
 ![Status: POC](https://img.shields.io/badge/Status-POC-yellow.svg)
 
@@ -129,7 +129,7 @@ your-workspace/
 3. **Run the web UI:**
 
    ```bash
-   npm start                  # http://localhost:3117
+   npm start                  # http://localhost:8338
    ```
 
 Every command runs **from inside `xenodot-forge/`** and takes the game path as an argument, so your game can be named anything and live anywhere. Re-check wiring anytime with `npm run doctor -- <path>`.
@@ -197,7 +197,7 @@ The web UI runs the same agents from a browser (full feature list in
 
 ```bash
 cd xenodot-forge
-npm start                    # opens http://localhost:3117
+npm start                    # opens http://localhost:8338
 ```
 
 `npm run new` (or `npm run setup`) already saved your game's path to `.xenodot.json`

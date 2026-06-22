@@ -9,7 +9,7 @@ import { parseJSON } from "./lib/json.js";
 /** @typedef {import("./lib/types.js").ContentBlock} ContentBlock */
 
 const resume = process.argv[3]; // optional session id to resume
-const PORT = Number(process.env.PORT ?? 3117);
+const PORT = Number(process.env.PORT ?? 8338);
 const ws = new WebSocket(`ws://localhost:${PORT}${resume ? `?resume=${resume}` : ""}`);
 /** @param {object} o */
 const send = (o) => {
