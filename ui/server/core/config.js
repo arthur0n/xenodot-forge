@@ -180,7 +180,7 @@ process.env.XENODOT_MANIFEST = MANIFEST_FILE;
 /** Whether PROJECT_DIR actually holds an engine project (Godot or a fork) —
  * drives the startup warning and the UI's empty-state banner. */
 export const PROJECT_FOUND = existsSync(path.join(PROJECT_DIR, ENGINE.projectFile));
-export const PORT = Number(process.env.PORT ?? 3117);
+export const PORT = Number(process.env.PORT ?? 8338);
 
 // Default permission policy for new sessions: ask | edits | all.
 // Override per session from the UI header. AskUserQuestion always prompts.
@@ -235,13 +235,16 @@ export const AUTONOMOUS_TOOL = "mcp__ui__autonomous";
 // frontmatter lists it, so only the foreground Hive can call it.
 export const HERMES_TOOL = "mcp__ui__hermes";
 
-/** Nous Hermes model ids for the settings dropdown; the user can also enter a custom id.
+/** Hermes model ids for the settings dropdown; the user can also enter a custom id. The Nous
+ * Portal (provider `nous`) routes non-Nous ids too (e.g. `qwen/*`, `z-ai/*`), so they're valid
+ * picklist entries as long as they're in the Portal model catalog.
  * NOTE: this is a LABEL only — our `runs` call doesn't send a model, and the effective
- * model is chosen inside Hermes itself (`hermes setup` → `~/.hermes/config.yaml`). Nous
- * also recommends an agentic model over the Hermes-4 family to *drive* the agent, so treat
- * these as a record of which Hermes model you pointed Hermes at, not a control. */
+ * model is chosen inside Hermes itself (`hermes config set model.default …` → `~/.hermes/config.yaml`).
+ * Nous also recommends an agentic model to *drive* the agent, so treat these as a record of
+ * which Hermes model you pointed Hermes at, not a control. */
 export const HERMES_DEFAULT_MODEL = "nousresearch/hermes-4-70b";
 export const HERMES_MODELS = [
+  "z-ai/glm-5.2",
   "nousresearch/hermes-4-405b",
   HERMES_DEFAULT_MODEL,
   "nousresearch/hermes-4.3-36b",

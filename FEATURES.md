@@ -76,7 +76,7 @@ the implementers that own them, not invoked directly. Across these domains:
 
 ## Web UI
 
-Runs the same agents from a browser (`npm start` → `http://localhost:3117`):
+Runs the same agents from a browser (`npm start` → `http://localhost:8338`):
 
 - **Chat** — composer + message history.
 - **Activity feed + FleetView** — live event stream (tool calls, agent prose,
