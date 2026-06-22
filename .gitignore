@@ -15,3 +15,6 @@ vendor/
 # graphify knowledge graph of the framework itself — derived, rebuilt by the graphify CLI.
 graphify-out/
 
+# Detached `npm run start:bg` process records (PID + log per game) — runtime, machine-local.
+.xenodot-run/
+

@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Start the Xenodot Forge UI server, DETACHED, with a PID + log under .xenodot-run/.
+# Survives the terminal that launched it (no SIGHUP "vanish") and reclaims the port if a
+# stale server is still holding it, so it always starts fresh.
+#   ./start_server                 # the configured game (see .xenodot.json / config.js)
+#   ./start_server /path/to/game   # a specific game
+#   PORT=9000 ./start_server       # a different port
+set -euo pipefail
+cd "$(dirname "$0")"
+
+PORT="${PORT:-8338}"
+RUN_DIR=".xenodot-run"
+LOG="$RUN_DIR/ui.log"
+PIDFILE="$RUN_DIR/ui.pid"
+mkdir -p "$RUN_DIR"
+
+# Reclaim: stop whatever is already listening on this port so we don't fail on "in use".
+existing="$(lsof -ti "tcp:$PORT" -sTCP:LISTEN 2>/dev/null || true)"
+if [ -n "$existing" ]; then
+  echo "Port $PORT was held by PID(s): $existing — stopping them."
+  # shellcheck disable=SC2086
+  kill $existing 2>/dev/null || true
+  for _ in $(seq 1 25); do
+    lsof -ti "tcp:$PORT" -sTCP:LISTEN >/dev/null 2>&1 || break
+    sleep 0.2
+  done
+fi
+
+# Launch detached; all output → the log; record the PID so it's easy to find/stop.
+nohup node ui/server/core/index.js "$@" >"$LOG" 2>&1 &
+pid=$!
+echo "$pid" >"$PIDFILE"
+disown "$pid" 2>/dev/null || true
+
+echo "UI server started (detached) — PID $pid"
+echo "  url:  http://localhost:$PORT"
+echo "  log:  $LOG   (tail -f \"$LOG\" to watch)"
+echo "  stop: ./stop_server   (or kill $pid)"

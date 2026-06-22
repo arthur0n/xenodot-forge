@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Stop the UI server started by ./start_server (reads .xenodot-run/ui.pid).
+set -euo pipefail
+cd "$(dirname "$0")"
+
+PIDFILE=".xenodot-run/ui.pid"
+if [ ! -f "$PIDFILE" ]; then
+  echo "No $PIDFILE — nothing to stop."
+  exit 0
+fi
+pid="$(cat "$PIDFILE")"
+if kill "$pid" 2>/dev/null; then
+  echo "Stopped PID $pid."
+else
+  echo "PID $pid already gone."
+fi
+rm -f "$PIDFILE"
