@@ -621,6 +621,14 @@ body.resizing iframe {
   background: var(--panel-3);
 }
 
+/* Header icons (settings ⚙, skills 🧩) — a comfortably bigger tap target than the tiny
+   default .icon-btn, which is shared with text buttons like "+ new" / "clear". */
+.topbar-right .icon-btn {
+  font-size: 15px;
+  padding: 4px 7px;
+  line-height: 1;
+}
+
 .badge {
   display: inline-grid;
   place-items: center;

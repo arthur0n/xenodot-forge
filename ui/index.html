@@ -61,9 +61,18 @@
           </span>
           <button
             class="icon-btn"
+            id="skills-btn"
+            type="button"
+            title="Skills — which skills the session and agents load"
+            aria-label="Open skills"
+          >
+            🧩
+          </button>
+          <button
+            class="icon-btn"
             id="settings-btn"
             type="button"
-            title="Settings — external Hermes researcher"
+            title="Settings — Hermes researcher, Codex reviewer, Godot docs"
             aria-label="Open settings"
           >
             ⚙
@@ -522,13 +531,24 @@ codex login             # ChatGPT account (incl. Free) or API key</pre
         </label>
         <div class="settings-status" id="docs-status"></div>
 
-        <hr class="settings-divider" />
+        <div class="modal-error" id="settings-error"></div>
+        <div class="modal-actions">
+          <button class="btn ghost" id="settings-cancel">Cancel</button>
+          <button class="btn ghost" id="hermes-test">Test connection</button>
+          <button class="btn primary" id="settings-save">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="skills-modal" style="display: none">
+      <div class="modal">
+        <div class="modal-head">Skills</div>
         <p class="modal-sub">
           <strong>Skills</strong> — game sessions default to framework-only skills. Opt in
           workspace and built-in skills below; changes take effect on the next session start.
         </p>
         <p class="modal-sub muted">Framework skills (xenodot) are always on.</p>
-        <div class="modal-actions" style="justify-content:flex-start;margin-bottom:0.75rem">
+        <div class="modal-actions" style="justify-content: flex-start; margin-bottom: 0.75rem">
           <button class="btn ghost" id="skill-setup-open" type="button">Configure with wizard</button>
         </div>
         <div id="skills-builtins-section" style="margin-bottom: 0.75rem">
@@ -537,21 +557,24 @@ codex login             # ChatGPT account (incl. Free) or API key</pre
         </div>
         <div id="skills-workspace-section">
           <p class="form-label" style="margin-bottom: 0.25rem"><strong>Workspace</strong></p>
-          <div id="skills-workspace-list"><span class="muted" style="font-size:0.85em">Loading…</span></div>
+          <div id="skills-workspace-list">
+            <span class="muted" style="font-size: 0.85em">Loading…</span>
+          </div>
         </div>
 
         <hr class="settings-divider" />
         <p class="modal-sub">
-          <strong>Agent skills</strong> — which framework skills each agent's index carries (expand an
-          agent to toggle). Keep each under ~10; changes apply on the next session start.
+          <strong>Agent skills</strong> — which framework skills each agent's index carries (expand
+          an agent to toggle). Keep each under ~10; changes apply on the next session start.
         </p>
-        <div id="agent-skills-list"><span class="muted" style="font-size:0.85em">Loading…</span></div>
+        <div id="agent-skills-list">
+          <span class="muted" style="font-size: 0.85em">Loading…</span>
+        </div>
 
-        <div class="modal-error" id="settings-error"></div>
+        <div class="modal-error" id="skills-error"></div>
         <div class="modal-actions">
-          <button class="btn ghost" id="settings-cancel">Cancel</button>
-          <button class="btn ghost" id="hermes-test">Test connection</button>
-          <button class="btn primary" id="settings-save">Save</button>
+          <button class="btn ghost" id="skills-cancel">Cancel</button>
+          <button class="btn primary" id="skills-save">Save</button>
         </div>
       </div>
     </div>
