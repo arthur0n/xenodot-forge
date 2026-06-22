@@ -9,19 +9,25 @@ import { parseJSON } from "../../../lib/json.js";
 import {
   BUILTIN_SKILLS,
   ORCHESTRATOR_FRAMEWORK_SKILLS,
+  REQUIRED_ORCHESTRATOR_BUILTINS,
   getWorkspaceSkills,
 } from "./skill-catalog.js";
 
 // Re-export the catalog so existing importers (core/index.js, the /api/skills route) keep
 // pulling the built-in list + orchestrator floor + workspace reader from this module.
-export { BUILTIN_SKILLS, ORCHESTRATOR_FRAMEWORK_SKILLS, getWorkspaceSkills };
+export {
+  BUILTIN_SKILLS,
+  ORCHESTRATOR_FRAMEWORK_SKILLS,
+  REQUIRED_ORCHESTRATOR_BUILTINS,
+  getWorkspaceSkills,
+};
 
 /** Recommended skills per setup context. Skills listed here default to "on"; all others "off".
  * @type {Record<string, string[]>} */
 export const SKILL_CONTEXTS = {
-  "new-project": ["init", "update-config", "verify"],
+  "new-project": ["init", "verify"],
   "existing-project": ["verify", "code-review", "review"],
-  "new-to-claude": ["init", "update-config", "keybindings-help", "fewer-permission-prompts"],
+  "new-to-claude": ["init", "keybindings-help", "fewer-permission-prompts"],
 };
 
 const GAME_SETTINGS = path.join(PROJECT_DIR, ".claude", "settings.json");
@@ -102,6 +108,7 @@ export function saveSkillOverrides(overrides) {
  * `options.skills`. The SDK hides every unlisted skill from the model's listing and rejects it
  * from the Skill tool (files stay on disk). The set =
  *   ORCHESTRATOR_FRAMEWORK_SKILLS  (framework meta floor — always on)
+ *   ∪ REQUIRED_ORCHESTRATOR_BUILTINS (required builtins, e.g. update-config — always on, not toggleable)
  *   ∪ the built-in/workspace skills the user enabled via skillOverrides.
  * DOMAIN skills are deliberately EXCLUDED — both the 27 framework `godot-*` skills AND the game's
  * own `.claude/skills` (e.g. godot-art-style, godot-decal-vfx). The orchestrator only ROUTES; domain
@@ -116,7 +123,7 @@ export function saveSkillOverrides(overrides) {
  * @returns {string[]} */
 export function resolveSessionSkills() {
   return computeSessionSkills({
-    floor: ORCHESTRATOR_FRAMEWORK_SKILLS,
+    floor: [...ORCHESTRATOR_FRAMEWORK_SKILLS, ...REQUIRED_ORCHESTRATOR_BUILTINS],
     candidates: [...BUILTIN_SKILLS, ...getWorkspaceSkills().map((s) => s.name)],
     overrides: getSkillOverrides(),
   });
