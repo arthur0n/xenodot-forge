@@ -62,7 +62,7 @@ export async function emitContextUsage(q, send) {
 /** @typedef {import("@anthropic-ai/claude-agent-sdk").SDKMessage} SDKMessage */
 /** @typedef {import("@anthropic-ai/claude-agent-sdk").SDKUserMessage} SDKUserMessage */
 /** @typedef {{ agentByTool: Map<string, string>, bgSpawns: Set<string>, bgBoard: Map<string, string>, runningByTask: Map<string, RunningChip>, send: (obj: OutMsg) => void }} TrackDeps */
-/** @typedef {{ send: (obj: OutMsg) => void, trackMessage: (m: SDKMessage, deps: TrackDeps) => void, trackDeps: TrackDeps, busy: { value: boolean }, sid: { value: string | null }, overload: { value: boolean } }} StreamDeps */
+/** @typedef {{ send: (obj: OutMsg) => void, trackMessage: (m: SDKMessage, deps: TrackDeps) => void, trackDeps: TrackDeps, busy: { value: boolean }, sid: { value: string | null }, overload: { value: boolean }, onSessionId?: (id: string) => void, onBusyChange?: () => void }} StreamDeps */
 
 const RETRY_DELAY_MS = 5 * 60 * 1000; // 5 min between API-529 retries
 const MAX_529_RETRIES = 3; // cap so a sustained outage can't loop forever
@@ -132,16 +132,28 @@ function retryTurn(attempt, max) {
  * flag a sustained overload (so runWithRetry can act on it), keep the autonomous turn-busy
  * flag in sync, and refresh the context meter at each turn end. @param {Query} q
  * @param {StreamDeps} deps */
-async function streamQuery(q, { send, trackMessage, trackDeps, busy, sid, overload }) {
+async function streamQuery(
+  q,
+  { send, trackMessage, trackDeps, busy, sid, overload, onSessionId, onBusyChange },
+) {
   for await (const message of q) {
     const sessionId = /** @type {{ session_id?: string }} */ (message).session_id;
-    if (sessionId) sid.value = sessionId; // live id so a 529 retry can resume this session
+    if (sessionId) {
+      sid.value = sessionId; // live id so a 529 retry can resume this session
+      onSessionId?.(sessionId); // register in the live-session registry so a client can re-attach
+    }
     if (isOverloadMessage(message)) overload.value = true; // sustained 529 surfaces here, not a throw
     trackMessage(message, trackDeps);
     send({ type: "event", message });
-    if (message.type === "assistant") busy.value = true;
+    // busy flips drive the detach grace policy (onBusyChange): keep a detached session alive while
+    // a turn runs, start the idle window the moment it goes quiet.
+    if (message.type === "assistant") {
+      busy.value = true;
+      onBusyChange?.();
+    }
     if (message.type === "result") {
       busy.value = false;
+      onBusyChange?.();
       void emitContextUsage(q, send);
     }
   }
@@ -163,6 +175,8 @@ async function streamQuery(q, { send, trackMessage, trackDeps, busy, sid, overlo
  *   session: { query?: unknown },
  *   inbox: { push: (m: SDKUserMessage) => void },
  *   resumeId: string | null,
+ *   onSessionId?: (id: string) => void,
+ *   onBusyChange?: () => void,
  * }} deps */
 export async function runWithRetry({
   makeQuery,
@@ -174,6 +188,8 @@ export async function runWithRetry({
   session,
   inbox,
   resumeId,
+  onSessionId,
+  onBusyChange,
 }) {
   const sid = { value: resumeId };
   let retries = 0;
@@ -182,7 +198,16 @@ export async function runWithRetry({
     const q = makeQuery(sid.value);
     session.query = q;
     try {
-      await streamQuery(q, { send, trackMessage, trackDeps, busy, sid, overload });
+      await streamQuery(q, {
+        send,
+        trackMessage,
+        trackDeps,
+        busy,
+        sid,
+        overload,
+        onSessionId,
+        onBusyChange,
+      });
     } catch (err) {
       if (isOverloadError(err)) overload.value = true;
       else throw err; // genuine terminal error → caller's catch reports it

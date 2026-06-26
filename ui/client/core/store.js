@@ -54,7 +54,7 @@ import { reduce } from "./reducer.js";
  * @property {Thinking} thinking
  * @property {{ cost: number, input: number, output: number, cacheCreate: number, cacheRead: number }} usage - per-session run ledger; local SDK-reported estimate, not billing-accurate
  * @property {{ open: boolean }} connection
- * @property {{ model: string, status: string, contextPct?: number, contextTokens?: number, contextMax?: number }} session
+ * @property {{ model: string, status: string, id?: string | null, contextPct?: number, contextTokens?: number, contextMax?: number }} session - `id` is the SDK session id, the reconnect/re-attach key (set by the server's `session` message)
  * @property {Record<string, { pct?: number, status?: string, resetsAt?: number }>} rateLimit - claude.ai plan utilization, keyed by window (five_hour | seven_day | …)
  * @property {boolean} busy                - hive MAIN turn in flight (drives the composer button)
  * @property {import("../../lib/types.js").Autonomous} autonomousMode - the standing Main Goal + ON/OFF flag (header badge)

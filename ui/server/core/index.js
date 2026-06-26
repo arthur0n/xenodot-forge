@@ -417,6 +417,36 @@ const server = http.createServer((req, res) => {
 const wss = new WebSocketServer({ server });
 wss.on("connection", handleConnection);
 
+// WebSocket heartbeat. An idle socket — a backgrounded Chrome tab, a phone on mobile/NAT —
+// gets its TCP mapping reaped after ~30-60s of silence; the resulting `close` would detach
+// (and eventually tear down) the session. A periodic protocol-level ping keeps the mapping
+// warm (the browser auto-answers pings even while the tab is backgrounded, no JS involved),
+// and a missed pong identifies a genuinely-dead socket so we stop pinging it. `terminate()`
+// fires `close` → onSocketDetach, which starts the grace window rather than killing the
+// session, so reaping a dead socket never loses live work.
+const WS_PING_MS = 25_000;
+const heartbeat = setInterval(() => {
+  for (const ws of wss.clients) {
+    const sock = /** @type {import("ws").WebSocket & { isAlive?: boolean }} */ (ws);
+    if (sock.isAlive === false) {
+      sock.terminate();
+      continue;
+    }
+    sock.isAlive = false;
+    sock.ping();
+  }
+}, WS_PING_MS);
+wss.on("connection", (ws) => {
+  const sock = /** @type {import("ws").WebSocket & { isAlive?: boolean }} */ (ws);
+  sock.isAlive = true;
+  sock.on("pong", () => {
+    sock.isAlive = true;
+  });
+});
+wss.on("close", () => {
+  clearInterval(heartbeat);
+});
+
 /** What runs once the server is actually listening. */
 function onListening() {
   console.log(`UI on http://localhost:${PORT} — project: ${PROJECT_DIR}`);

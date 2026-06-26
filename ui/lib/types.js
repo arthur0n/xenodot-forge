@@ -152,6 +152,7 @@
  *   | { type: "context", percentage: number, totalTokens: number, maxTokens: number }
  *   | { type: "hermes", phase: "start" | "progress" | "done", runId?: string, text: string, persona?: string }
  *   | { type: "autonomousMode", payload: Autonomous }
+ *   | { type: "session", id: string | null }
  *   | { type: "idle" }
  * )} ServerMsg */
 

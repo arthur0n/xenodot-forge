@@ -29,6 +29,10 @@ const updateBadges = () => {
 
 /** @param {number} id @param {HTMLElement} chatCard @param {HTMLElement} panelCard */
 export function registerPending(id, chatCard, panelCard) {
+  // A re-attaching client gets its open cards replayed by the server (replayPending); skip if this
+  // one is already on screen so an in-page reconnect doesn't render a duplicate. The freshly-built
+  // (still-unattached) nodes are simply discarded.
+  if (pendingCards.has(id)) return;
   pendingCards.set(id, { chatCard, panelCard });
   $("chat-inner").append(chatCard);
   $("approvals-list").append(panelCard);

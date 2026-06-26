@@ -2,14 +2,25 @@
 // connection handler is decomposed here into small single-purpose helpers
 // (logger, inbox, waitFor, canUseTool, run, client-message, close) so each
 // stays well under the complexity/size limits.
-import { createWriteStream, existsSync } from "node:fs";
-import path from "node:path";
+import { existsSync } from "node:fs";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { parseJSON } from "../../lib/json.js";
 import { sessionHistory } from "../features/transcripts/transcripts.js";
 import { buildUiServer } from "../mcp-tools/ui-server.js";
 import { uiControlAllow } from "./ui-control.js";
 import { runningChip, emitRunning, runWithRetry } from "./stream.js";
+import { getLive } from "./registry.js";
+import {
+  createLogger,
+  createInbox,
+  makeWaitFor,
+  buildSessionHooks,
+  teardown,
+  evaluateGrace,
+  flushBuffer,
+  replayPending,
+  onSocketDetach,
+} from "./connection.js";
 import { readPromotions, decide, markPromoted } from "../features/promotions/promotions-store.js";
 import { promoteOne } from "../features/promotions/promote-run.js";
 import { readAutonomous } from "../features/autonomous/autonomous-store.js";
@@ -18,7 +29,6 @@ import {
   makeCheckLoop,
 } from "../features/autonomous/autonomous-control.js";
 import {
-  readTasks,
   applyOp,
   pruneDoneTasks,
   addBackgroundTask,
@@ -47,7 +57,6 @@ import {
   getDocsConfig,
   DOCS_MCP_ENTRY,
   ASSET_LIBRARY,
-  LOG_DIR,
 } from "./config.js";
 
 /** @typedef {import("../../lib/types.js").OutMsg} OutMsg */
@@ -57,87 +66,13 @@ import {
 /** @typedef {import("../../lib/types.js").Task} Task */
 /** @typedef {import("../../lib/types.js").RunningAgentWire} RunningChip */
 /** @typedef {import("@anthropic-ai/claude-agent-sdk").SDKUserMessage} SDKUserMessage */
-/** @typedef {Map<number, { type: string, resolve: (value: Reply) => void }>} Pending */
+/** @typedef {import("./connection.js").Pending} Pending */
+/** @typedef {import("./connection.js").Conn} Conn */
+/** @typedef {import("./connection.js").Inbox} Inbox */
+/** @typedef {import("./connection.js").LiveSession} LiveSession */
 /** Per-connection mutable session state, shared between runSession and the client-message
  * handlers. `autonomousLoop` is set by runSession once the check loop is built.
  * @typedef {{ policy: string, query?: { interrupt?: () => Promise<void>, stopTask?: (taskId: string) => Promise<void> }, autonomousLoop?: { arm: (fireNow?: boolean) => void, disarm: () => void }, autonomousActive?: boolean }} SessionState */
-
-/** Per-connection NDJSON logger + the `send` that mirrors every outgoing
- * message into it. @param {import("ws").WebSocket} ws */
-function createLogger(ws) {
-  const sessionTag = new Date().toISOString().replace(/[:.]/g, "-");
-  const logFile = path.join(LOG_DIR, `session-${sessionTag}.ndjson`);
-  const logStream = createWriteStream(logFile, { flags: "a" });
-  /** @param {string} dir @param {OutMsg} obj */
-  const log = (dir, obj) => {
-    logStream.write(JSON.stringify({ ts: new Date().toISOString(), dir, ...obj }) + "\n");
-    const m = obj.message;
-    const brief =
-      obj.type === "event"
-        ? `${m?.type ?? ""}${m?.subtype ? "/" + m.subtype : ""}`
-        : (obj.type ?? "");
-    console.log(`[${sessionTag}] ${dir} ${brief}`);
-  };
-  /** @param {OutMsg} obj */
-  const send = (obj) => {
-    log("out", obj);
-    if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(obj));
-  };
-  console.log(`session log: ${logFile}`);
-  return { log, send, end: () => logStream.end() };
-}
-
-/** The user side of the session: an async iterable the SDK consumes, fed by
- * the browser's user_input messages. */
-function createInbox() {
-  /** @type {SDKUserMessage[]} */
-  const queue = [];
-  /** @type {(() => void) | null} */
-  let wake = null;
-  let closed = false;
-  // Re-iterable over a PERSISTENT queue: each [Symbol.asyncIterator]() mints a fresh
-  // generator, so a 529-retry's second query() gets a live iterator after the SDK called
-  // .return() on the first one at teardown. push/close and the `iterable` property are
-  // unchanged, so every other consumer (check loop, hermesPush, board turns) is untouched.
-  // Only one query() is ever live at a time, so two iterators never race on queue.shift().
-  async function* gen() {
-    while (!closed) {
-      let next;
-      while ((next = queue.shift())) yield next;
-      if (closed) return;
-      await new Promise((resolve) => {
-        wake = () => {
-          resolve(undefined);
-        };
-      });
-    }
-  }
-  const iterable = { [Symbol.asyncIterator]: () => gen() };
-  return {
-    iterable,
-    /** @param {SDKUserMessage} msg */
-    push(msg) {
-      queue.push(msg);
-      wake?.();
-    },
-    close() {
-      closed = true;
-      wake?.();
-    },
-  };
-}
-
-/** @param {(obj: OutMsg) => void} send @param {Pending} pending @returns {WaitFor} */
-function makeWaitFor(send, pending) {
-  let nextId = 1;
-  return (type, payload) => {
-    const id = nextId++;
-    send({ type, id, ...payload });
-    return new Promise((resolve) => {
-      pending.set(id, { type, resolve });
-    });
-  };
-}
 
 /** One-channel guard for inline asks: if any question in an `AskUserQuestion` call
  * matches an already-open board question (filed via `mcp__ui__ask`), return a deny
@@ -357,13 +292,112 @@ function settleAllBackground({ bgBoard, runningByTask, send }) {
   }
 }
 
+/** Build the SDK query factory for a session: `makeQuery(resume)` returns a streaming query that
+ * runWithRetry rebuilds each 529-retry with the live session id (resuming the SAME conversation;
+ * options are identical across attempts). Extracted from runSession to keep it under its line cap.
+ * @param {{ inbox: Inbox, canUseTool: import("@anthropic-ai/claude-agent-sdk").CanUseTool, abort: AbortController, waitFor: WaitFor, formAgentQueue: string[], send: (obj: OutMsg) => void, checkLoop: { disarm: () => void } }} deps
+ * @returns {(resume: string | null) => ReturnType<typeof query>} */
+function buildMakeQuery({ inbox, canUseTool, abort, waitFor, formAgentQueue, send, checkLoop }) {
+  // The OPTIONAL Codex reviewer is a SECOND local plugin (OpenAI's `codex-plugin-cc`, vendored
+  // on disk), appended ONLY when the user enabled it AND it's actually been cloned — a
+  // disabled/absent Codex changes nothing. Gating is array inclusion (the SDK has no per-plugin
+  // enable flag, and `plugins` only accepts `{ type: "local" }`). Extracted to a typed const so
+  // the options object below stays readable.
+  /** @type {import("@anthropic-ai/claude-agent-sdk").SdkPluginConfig[]} */
+  const codexPlugin =
+    getCodexConfig().enabled && existsSync(CODEX_PLUGIN_DIR)
+      ? [{ type: "local", path: CODEX_PLUGIN_DIR, skipMcpDiscovery: true }]
+      : [];
+  /** @param {string | null} resume */
+  return (resume) =>
+    query({
+      prompt: inbox.iterable,
+      options: {
+        ...(resume ? { resume } : {}),
+        // Every agent — orchestrator and all sub-agents, foreground or background — runs in this
+        // one working tree. No per-agent git-worktree isolation, BY DESIGN: faster and simpler.
+        // The trade-off: concurrent builders editing overlapping/adjacent files can race (one's
+        // half-applied edit fails the other's godot-verify, or clobbers its writes). We accept that
+        // residual and mitigate it in the orchestrator's dispatch rules (orchestrator.md →
+        // "Concurrent builders share one working tree"), not with isolation here.
+        cwd: PROJECT_DIR,
+        // The framework's agents/skills/hooks come from the plugin (single source of truth), not
+        // from copies in the game — so the game folder stays pure. Plugins load regardless of cwd.
+        // The xenodot spine is always loaded; the Codex reviewer (codexPlugin) is appended only
+        // when enabled. skipMcpDiscovery: the UI owns its MCP tools (below). Its slash commands
+        // (`/codex:review`) expand from the user's prompt; `codex:codex-rescue` becomes delegable.
+        plugins: [
+          { type: "local", path: FRAMEWORK_PLUGIN_DIR, skipMcpDiscovery: true },
+          ...codexPlugin,
+        ],
+        // The framework knowledge base (plugin/library) and skill/agent sources live
+        // in the plugin, OUTSIDE the game cwd. Mount the plugin as an extra working
+        // root so researcher agents can read it AND write new knowledge / promoted
+        // capabilities back into the framework (the self-improvement loop). ASSET_LIBRARY
+        // (the external shared-asset dir, mounted in the game as res://x-shared-assets) is
+        // also outside cwd, so mount it too — asset-advisor reads/verifies sourced files
+        // there and godot-dev imports them. All still gated by the permission policy + hooks.
+        additionalDirectories: [FRAMEWORK_PLUGIN_DIR, ASSET_LIBRARY],
+        // Pick up the game's CLAUDE.md + any game-local .claude/ (game-specific
+        // agents/skills the user hasn't promoted to the framework yet).
+        settingSources: ["user", "project", "local"],
+        // Bare-name pre-approval for the read/research/exec toolset, so a
+        // BACKGROUNDED (headless) sub-agent — which has no approver and so auto-denies
+        // anything not pre-approved — can actually research. Argument-scoped settings
+        // rules (Bash(**), Read(**)) do NOT reach headless sub-agents; only bare names
+        // do (see config.js). Bash stays safe via the destructive-* PreToolUse hooks.
+        allowedTools: AUTO_ALLOW_TOOLS,
+        model: MODEL,
+        // Orchestrator routes more than it reasons; sub-agents override via their
+        // own `effort:` frontmatter while active.
+        effort: EFFORT,
+        // Skill index = a tight allowlist (resolveSessionSkills): the framework meta floor
+        // (caveman, quick) + the built-ins the user enabled via the skill wizard
+        // (skillOverrides). DOMAIN skills are excluded — both the framework `godot-*` skills
+        // and the game's own `.claude/skills` — because the orchestrator only routes; those
+        // belong to the implementer agents. A context filter, not a sandbox: unlisted skills
+        // stay on disk and remain loadable by the agents that list them.
+        skills: resolveSessionSkills(),
+        // Keep Claude Code's tooling behavior, append the orchestrator role.
+        // Hermes and Codex blocks are injected only when those integrations are active,
+        // so the orchestrator's routing instructions match the actual team each session.
+        systemPrompt: {
+          type: "preset",
+          preset: "claude_code",
+          append:
+            ORCHESTRATOR_PROMPT +
+            (getHermesConfig().enabled ? "\n\n" + HERMES_BLOCK : "") +
+            (getCodexConfig().enabled && existsSync(CODEX_PLUGIN_DIR) ? "\n\n" + CODEX_BLOCK : "") +
+            (getDocsConfig().enabled && DOCS_MCP_ENTRY ? "\n\n" + DOCS_BLOCK : ""),
+        },
+        canUseTool,
+        abortController: abort,
+        mcpServers: {
+          ui: buildUiServer({
+            waitFor,
+            formAgentQueue,
+            send,
+            hermesPush: inbox.push,
+            disarm: checkLoop.disarm,
+          }),
+          // Godot docs as a source of truth — the official-docs MCP, mounted only when the
+          // user enabled it (Settings toggle / DOCS_ENABLED / .xenodot.json `docs` block) AND
+          // the bundled package resolved. Launched as the compiled esm/ build via node (its bin
+          // is broken — see DOCS_MCP_ENTRY); surfaces as mcp__godot-docs__*.
+          ...(getDocsConfig().enabled && DOCS_MCP_ENTRY
+            ? { "godot-docs": { type: "stdio", command: "node", args: [DOCS_MCP_ENTRY] } }
+            : {}),
+        },
+      },
+    });
+}
+
 /**
  * Drive the Claude Code session and stream its messages to the browser.
- * @param {{ resumeId: string | null, policy: string, inbox: ReturnType<typeof createInbox>, send: (obj: OutMsg) => void, canUseTool: import("@anthropic-ai/claude-agent-sdk").CanUseTool, abort: AbortController, waitFor: WaitFor, agentByTool: Map<string, string>, formAgentQueue: string[], session: SessionState }} deps
+ * @param {{ resumeId: string | null, inbox: Inbox, send: (obj: OutMsg) => void, canUseTool: import("@anthropic-ai/claude-agent-sdk").CanUseTool, abort: AbortController, waitFor: WaitFor, agentByTool: Map<string, string>, formAgentQueue: string[], session: SessionState, ls: LiveSession }} deps
  */
 function runSession({
   resumeId,
-  policy,
   inbox,
   send,
   canUseTool,
@@ -372,6 +406,7 @@ function runSession({
   agentByTool,
   formAgentQueue,
   session,
+  ls,
 }) {
   /** @type {Set<string>} */
   const bgSpawns = new Set(); // tool_use ids spawned with run_in_background
@@ -379,21 +414,26 @@ function runSession({
   const bgBoard = new Map(); // sdk task_id -> bridged board task id
   /** @type {Map<string, RunningChip>} */
   const runningByTask = new Map(); // sdk task_id -> live sub-agent chip (authoritative running set)
-  // `busy.value` lets the check loop skip ticks mid-turn; stash loop on session
-  // so the control handler + autonomous tool can arm/disarm it.
-  const busy = { value: false };
+  // `busy.value` lets the check loop skip ticks mid-turn; stash loop on session so the control
+  // handler + autonomous tool can arm/disarm it. Shared with `ls` so the detach grace policy
+  // (evaluateGrace) can tell "working" from "idle".
+  const busy = ls.busy;
   const checkLoop = makeCheckLoop({ push: inbox.push, send, isBusy: () => busy.value });
   session.autonomousLoop = checkLoop;
+  // The reconnect hooks (connection.js): resync re-emits snapshots, onSessionId registers this
+  // session for re-attach + announces its id, onBusyChange drives the detach grace at turn
+  // boundaries. Sets ls.resync so a re-attaching client can rebuild its view.
+  const { resync, onSessionId, onBusyChange } = buildSessionHooks({
+    ls,
+    send,
+    session,
+    runningByTask,
+  });
   void (async () => {
     try {
-      send({ type: "policy", value: policy });
-      send({ type: "tasks", tasks: readTasks() });
-      emitRunning(runningByTask, send); // reset the strip on (re)connect — set starts empty
-      send({ type: "promotions", items: readPromotions() });
-      // Repaint the Autonomous flag + re-arm the check loop if a goal survived the reconnect.
-      const autoState = readAutonomous();
-      send({ type: "autonomousMode", payload: autoState });
+      resync();
       // fireNow=true on resume: first interval tick is 5 min away
+      const autoState = readAutonomous();
       checkLoop.arm((session.autonomousActive = autoState.active));
       if (resumeId) {
         send({ type: "history", items: sessionHistory(resumeId) });
@@ -401,103 +441,16 @@ function runSession({
       } else {
         send({ type: "status", text: `session starting in ${PROJECT_DIR}` });
       }
-      // The OPTIONAL Codex reviewer is a SECOND local plugin (OpenAI's `codex-plugin-cc`, vendored
-      // on disk), appended ONLY when the user enabled it AND it's actually been cloned — a
-      // disabled/absent Codex changes nothing. Gating is array inclusion (the SDK has no per-plugin
-      // enable flag, and `plugins` only accepts `{ type: "local" }`). Extracted to a typed const so
-      // the options object below stays readable.
-      /** @type {import("@anthropic-ai/claude-agent-sdk").SdkPluginConfig[]} */
-      const codexPlugin =
-        getCodexConfig().enabled && existsSync(CODEX_PLUGIN_DIR)
-          ? [{ type: "local", path: CODEX_PLUGIN_DIR, skipMcpDiscovery: true }]
-          : [];
-      // Build the streaming query for a given resume id (null = fresh). Wrapped so the
-      // 529-retry driver (runWithRetry) rebuilds it each attempt with the live session id,
-      // resuming the SAME conversation; options are identical across attempts.
-      /** @param {string | null} resume */
-      const makeQuery = (resume) =>
-        query({
-          prompt: inbox.iterable,
-          options: {
-            ...(resume ? { resume } : {}),
-            // Every agent — orchestrator and all sub-agents, foreground or background — runs in this
-            // one working tree. No per-agent git-worktree isolation, BY DESIGN: faster and simpler.
-            // The trade-off: concurrent builders editing overlapping/adjacent files can race (one's
-            // half-applied edit fails the other's godot-verify, or clobbers its writes). We accept that
-            // residual and mitigate it in the orchestrator's dispatch rules (orchestrator.md →
-            // "Concurrent builders share one working tree"), not with isolation here.
-            cwd: PROJECT_DIR,
-            // The framework's agents/skills/hooks come from the plugin (single source of truth), not
-            // from copies in the game — so the game folder stays pure. Plugins load regardless of cwd.
-            // The xenodot spine is always loaded; the Codex reviewer (codexPlugin) is appended only
-            // when enabled. skipMcpDiscovery: the UI owns its MCP tools (below). Its slash commands
-            // (`/codex:review`) expand from the user's prompt; `codex:codex-rescue` becomes delegable.
-            plugins: [
-              { type: "local", path: FRAMEWORK_PLUGIN_DIR, skipMcpDiscovery: true },
-              ...codexPlugin,
-            ],
-            // The framework knowledge base (plugin/library) and skill/agent sources live
-            // in the plugin, OUTSIDE the game cwd. Mount the plugin as an extra working
-            // root so researcher agents can read it AND write new knowledge / promoted
-            // capabilities back into the framework (the self-improvement loop). ASSET_LIBRARY
-            // (the external shared-asset dir, mounted in the game as res://x-shared-assets) is
-            // also outside cwd, so mount it too — asset-advisor reads/verifies sourced files
-            // there and godot-dev imports them. All still gated by the permission policy + hooks.
-            additionalDirectories: [FRAMEWORK_PLUGIN_DIR, ASSET_LIBRARY],
-            // Pick up the game's CLAUDE.md + any game-local .claude/ (game-specific
-            // agents/skills the user hasn't promoted to the framework yet).
-            settingSources: ["user", "project", "local"],
-            // Bare-name pre-approval for the read/research/exec toolset, so a
-            // BACKGROUNDED (headless) sub-agent — which has no approver and so auto-denies
-            // anything not pre-approved — can actually research. Argument-scoped settings
-            // rules (Bash(**), Read(**)) do NOT reach headless sub-agents; only bare names
-            // do (see config.js). Bash stays safe via the destructive-* PreToolUse hooks.
-            allowedTools: AUTO_ALLOW_TOOLS,
-            model: MODEL,
-            // Orchestrator routes more than it reasons; sub-agents override via their
-            // own `effort:` frontmatter while active.
-            effort: EFFORT,
-            // Skill index = a tight allowlist (resolveSessionSkills): the framework meta floor
-            // (caveman, quick) + the built-ins the user enabled via the skill wizard
-            // (skillOverrides). DOMAIN skills are excluded — both the framework `godot-*` skills
-            // and the game's own `.claude/skills` — because the orchestrator only routes; those
-            // belong to the implementer agents. A context filter, not a sandbox: unlisted skills
-            // stay on disk and remain loadable by the agents that list them.
-            skills: resolveSessionSkills(),
-            // Keep Claude Code's tooling behavior, append the orchestrator role.
-            // Hermes and Codex blocks are injected only when those integrations are active,
-            // so the orchestrator's routing instructions match the actual team each session.
-            systemPrompt: {
-              type: "preset",
-              preset: "claude_code",
-              append:
-                ORCHESTRATOR_PROMPT +
-                (getHermesConfig().enabled ? "\n\n" + HERMES_BLOCK : "") +
-                (getCodexConfig().enabled && existsSync(CODEX_PLUGIN_DIR)
-                  ? "\n\n" + CODEX_BLOCK
-                  : "") +
-                (getDocsConfig().enabled && DOCS_MCP_ENTRY ? "\n\n" + DOCS_BLOCK : ""),
-            },
-            canUseTool,
-            abortController: abort,
-            mcpServers: {
-              ui: buildUiServer({
-                waitFor,
-                formAgentQueue,
-                send,
-                hermesPush: inbox.push,
-                disarm: checkLoop.disarm,
-              }),
-              // Godot docs as a source of truth — the official-docs MCP, mounted only when the
-              // user enabled it (Settings toggle / DOCS_ENABLED / .xenodot.json `docs` block) AND
-              // the bundled package resolved. Launched as the compiled esm/ build via node (its bin
-              // is broken — see DOCS_MCP_ENTRY); surfaces as mcp__godot-docs__*.
-              ...(getDocsConfig().enabled && DOCS_MCP_ENTRY
-                ? { "godot-docs": { type: "stdio", command: "node", args: [DOCS_MCP_ENTRY] } }
-                : {}),
-            },
-          },
-        });
+      // The query factory — rebuilt per 529-retry with the live session id (see buildMakeQuery).
+      const makeQuery = buildMakeQuery({
+        inbox,
+        canUseTool,
+        abort,
+        waitFor,
+        formAgentQueue,
+        send,
+        checkLoop,
+      });
       // Stream the session, auto-retrying a sustained API 529 every 5 min (resume, self-
       // stopping) instead of dying on the first overload. runWithRetry owns session.query
       // and the "session ended"/"resumed after overload" status; non-overload errors
@@ -512,6 +465,8 @@ function runSession({
         session,
         inbox,
         resumeId,
+        onSessionId,
+        onBusyChange,
       });
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
@@ -522,6 +477,10 @@ function runSession({
       // none, so settle dead background workers and signal idle to unstick the UI.
       settleAllBackground({ bgBoard, runningByTask, send });
       send({ type: "idle" });
+      // The stream is over for good (it only ends via abort/inbox-close at teardown, or an SDK
+      // error). Tear down — drops it from the registry so a reconnect disk-resumes, not re-attaches
+      // to a dead session. Idempotent: a disconnect-driven teardown already ran the grace timer.
+      teardown(ls);
     }
   })();
 }
@@ -575,7 +534,7 @@ function answerTurn(task) {
  * approved promotion (promotion_run). Split out of handleClientMessage to keep its
  * branch complexity in check. Returns true if handled.
  * @param {ClientMsg} msg @param {(obj: OutMsg) => void} send
- * @param {ReturnType<typeof createInbox>} inbox @returns {boolean} */
+ * @param {Inbox} inbox @returns {boolean} */
 function handleBoardMessage(msg, send, inbox) {
   if (msg.type === "task_update") {
     const list = applyOp(msg, new Date().toISOString());
@@ -602,7 +561,7 @@ function handleBoardMessage(msg, send, inbox) {
 
 /**
  * @param {import("ws").RawData} raw
- * @param {{ log: (dir: string, obj: OutMsg) => void, send: (obj: OutMsg) => void, inbox: ReturnType<typeof createInbox>, pending: Pending, session: { policy: string, query?: { interrupt?: () => Promise<void>, stopTask?: (taskId: string) => Promise<void> } } }} deps
+ * @param {{ log: (dir: string, obj: OutMsg) => void, send: (obj: OutMsg) => void, inbox: Inbox, pending: Pending, session: { policy: string, query?: { interrupt?: () => Promise<void>, stopTask?: (taskId: string) => Promise<void> } } }} deps
  */
 function handleClientMessage(raw, { log, send, inbox, pending, session }) {
   /** @type {ClientMsg} */
@@ -643,7 +602,7 @@ function handleClientMessage(raw, { log, send, inbox, pending, session }) {
  * the turn), stop_task (kill one background worker). Split out of handleClientMessage
  * to keep its branch complexity in check.
  * @param {ClientMsg} msg
- * @param {{ send: (obj: OutMsg) => void, inbox: ReturnType<typeof createInbox>, session: SessionState }} deps */
+ * @param {{ send: (obj: OutMsg) => void, inbox: Inbox, session: SessionState }} deps */
 function handleControlMessage(msg, { send, inbox, session }) {
   if (msg.type === "compact") {
     // Trim the orchestrator's transcript in place: push the /compact slash command
@@ -677,28 +636,59 @@ function handleControlMessage(msg, { send, inbox, session }) {
   }
 }
 
-/**
- * Settle every pending interaction so canUseTool / the form handler return and
- * the CLI can finish its turn — an unresolved promise here leaves an orphaned
- * process holding the session, and its transcript ends mid-tool_use (which
- * 400s any later resume). Then stop the session and close the log.
- * @param {{ inbox: ReturnType<typeof createInbox>, pending: Pending, abort: AbortController, endLog: () => void }} deps
- */
-function handleClose({ inbox, pending, abort, endLog }) {
-  inbox.close();
-  for (const { type, resolve } of pending.values()) {
-    resolve(type === "permission" ? { allow: false } : { cancelled: true });
-  }
-  pending.clear();
-  abort.abort();
-  endLog();
+/** Wire a socket's message + close handlers to a live session. The lifecycle helpers
+ * (onSocketDetach / evaluateGrace / teardown / buffer flush) live in connection.js — bindSocket and
+ * reattach stay here because they call handleClientMessage (same module).
+ * @param {import("ws").WebSocket} ws @param {LiveSession} ls */
+function bindSocket(ws, ls) {
+  ws.on("message", (raw) => {
+    handleClientMessage(raw, {
+      log: ls.log,
+      send: ls.send,
+      inbox: ls.inbox,
+      pending: ls.pending,
+      session: ls.session,
+    });
+  });
+  ws.on("close", () => {
+    onSocketDetach(ws, ls);
+  });
 }
 
-/** Wire up one browser connection as a Claude Code session.
+/** Re-bind a reconnecting browser to its still-running session: steal from any stale socket, swap
+ * in the new one, cancel the grace timer, flush the detached buffer, then re-sync snapshots and
+ * replay open approval cards — so the running sub-agents continue uninterrupted and a fully reloaded
+ * page rebuilds its view. No second query is started. @param {LiveSession} ls @param {import("ws").WebSocket} ws */
+function reattach(ls, ws) {
+  const old = ls.conn.socket;
+  if (old && old !== ws && old.readyState === old.OPEN) old.close(4000, "session re-attached");
+  ls.conn.socket = ws;
+  bindSocket(ws, ls);
+  evaluateGrace(ls); // attached now → cancels any pending teardown
+  ls.send({ type: "session", id: ls.id }); // (re)assert the client's reconnect key
+  flushBuffer(ls);
+  ls.resync();
+  replayPending(ls);
+  console.log(`[${ls.id ?? "pre-id"}] reattach — re-bound to live session`);
+}
+
+/** Wire up one browser connection. If it presents a `?resume=<id>` for a session still LIVE in the
+ * registry (brief disconnect / phone wake / refresh within the grace window), re-attach to it — the
+ * sub-agents never died. Otherwise build a fresh session (disk-resume when `?resume` is set but the
+ * session is gone: grace expired or server restarted).
  * @param {import("ws").WebSocket} ws @param {import("node:http").IncomingMessage} req */
 export function handleConnection(ws, req) {
   const resumeId = new URL(req.url ?? "/", "http://localhost").searchParams.get("resume");
-  const { log, send, end } = createLogger(ws);
+
+  const existing = getLive(resumeId);
+  if (existing) {
+    reattach(existing, ws);
+    return;
+  }
+
+  /** @type {Conn} */
+  const conn = { socket: ws, buffer: [] };
+  const { log, send, end } = createLogger(conn);
   const inbox = createInbox();
   /** @type {Pending} */
   const pending = new Map();
@@ -706,7 +696,7 @@ export function handleConnection(ws, req) {
   const session = { policy: DEFAULT_POLICY };
   /** @type {Set<string>} */
   const sessionAllowed = new Set(); // tools approved with "Always" this session
-  const abort = new AbortController(); // tears the CLI down on disconnect
+  const abort = new AbortController(); // tears the CLI down at teardown (NOT on a mere disconnect)
   /** @type {Map<string, string>} */
   const agentByTool = new Map(); // tool_use id -> agent label (main | subagent_type)
   /** @type {string[]} */
@@ -721,9 +711,27 @@ export function handleConnection(ws, req) {
     formAgentQueue,
   });
 
+  /** @type {LiveSession} */
+  const ls = {
+    id: resumeId,
+    conn,
+    inbox,
+    pending,
+    abort,
+    session,
+    busy: { value: false },
+    send,
+    log,
+    endLog: end,
+    graceTimer: null,
+    announced: false,
+    done: false,
+    resync: () => {}, // replaced by runSession once its authoritative snapshots exist
+  };
+
+  bindSocket(ws, ls);
   runSession({
     resumeId,
-    policy: session.policy,
     inbox,
     send,
     canUseTool,
@@ -732,14 +740,6 @@ export function handleConnection(ws, req) {
     agentByTool,
     formAgentQueue,
     session,
-  });
-
-  ws.on("message", (raw) => {
-    handleClientMessage(raw, { log, send, inbox, pending, session });
-  });
-  ws.on("close", () => {
-    // Stop the check loop so it never pushes into a closed inbox or writes for a dead session.
-    session.autonomousLoop?.disarm();
-    handleClose({ inbox, pending, abort, endLog: end });
+    ls,
   });
 }

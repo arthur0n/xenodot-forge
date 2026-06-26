@@ -38,7 +38,13 @@ export function reduce(s, msg) {
     case "ask":
     case "form":
     case "permission":
-      return { ...s, approvals: [...s.approvals, toApproval(msg)] };
+      // De-dupe on id: a re-attaching client gets its open cards replayed (replayPending), which
+      // would otherwise double-append one already in the store on an in-page reconnect.
+      return s.approvals.some((a) => a.id === msg.id)
+        ? s
+        : { ...s, approvals: [...s.approvals, toApproval(msg)] };
+    case "session":
+      return { ...s, session: { ...s.session, id: msg.id } }; // reconnect key (see websocket.js)
     case "permission_denied":
       return foldDenied(s, msg);
     case "idle":
