@@ -56,11 +56,11 @@ Claude-isolated). New game-local `code-reviewer` AGENT + a checklist convention 
 
 ### 3. Four proposed new skills
 
-| Skill                                                   | Verdict                                            | Reason                                                                                                                                                                         |
-| ------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `godot-runtime-smoke`                                   | **ADOPT NOW**                                      | Highest-ROI. GdUnit4-free SceneTree smoke templates + seam checklist. Game-local first.                                                                                        |
-| `godot-shader-precompile`                               | **DEFER / fold as reference**                      | Only formalizes shipped warm-up (fact 4) + shader_cache config (rec 4). No new capability. Capture as a section later, not a standalone framework skill now.                   |
-| `godot-weapon-game-feel` + `godot-fps-polish-checklist` | **MERGE → ONE `godot-fps-game-feel`, ADOPT LATER** | 4 skills too many (Hermes agreed). Feel categories + re-runnable checklist = one artifact. Lower correctness-leverage (L3/human) than L1/L2 — sequence after them. Game-local. |
+| Skill                                                   | Verdict                                                    | Reason                                                                                                                                                                         |
+| ------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `godot-runtime-smoke`                                   | **ADOPT NOW**                                              | Highest-ROI. GdUnit4-free SceneTree smoke templates + seam checklist. Game-local first.                                                                                        |
+| `godot-shader-precompile`                               | **DEFER / fold as reference**                              | Only formalizes shipped warm-up (fact 4) + shader_cache config (rec 4). No new capability. Capture as a section later, not a standalone framework skill now.                   |
+| `godot-weapon-game-feel` + `godot-fps-polish-checklist` | **MERGE → ONE merged game-feel/polish skill, ADOPT LATER** | 4 skills too many (Hermes agreed). Feel categories + re-runnable checklist = one artifact. Lower correctness-leverage (L3/human) than L1/L2 — sequence after them. Game-local. |
 
 Highest-ROI of the four: **godot-runtime-smoke**. Merge the two game-feel ones. Reject standalone
 shader-precompile.
@@ -81,7 +81,7 @@ These are godot-dev tasks, distinct from skills.
 
 - Author after approval: skill `godot-runtime-smoke` (game-local), agent `code-reviewer`
   (game-local), convention `design/review_checklist.md`. All adopt-now.
-- Adopt LATER: merged skill `godot-fps-game-feel` (game-local), after L2+review land.
+- Adopt LATER: a merged game-feel/polish skill (game-local, not yet built), after L2+review land.
 - Reject/park: GdUnit4 (revisit on scale), standalone `godot-shader-precompile` (fold as reference).
 - Reject outright: "enable ubershader" (no such setting in 4.6) — replaced by shader_cache +
   pipeline_cache config + the shipped warm-up.

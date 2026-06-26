@@ -13,8 +13,16 @@
 //   workers      → every agent that manages the board (has the mcp__ui__tasks tool)
 //   builders     → godot-dev, godot-refactor + the domain specialists (the code-writers)
 //   orchestrator → the main session only (cross-checked against ORCHESTRATOR_FRAMEWORK_SKILLS)
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { ORCHESTRATOR_FRAMEWORK_SKILLS } from "../features/skills/skill-catalog.js";
-import { ORCH, loadRegistry } from "../features/skills/skill-registry.js";
+import {
+  ORCH,
+  BUILDERS,
+  SKILLS_DIR,
+  split,
+  loadRegistry,
+} from "../features/skills/skill-registry.js";
 
 const { skills, agents, agentNames, expected, errors } = loadRegistry();
 const onDisk = new Set(skills.keys());
@@ -59,16 +67,21 @@ for (const [id, want] of expected) {
     );
 }
 
-// Self-check: keep each context's tier-1 skill INDEX small. Past ~10–15 the always-listed description
+// Self-check: keep each context's tier-1 skill INDEX small. Past the cap the always-listed description
 // budget bites and selection accuracy erodes as descriptions overlap (the index is the "these exist +
-// roughly what they do" signal; full skills load on demand). An over-cap agent is the signal to split
-// it into domain-specialized agents (core + domain).
-const INDEX_SOFT_CAP = 10;
+// roughly what they do" signal; full skills load on demand). The meaningful signal is DOMAIN breadth,
+// not raw count: BUILDERS carry a 7-skill SHARED CORE before any domain skill — `caveman` ([all]) +
+// `tasks-mcp` ([workers]) + the five [builders]-scoped skills (code-rules, composition, verify, docs,
+// agent-report) — so they get a higher cap (core + ~8 domain). Non-builders carry ~2 core, so 10.
+// An over-cap agent is the signal to split it into domain-specialized agents (core + domain).
+const INDEX_SOFT_CAP = 10; // default (orchestrator, researchers, interview agents)
+const BUILDER_INDEX_CAP = 15; // 7 shared core + ~8 domain
 for (const [id, have] of actual) {
-  if (have.size > INDEX_SOFT_CAP)
+  const cap = BUILDERS.includes(id) ? BUILDER_INDEX_CAP : INDEX_SOFT_CAP;
+  if (have.size > cap)
     warnings.push(
       `${id === ORCH ? "orchestrator" : `agent \`${id}\``} carries ${have.size} skills in its index ` +
-        `(> ${INDEX_SOFT_CAP}) — consider splitting it into domain-specialized agents (core + domain)`,
+        `(> ${cap}) — consider splitting it into domain-specialized agents (core + domain)`,
     );
 }
 
@@ -81,20 +94,67 @@ for (const [id, have] of actual) {
 for (const [name, a] of agents) {
   const listed = new Set(a.skills);
   for (const ref of bodySkillRefs(a.body)) {
-    if (onDisk.has(ref)) {
-      if (!listed.has(ref))
-        errors.push(
-          `agent \`${name}\` body references the \`${ref}\` skill but its frontmatter skills: omits it ` +
-            `(add it to skills:, or reword the prose as a cross-reference if the skill belongs to another agent)`,
-        );
-    } else if (/^godot-|^gd-/.test(ref)) {
-      warnings.push(
-        `agent \`${name}\` body references \`${ref}\` as a skill, but it is not a FRAMEWORK skill ` +
-          `(may be a game-local skill in the game's .claude/skills/ — a framework agent shouldn't ` +
-          `hard-depend on a game-specific skill; and per-agent frontmatter scoping can hide it)`,
+    if (onDisk.has(ref) && !listed.has(ref))
+      errors.push(
+        `agent \`${name}\` body references the \`${ref}\` skill but its frontmatter skills: omits it ` +
+          `(add it to skills:, or reword the prose as a cross-reference if the skill belongs to another agent)`,
       );
-    }
   }
+}
+
+// Dangling skill-ref check (agents + skills): a backtick-quoted godot-/gd- skill-shaped token that is
+// NOT a skill on disk is either a dangling ref (the skill doesn't exist — e.g. a removed/renamed/never-
+// built skill) or a game-local skill a framework file must not hard-depend on. Either way → WARNING.
+// Backtick-required so prose like "Godot-family" / "godot 4.x" doesn't trip it; EXTERNAL_REFS excludes
+// known non-skill names (external repos cited in lineage tables) that legitimately appear in backticks.
+// Catches refs the load/follow-only `bodySkillRefs` regex misses (e.g. inside a "NOT (...)" clause).
+// Excludes: skills on disk; AGENT names (godot-* agents are legit cross-refs, not skills); external
+// repos cited in lineage tables; and intentionally-named not-yet-built skills. What remains is a real
+// dangling ref or a framework→game-local skill dependency (the art-director→godot-art-style class).
+const agentSet = new Set(agentNames);
+const EXTERNAL_REFS = new Set([
+  "godot-gameplay-systems", // external repo (OctoD, lineage)
+  "godot-ideas", // external repo (willnationsdev, lineage)
+  "godot-extended-libraries", // external repo (willnationsdev, lineage)
+  "godot-buff", // planned/illustrative effect variant, not yet built
+  "godot-debuff", // planned/illustrative effect variant, not yet built
+  "godot-dot", // planned/illustrative effect variant, not yet built
+  "godot-addon", // GitHub topic name (addon search), not a skill
+  "godot-plugin", // GitHub topic name (addon search), not a skill
+]);
+const REF_RE = /`(godot-[a-z][a-z0-9-]*|gd-[a-z][a-z0-9-]*)`/g;
+/** @param {string} label @param {string} body @param {string | null} own */
+function scanDangling(label, body, own) {
+  /** @type {Set<string>} */
+  const flagged = new Set();
+  for (const m of body.matchAll(REF_RE)) {
+    const ref = m[1];
+    if (
+      !ref ||
+      ref === own ||
+      onDisk.has(ref) ||
+      agentSet.has(ref) ||
+      EXTERNAL_REFS.has(ref) ||
+      flagged.has(ref)
+    )
+      continue;
+    flagged.add(ref);
+    warnings.push(
+      `${label} references \`${ref}\` — not a framework skill on disk (dangling ref, or a game-local ` +
+        `skill a framework file must not depend on)`,
+    );
+  }
+}
+for (const [name, a] of agents) scanDangling(`agent \`${name}\` body`, a.body, null);
+for (const ent of readdirSync(SKILLS_DIR, { withFileTypes: true })) {
+  if (!ent.isDirectory()) continue;
+  let text;
+  try {
+    text = readFileSync(path.join(SKILLS_DIR, ent.name, "SKILL.md"), "utf8");
+  } catch {
+    continue;
+  }
+  scanDangling(`skill \`${ent.name}\` body`, split(text).body, ent.name);
 }
 
 if (process.argv.includes("--write")) {

@@ -26,7 +26,7 @@
 **Recommended next**
 
 - Enemy-archetype Resource + behaviour-component design decision → **game-designer**: should complex enemies be authored as a `.tres` archetype (stats + an ordered behaviour/ability list, mirroring CastData) instead of one `extends Enemy` subclass per type? Decide BEFORE building, since it dictates the slice shape. (Video gives no guidance here — out of its scope.)
-- IF that decision = yes (data-driven behaviour-as-Resource): new framework skill `godot-data-driven-enemy` → **skill-researcher** — composes godot-enemy-ai (FSM) + godot-composition + godot-data-driven-effect-composition (archetype/behaviour as `.tres`) into the "complex enemy from data" pattern. Currently NO skill covers enemy stats/behaviour as a Resource; the three existing skills each cover a piece, none the whole.
+- IF that decision = yes (data-driven behaviour-as-Resource): new framework skill `godot-enemy-archetype` → **skill-researcher** — composes godot-enemy-ai (FSM) + godot-composition + godot-effect-composition (archetype/behaviour as `.tres`) into the "complex enemy from data" pattern. Currently NO skill covers enemy stats/behaviour as a Resource; the three existing skills each cover a piece, none the whole.
 
 **Later** (valid, not needed this iteration)
 

@@ -1,6 +1,6 @@
 # Why You Should Play Dr Langeskov — level-design principles — transcript digest
 
-**Source** — `gd-utilities-level-design.md` (the raw, now in `transcripts/archive/gd-utilities-level-design.md`). "Games Every Designer Should Play — Dr Langeskov" by Stuart Lilford (lecturer in game design). A level-design _theory_ video, despite the filename — no Godot/GDScript content.
+**Source** — `level-design-principles.md` (the raw, now in `transcripts/archive/level-design-principles.md`). "Games Every Designer Should Play — Dr Langeskov" by Stuart Lilford (lecturer in game design). A level-design _theory_ video, despite the filename — no Godot/GDScript content.
 **Why harvested** — about to build the level-designer system (drawn-grid → guided-level builder). Scouted for principles that should shape the level-designer agent's interview and the builder's capabilities, before we design.
 
 **Context note** — this is a _design-thinking_ resource, not an engineering one. Validity below = "is this a principle our level pipeline should embody", and "already learned?" = whether our design docs / level-designer agent already encode it. None of it is skill/code material.

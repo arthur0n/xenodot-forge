@@ -1,6 +1,6 @@
 ---
 name: godot-looping-particle-vfx
-agents: [godot-combat]
+agents: [godot-vfx]
 description: >-
   Persistent LOOPING 3D particle VFX for a Godot 4.6 Forward+ game — fire,
   smoke, torch, aura, magic loops — the opposite-lifecycle sibling of

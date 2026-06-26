@@ -18,6 +18,17 @@ Build entities by **composing small component nodes**, not by inheriting behavio
 6. **Depend on signals and duck typing, not concrete types** (interface segregation). `if body.has_method("take_damage")` or signal connections — not `if body is Player`.
 7. **Data-only variants are `@export`, not subclasses.** A variant that differs only in data — a colour, a speed, a scene — is an `@export` on one script set per-scene, NOT a subclass. Two `extends Enemy` stubs that only assign a different tint constant collapse into `@export var tint_color: Color` on `Enemy`.
 
+## Signal hygiene
+
+Signals are the composition interface (rules 3 & 6); keep them disciplined.
+
+- **Guard before disconnect.** Call `is_connected(sig, callable)` before `disconnect(...)` — disconnecting an already-disconnected signal throws. Connect idempotently the same way (`if not is_connected(...): connect(...)`).
+- **Name signals for the event, with one canonical name per event.** A signal is named for the **fact that happened** (past tense — `died`, `hit_confirmed`, `health_changed`), not for the command a listener should run (`update_hud`). One event → one signal name, declared once on the entity that owns the event; listeners adapt to it. Don't mirror the same fact under two names or hold the same state in two places.
+- **Type the payload; pass data, not nodes.** Declare params with types — `signal health_changed(current: int, max: int)`, not bare `signal health_changed`. Emit the values a listener needs (an amount, an id, a position), not the emitter node, wherever practical — passing the node re-introduces the concrete-type coupling rule 6 removes.
+- **Fire-and-forget — the emitter never awaits its listener.** `emit_signal` / `sig.emit(...)` returns immediately; don't `await` a connected handler or assume any listener ran. The emitter announces the fact and moves on; ordering or completion across listeners is not the emitter's concern. (Signals up / calls down — rule 3.)
+
+These keep the seam decoupled **without** a global signal-bus / event-bus autoload. Routing every signal through one shared autoload re-creates the hidden coupling rules 5 & 6 forbid — inject the emitter via `@export` and connect to it directly, or reach it through a duck-typed seam. No autoload-as-message-broker.
+
 ## When to modularize — and when NOT to
 
 Extract a component only when one of these is true:

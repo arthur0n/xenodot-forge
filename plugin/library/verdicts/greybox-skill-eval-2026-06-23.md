@@ -5,7 +5,7 @@ Trigger: user unhappy arena levels ship as "flat empty oversized perimeter-walle
 
 ## TL;DR
 
-**ADOPT** a new `godot-greybox` skill, SPLIT from `level-designer` per Hermes rec. level-designer stays concept-first brief; godot-greybox = spatial-craft layer that emits/edits an `ArenaLayout` `.tres`, instantiates it via one builder node, and runs a checkable self-audit. Aligns with the SYSTEMS + DATA-DRIVEN directive (layout is DATA the builder reads — mirrors `cast-system` / `godot-data-driven-enemy`). All numeric caps are INFERRED → ship checker in REPORT + baseline-diff mode first, harden to pass/fail only after calibrating on Blast Court + one good + one bad variant. Same discipline as the unverified-regex CI footgun.
+**ADOPT** a new `godot-greybox` skill, SPLIT from `level-designer` per Hermes rec. level-designer stays concept-first brief; godot-greybox = spatial-craft layer that emits/edits an `ArenaLayout` `.tres`, instantiates it via one builder node, and runs a checkable self-audit. Aligns with the SYSTEMS + DATA-DRIVEN directive (layout is DATA the builder reads — mirrors `cast-system` / `godot-enemy-archetype`). All numeric caps are INFERRED → ship checker in REPORT + baseline-diff mode first, harden to pass/fail only after calibrating on Blast Court + one good + one bad variant. Same discipline as the unverified-regex CI footgun.
 
 ## Grounded against THIS repo (Hermes could not read it)
 
@@ -32,7 +32,7 @@ Confirmed `levels/blast_court.tscn`, `levels/wave_manager.gd`, `levels/blast_cou
 
 5. **FallZone / trap-floor already exists — `fall_zones:Array[AABB]` reuses it, does NOT fork.** `levels/blast_court.gd`: FallZone Area3D `collision_mask=2`, `body_entered → _on_fall_zone_entered → apply_damage + teleport`; 4 dwell-trap tiles (TrapA–D Area3D sensors). ArenaLayout `fall_zones` = data that the builder instantiates into the existing FallZone Area3D pattern + dwell tiles. Schema describes what's built; no new runtime system.
 
-6. **No greybox/layout guidance exists today.** `gd-utilities-level-design` (level-designer skill) = interview PRINCIPLES only (verticality, contrast, variety) — prose, NOT checkable, NOT a builder. `godot-gridmap-level` = tile-fill from drawn grid (≠ continuous combat cover). `godot-main-scene` = level swap under LevelHost. `godot-composition` = builder node should be a component under the level root. **Real gap → adopt confirmed.**
+6. **No greybox/layout guidance exists today.** `level-design-principles` (level-designer skill) = interview PRINCIPLES only (verticality, contrast, variety) — prose, NOT checkable, NOT a builder. `godot-gridmap-level` = tile-fill from drawn grid (≠ continuous combat cover). `godot-main-scene` = level swap under LevelHost. `godot-composition` = builder node should be a component under the level root. **Real gap → adopt confirmed.**
 
 7. **L2 runtime layer exists for the checker: `godot-runtime-smoke`.** Headless `tools/smoke_*.gd` SceneTree harness, wired as a `tools/validate.sh` step. The layout self-audit checker = a new `tools/audit_layout.gd` (or `smoke_layout.gd`) following that proven pattern. NavigationServer3D map_get_path/closest_point + intersect_ray all work headless (logic asserts). No GdUnit4.
 

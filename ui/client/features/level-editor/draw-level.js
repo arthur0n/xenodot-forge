@@ -459,6 +459,14 @@ async function exportLevel() {
     `${nWall} wall, ${nDoor} door, ${nWindow} window, ` +
     `${items.length} item cell${items.length === 1 ? "" : "s"} across ${itemIdCount} id${itemIdCount === 1 ? "" : "s"}, ` +
     `${rooms.length} room cell${rooms.length === 1 ? "" : "s"} across ${roomIdCount} room${roomIdCount === 1 ? "" : "s"}`;
+  const gridmapEl = /** @type {HTMLInputElement | null} */ (
+    document.getElementById("draw-level-gridmap")
+  );
+  const buildClause = gridmapEl?.checked
+    ? "build it as a GridMap + MeshLibrary scene (skill: godot-gridmap-level)"
+    : "build it as a hand-authored STATIC greybox blockout — real StaticBody3D + BoxMesh nodes written " +
+      "directly into the saved .tscn (selectable/movable in the editor), NOT generated at runtime and " +
+      "NOT a GridMap (position + rotation only, never Transform3D literals; skill: godot-greybox)";
   const prompt =
     `I drew a level (${summary}) and saved the grid to ${data.path} ` +
     `(${GRID_W}×${GRID_H}; structure codes 0 floor, 1 wall, 2 door, 3 window, 4 item; ` +
@@ -468,7 +476,7 @@ async function exportLevel() {
     `first, then the name and level-design details (metres per cell, wall height, what each item id and each room ` +
     `are, player spawn, theme); it writes a level-design brief to design/levels/<name>.md and hands off to the ` +
     `game-designer agent, which decides how to build it (splitting a large level into small pieces) and dispatches ` +
-    `godot-dev to build the greybox as a GridMap + MeshLibrary scene (skill: godot-gridmap-level), register it in ` +
+    `godot-dev to ${buildClause}, register it in ` +
     `main.gd, and verify with godot-verify.`;
   addUser(prompt);
   send({ type: "user_input", text: prompt });

@@ -352,7 +352,7 @@ function buildMakeQuery({ inbox, canUseTool, abort, waitFor, formAgentQueue, sen
         // own `effort:` frontmatter while active.
         effort: EFFORT,
         // Skill index = a tight allowlist (resolveSessionSkills): the framework meta floor
-        // (caveman, quick) + the built-ins the user enabled via the skill wizard
+        // (caveman, autonomous-main-goal, graphify) + the built-ins the user enabled via the skill wizard
         // (skillOverrides). DOMAIN skills are excluded — both the framework `godot-*` skills
         // and the game's own `.claude/skills` — because the orchestrator only routes; those
         // belong to the implementer agents. A context filter, not a sandbox: unlisted skills

@@ -17,7 +17,7 @@ Cyclops solves the real pain (drag-to-place blocks, auto collision, snapping) an
 
 **Godot 4.3 load failure.** Issue #196 (open, September 2024) and issue #232 (open, 2025) both report that enabling the plugin in Godot 4.3 fails with "Unable to load addon script … cyclops_level_builder.gd". The maintainer is active (commits 8 days ago) but these issues are unresolved. Combined with the runtime coupling, adoption now would require keeping the plugin permanently AND absorbing an unconfirmed 4.3 breakage risk.
 
-**Scope clarification (on the record).** This evaluation covers only the **hand-built** level path (`levels/blockout_01.tscn`, `levels/shared_apartment.tscn` etc.). The draw-grid pipeline (`levels/drawn/current.json` → godot-dev authors a baked `.tscn`) is a separate path, evaluated under GridMap separately.
+**Scope clarification (on the record).** This evaluation covers only the **hand-built** level path (`levels/blockout_01.tscn` and other hand-typed level scenes). The draw-grid pipeline (`levels/drawn/current.json` → godot-dev authors a baked `.tscn`) is a separate path, evaluated under GridMap separately.
 
 **What would change the verdict.** If the maintainer ships a "bake to standard nodes" command (the way CSG has "Bake Mesh" and "Bake Collision"), the runtime coupling disappears, the addon becomes editor-only, and the 4.3 loading issue becomes the only remaining blocker. Park and revisit then.
 
@@ -35,4 +35,4 @@ Not applicable — verdict is parked.
 
 - **GridMap** — Godot's built-in voxel-tile tool for the draw-grid pipeline (`levels/drawn/current.json`); evaluate separately.
 - **Qodot** — BSP/Quake-map import pipeline; heavier toolchain dependency (TrenchBroom), no runtime coupling. Consider if Cyclops never bakes.
-- **Hand-tooling improvement** — the immediate fix for the transform-drift bug (shared_apartment.tscn) is a godot-dev task: re-author the level as hand-typed nodes using the `gd-utilities-level-design` skill and the boxed-room pattern from blockout_01.tscn, with each `StaticBody3D` anchored at the mesh origin so scale can never drift from the collider.
+- **Hand-tooling improvement** — the immediate fix for the transform-drift bug (the affected hand-built level scene) is a godot-dev task: re-author the level as hand-typed nodes using the `level-design-principles` skill and the boxed-room pattern from blockout_01.tscn, with each `StaticBody3D` anchored at the mesh origin so scale can never drift from the collider.

@@ -388,6 +388,13 @@
         <canvas id="draw-level-canvas" class="draw-level-canvas" width="560" height="384"></canvas>
         <div class="modal-error" id="draw-level-error"></div>
         <div class="modal-actions">
+          <label
+            class="draw-level-method muted"
+            title="Off (default): hand-built greybox blockout (godot-greybox). On: GridMap + MeshLibrary (godot-gridmap-level) — better for large tile-grid levels."
+          >
+            <input type="checkbox" id="draw-level-gridmap" />
+            Build with GridMap
+          </label>
           <button class="btn ghost" id="draw-level-close">Close</button>
           <button class="btn primary" id="draw-level-export">Export level</button>
         </div>

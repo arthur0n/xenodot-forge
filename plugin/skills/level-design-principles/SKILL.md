@@ -1,10 +1,10 @@
 ---
-name: gd-utilities-level-design
+name: level-design-principles
 agents: [level-designer]
 description: Level-design interview principles for the level-designer agent (from Langeskov/Lilford theory) — verticality, space contrast, shape variety. Use when starting a level-designer interview — establish the level's concept FIRST (what it is about), then ensure the brief captures variety and avoids flat/boxy/monotonous blockouts.
 ---
 
-# GD Utilities — Level Design Principles
+# Level Design Principles
 
 Distilled from: `library/transcripts/level-design-principles-langeskov.md`
 

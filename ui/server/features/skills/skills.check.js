@@ -18,13 +18,13 @@ function check(name, fn) {
   }
 }
 
-const floor = ["caveman", "quick"];
+const floor = ["caveman", "graphify"];
 const candidates = ["init", "verify", "code-review"];
 const sorted = (/** @type {string[]} */ a) => [...a].sort();
 
 check("default-deny: no overrides → floor only (no built-ins, no domain skills)", () => {
   const out = computeSessionSkills({ floor, candidates, overrides: {} });
-  assert.deepEqual(sorted(out), sorted(["caveman", "quick"]));
+  assert.deepEqual(sorted(out), sorted(["caveman", "graphify"]));
 });
 
 check('wildcard "*":"on" → floor + ALL candidates', () => {
@@ -49,7 +49,7 @@ check("floor is ALWAYS in, even when overrides try to disable it", () => {
     candidates,
     overrides: { "*": "off", caveman: "off" },
   });
-  assert.ok(out.includes("caveman") && out.includes("quick"));
+  assert.ok(out.includes("caveman") && out.includes("graphify"));
 });
 
 check("result is de-duplicated when a name is in both floor and candidates", () => {

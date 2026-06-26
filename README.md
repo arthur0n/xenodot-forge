@@ -2,8 +2,8 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Godot-family 4.x](https://img.shields.io/badge/Godot--family-4.x-blue.svg)
-![Skills: 35](https://img.shields.io/badge/Skills-35-purple.svg)
-![Agents: 17](https://img.shields.io/badge/Agents-17-orange.svg)
+![Skills: 38](https://img.shields.io/badge/Skills-38-purple.svg)
+![Agents: 19](https://img.shields.io/badge/Agents-19-orange.svg)
 ![Status: POC](https://img.shields.io/badge/Status-POC-yellow.svg)
 
 An experiment in building games on **Godot and its compatible forks (Redot, Blazium)** with Claude Code using **a deliberate pipeline instead of a chat box**.

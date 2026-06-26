@@ -17,11 +17,14 @@ export const AGENTS_DIR = path.join(PLUGIN, "agents");
 export const ORCH = "@orchestrator";
 
 /** The code-writers (stable hardcoded alias). godot-dev is the core/general builder; the rest are
- * domain specialists split off from it so each stays under the ~10-skill index cap. @type {string[]} */
+ * domain specialists split off from it. Builders carry a 7-skill shared core, so the index cap for a
+ * builder is higher (15 = 7 core + ~8 domain); see gen-skill-scope.js. @type {string[]} */
 export const BUILDERS = [
   "godot-dev",
   "godot-refactor",
-  "godot-combat",
+  "godot-ranged-combat",
+  "godot-enemy",
+  "godot-vfx",
   "godot-player",
   "godot-visuals",
   "godot-assets",

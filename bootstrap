@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Bring a freshly-forked workspace to life, in one command. Run from inside the new forge
+# (the dir `npm run fork` printed). Sequences the existing framework commands so the new
+# workspace goes from "just-copied files" to "server up + knowledge graph building":
+#
+#   1. npm ci            — reinstall deps (node_modules is never copied; the lockfile is)
+#   2. npm run new       — scaffold the game from starter/ → setup → materialize → doctor
+#   3. ./start_server    — launch the UI server, detached (PID/log under .xenodot-run/)
+#   4. graphify (bg)     — build the framework's knowledge graph; SLOW + costs tokens, so it
+#                          runs detached and you don't wait on it
+#
+# After this, enable the optional integrations yourself (printed at the end): Codex + Hermes.
+#
+# Usage: ./bootstrap            # game defaults to ../game (the workspace sibling)
+#        ./bootstrap /path/to/game
+set -euo pipefail
+cd "$(dirname "$0")"
+
+GAME="${1:-../game}"
+
+echo "==> 1/4  npm ci  (reinstalling dependencies)"
+npm ci
+
+echo "==> 2/4  npm run new -- $GAME  (scaffold game → setup → materialize → doctor)"
+npm run new -- "$GAME"
+
+echo "==> 3/4  ./start_server $GAME  (detached)"
+./start_server "$GAME"
+
+echo "==> 4/4  graphify  (framework knowledge graph — backgrounded, slow + costs tokens)"
+mkdir -p .xenodot-run
+if command -v graphify >/dev/null 2>&1; then
+  nohup graphify . >.xenodot-run/graphify.log 2>&1 &
+  gpid=$!
+  disown "$gpid" 2>/dev/null || true
+  echo "    graphify building in background — PID $gpid"
+  echo "    log: .xenodot-run/graphify.log   (tail -f to watch)"
+else
+  echo "    graphify not on PATH — skipped. Install: uv tool install graphifyy, then: graphify ."
+fi
+
+cat <<'EOF'
+
+bootstrap: done.
+  UI:  http://localhost:8338
+
+Next — enable the optional integrations:
+  npm run codex:setup                                              # clone + enable Codex companion
+  npm run hermes -- --hermes --hermes-key=sk-... --hermes-model=anthropic/claude-opus-4.7
+  # or toggle both in the web UI ⚙ Settings
+EOF

@@ -1,6 +1,6 @@
 ---
 name: godot-enemy-ai
-agents: [godot-combat]
+agents: [godot-enemy]
 description: Build a patrolling/chasing enemy in Godot 4.6 from NATIVE nodes only — a baked NavigationRegion3D + NavigationAgent3D for 3D pathfinding/avoidance, a node-based StateMachine component (patrol → chase → attack) composed onto a CharacterBody3D, and a detection-radius + line-of-sight perception seam that flips patrol→chase. Use when adding an enemy/NPC/monster/guard that walks a route and reacts to the player, when an agent must path around walls to a moving target, when an enemy needs distinct behaviour states, when "patrol", "chase", "aggro", "detection range", or "line of sight" appears in a task, or when an enemy stands still / can't find a path / never aggroes. NO third-party AI addon, NO behaviour trees, NO Resource-FSM — node-FSM + native navigation server only.
 ---
 
@@ -14,6 +14,10 @@ An enemy is two concerns that must stay separated: **where to walk** (pathfindin
 - `godot-composition` — the enemy is an engine-node base (`CharacterBody3D`) with component children (`StateMachine`, `NavigationAgent3D`); states call DOWN into the entity, the entity does not reach UP into states.
 - A baked navigation surface in the level: a `NavigationRegion3D` whose `NavigationMesh` is baked over the walkable floor. Without a baked mesh the agent finds no path and the enemy stands still.
 - The player node must be in the group `player` (Inspector → Node → Groups, or `add_to_group("player")`). The enemy finds its target by group, never by `class_name` — perception is a cross-entity gameplay boundary.
+- Symmetrically, the enemy must register itself in its query group in `_ready()`
+  (`add_to_group("enemies")`) — minimaps, target scans, and wave counters find it by group,
+  never by `class_name`. An enemy alive in the tree but not in its group is invisible to every
+  group query with no error.
 
 ## Project conventions
 

@@ -63,7 +63,7 @@ The greybox node you own = parent; model PackedScene = child. Never make-local a
 
 **5. Swap greybox 1:1**
 
-Keep node **name** (`Wardrobe`) and **position** (computed transform). Make the named node the owner (`Node3D` or `StaticBody3D`). Nest the `.glb` instance at local origin scaled per step 3.
+Keep node **name** (the greybox placeholder's) and **position** (computed transform). Make the named node the owner (`Node3D` or `StaticBody3D`). Nest the `.glb` instance at local origin scaled per step 3.
 
 Collision — **props get a collider BY DEFAULT** (pipeline default, not parked):
 

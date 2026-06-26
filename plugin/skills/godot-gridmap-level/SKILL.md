@@ -6,7 +6,7 @@ description: Build a tile-based 3D level from a drawn grid (levels/drawn/current
 
 # godot-gridmap-level
 
-Hand-authoring `Transform3D` matrices fails: mesh and collider get nudged separately and drift (`shared_apartment.tscn` — `WallCorrMBDiv` mesh shifted +6.1 m off its collider). GridMap fixes this structurally: each cell's mesh + collision come from one MeshLibrary item — they cannot drift.
+Hand-authoring `Transform3D` matrices fails: mesh and collider get nudged separately and drift (a hand-typed wall mesh shifting several metres off its collider). GridMap fixes this structurally: each cell's mesh + collision come from one MeshLibrary item — they cannot drift.
 
 ## When to use
 

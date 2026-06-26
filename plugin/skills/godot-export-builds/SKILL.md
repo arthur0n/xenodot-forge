@@ -47,16 +47,16 @@ Hand-authored at project root, committed. The headless export selects a preset *
 - `preset.<n>.runnable = true`
 
 macOS exports a `.app`/`.zip`; Linux a single executable; Windows an `.exe` (+ `.pck` unless
-embedded). Keep the firing-yard POC's `main.tscn` as the main scene — export ships whatever
+embedded). Keep the project's `main.tscn` as the main scene — export ships whatever
 `run/main_scene` points at.
 
 ## Export commands (desktop)
 
 ```bash
 mkdir -p build/{linux,macos,windows}
-rtk $GODOT --headless --path . --export-release "Linux"   build/linux/diceofate.x86_64
-rtk $GODOT --headless --path . --export-release "macOS"   build/macos/diceofate.zip
-rtk $GODOT --headless --path . --export-release "Windows" build/windows/diceofate.exe
+rtk $GODOT --headless --path . --export-release "Linux"   build/linux/<game>.x86_64
+rtk $GODOT --headless --path . --export-release "macOS"   build/macos/<game>.zip
+rtk $GODOT --headless --path . --export-release "Windows" build/windows/<game>.exe
 ```
 
 - Preset name in quotes must match `export_presets.cfg` exactly.

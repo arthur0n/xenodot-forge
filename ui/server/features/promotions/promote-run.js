@@ -49,7 +49,14 @@ export function promoteOne(kind, name, game) {
   const { src, dst } = locate(kind, name, game);
   if (!existsSync(src)) return { ok: false, msg: `skip ${kind}/${name}: not found at ${src}` };
   if (existsSync(dst))
-    return { ok: false, msg: `skip ${kind}/${name}: already in the plugin (${dst})` };
+    return {
+      ok: false,
+      msg:
+        `skip ${kind}/${name}: it is a materialized core file already in the plugin (${dst}). ` +
+        `promote only ADDS new capabilities — it never UPDATES core. To improve it, edit it ` +
+        `in the plugin directly (it re-materializes to every game); keep game-specific bits ` +
+        `in a game-local extension the core sources. See docs/process/promotion.md → "Updating an existing core file".`,
+    };
   mkdirSync(path.dirname(dst), { recursive: true });
   movePath(src, dst);
   return { ok: true, msg: `moved ${kind}/${name} → plugin` };

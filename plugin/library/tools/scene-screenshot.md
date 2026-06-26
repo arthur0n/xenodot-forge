@@ -1,6 +1,6 @@
 # scene-screenshot — tool definition
 
-**Problem** — `tools/verify_render.gd` (godot-verify layer 3) reports only average luminance + spread — a "something rendered" statistic that is blind to geometry errors. When three sourced `.glb` furniture models were wired into `levels/shared_apartment.tscn`, every verify pass reported `VERIFY-RENDER: OK` (luminance ~0.63), yet the user reported a mis-scaled nightstand, a wrong bed model, and a chair that failed entirely. The headless luminance check cannot show model placement, scale, floating/sinking, silhouette, or lighting quality. Agents and humans need an actual PNG image of the rendered scene so visual judgment is possible.
+**Problem** — `tools/verify_render.gd` (godot-verify layer 3) reports only average luminance + spread — a "something rendered" statistic that is blind to geometry errors. When three sourced `.glb` furniture models were wired into a level scene, every verify pass reported `VERIFY-RENDER: OK` (luminance ~0.63), yet the user reported a mis-scaled prop, a wrong model, and a prop that failed to render entirely. The headless luminance check cannot show model placement, scale, floating/sinking, silhouette, or lighting quality. Agents and humans need an actual PNG image of the rendered scene so visual judgment is possible.
 
 **Transport** — CLI (stateless). The capability is: boot Godot, load a scene, warm up N frames, capture the SubViewport texture, save PNG, exit. This is a batch/stateless one-shot — no live editor state required. CLI wins; MCP is not needed.
 

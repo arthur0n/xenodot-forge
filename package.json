@@ -12,6 +12,7 @@
     "codex:setup": "node ui/server/integrations/codex/codex-setup.js",
     "codex:check": "node ui/server/integrations/codex/codex-check.js",
     "new": "node ui/server/cli/new.js",
+    "fork": "node ui/server/cli/fork.js",
     "promote": "node ui/server/features/promotions/promote.js",
     "materialize": "node ui/server/cli/materialize.js",
     "doctor": "node ui/server/cli/doctor.js",

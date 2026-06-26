@@ -26,16 +26,16 @@ Input: Hermes findings `.xenodot/handoffs/hermes-motion-sickness.md` (run run_d8
 | M8 comfort settings menu  | **PARK**                      | out of POC scope; no options UI exists                          |
 | M9 third-person camera    | **REJECT**                    | contradicts `godot-first-person-controller` genre lock          |
 
-## Framework promotion — should godot-fps-game-feel ABSORB comfort patterns?
+## Framework promotion — should a future game-feel/polish skill ABSORB comfort patterns?
 
-**Recommend ADOPT a comfort/readability category into `godot-fps-game-feel`** (human-gated foreground step — I did NOT edit it). Rationale: comfort = measurable readability, fits L3 sweep's "input responsiveness & readability" category. Durable patterns worth encoding:
+**Recommend folding a comfort/readability category into a future game-feel/polish skill (not yet built)** (human-gated foreground step — left for a human to author). Rationale: comfort = measurable readability, fits L3 sweep's "input responsiveness & readability" category. Durable patterns worth encoding:
 
 - **Comfort-respawn occlusion** — any hard camera teleport must occlude under full black (fade-in → HOLD black ≥0.1s → fade-out), OR lerp the camera. Reusable beyond Blast Court.
 - **Movement vignette rig** — velocity-proportional edge darkening (CanvasLayer ColorRect + shader, lerp intensity ~0.2s so vignette itself doesn't flicker). Standard XR "tunneling vignette". Framework-grade.
 - **Glow-flicker guidance (Godot 4.6)** — `glow_hdr_threshold ≥2.0`, intensity 0.4-0.6, soft (not additive) blend; audit metallic >0.5 on viewmodels above threshold. Engine-version-specific gotcha (forum 132818 / godot#57693).
 - **Crosshair anchor** — always-visible centered reticle as a comfort requirement (Seok 2021), not just a combat aid.
 
-**SKIP** M6/M8/M9 from framework (gameplay/scope/genre-specific). Vignette could alternatively be its own `godot-comfort-vignette` skill if it grows; for now a category in game-feel is the lighter call.
+**SKIP** M6/M8/M9 from framework (gameplay/scope/genre-specific). Vignette could alternatively be its own `godot-comfort-vignette` skill if it grows; for now a category in that proposed game-feel skill is the lighter call.
 
 ## Severity model (grounded)
 

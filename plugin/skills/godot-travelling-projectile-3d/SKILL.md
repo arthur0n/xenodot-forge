@@ -1,6 +1,6 @@
 ---
 name: godot-travelling-projectile-3d
-agents: [godot-combat]
+agents: [godot-ranged-combat]
 description: Fire a travelling 3D projectile in Godot 4.6 — spawn at a Marker3D muzzle, detach with top_level, move forward along -Z each physics frame, despawn on max range or Area3D hit, gated by a one-shot Timer fire-rate cooldown. A host-agnostic firing component (attaches to any entity). Use when building a weapon that shoots a projectile that physically travels and can be dodged/seen in flight, when a bullet must spawn→move→despawn, or when adding a fire-rate cooldown. NOT for hitscan/raycast (an instant ray with no travel — a different design, not covered here).
 ---
 

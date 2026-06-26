@@ -6,7 +6,7 @@
 # same way bug-triage got it). NEVER blocks, denies, or rewrites — appends one JSON row, exit 0.
 #
 # Scoped to sub-agents via `agent_id` (absent on the orchestrator/main thread → skip). The agent
-# NAME is `agent_type` — it matches the agent's frontmatter `name:` (e.g. godot-combat) and is
+# NAME is `agent_type` — it matches the agent's frontmatter `name:` (e.g. godot-ranged-combat) and is
 # populated inside a sub-agent (Claude Code hook input). Logged as "" if a build doesn't supply
 # it; the fallback is a SubagentStart agent_id→name map, but agent_type covers current builds.
 #
