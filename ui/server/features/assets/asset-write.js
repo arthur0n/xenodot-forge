@@ -5,8 +5,8 @@
 //   • native picker → a base64 data URL  (writeAsset)
 //   • a local file path                  (writeAssetFromPath)
 // Both funnel through writeBuffer, which routes by file type sniffed from the decoded bytes:
-//   PNG  → <root>/textures/<slug>.png   (pixel-art texture)
-//   GLB  → <root>/models/<slug>.glb     (sourced low-poly 3D prop)
+//   PNG  → <root>/textures/<slug>.png   (texture)
+//   GLB  → <root>/models/<slug>.glb     (sourced 3D model)
 // where <root> is the game's assets/ ("game", default) or ASSET_LIBRARY ("shared"). Narrow by
 // design: those two media only, name slugified to [a-z0-9-], confined to the target folder,
 // never clobbers. Sibling to level-write.js / transcript-write.js.

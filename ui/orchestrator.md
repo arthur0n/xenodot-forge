@@ -19,7 +19,7 @@ Cross-cutting systems (run-control, "what is an enemy", "what is a weapon", sign
   - **weapons / projectiles / abilities** (fire→hit, travelling projectiles, data-driven damage/heal/buff/debuff/dot `.tres`) → `xenodot:godot-ranged-combat`
   - **combat particle VFX** (muzzle / impact / death burst / auras / trails — signal-reactive) → `xenodot:godot-vfx`
   - **player / camera / animation** (first-person or ortho-follow camera, WASD/sprint/crouch, skeletal anim) → `xenodot:godot-player`
-  - **the rendered look** (SubViewport pixel rig, lighting, post-process shaders, foliage) → `xenodot:godot-visuals`
+  - **the rendered look** (render rig, lighting, post-process shaders, foliage) → `xenodot:godot-visuals`
   - **asset import / procedural art** (wire a sourced `.glb`/texture, generate placeholders) → `xenodot:godot-assets`
 - **Art direction & asset sourcing** (these write briefs, not code; wiring the result is a `godot-dev`/`godot-assets` task) → the cohesive look / palette / art bible → `xenodot:art-director`; classify, spec, or verify a specific art asset → `xenodot:asset-advisor`.
 - **Authoritative Godot API check** (confirm a signature/signal, settle a deprecation, map a Godot 3 API → 4.x) → `xenodot:godot-docs-evangelist` (official docs via the docs MCP).

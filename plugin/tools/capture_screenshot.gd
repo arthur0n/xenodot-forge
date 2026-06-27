@@ -1,13 +1,14 @@
-# tools/capture_screenshot.gd — captures a PNG of the SubViewport pixel-art render for visual
+# tools/capture_screenshot.gd — captures a PNG of the SubViewport render for visual
 # inspection.
 extends SceneTree
 ## Boots a scene (default: main.tscn), warms up ~20 frames so the render settles,
 ## then captures the raw 640x360 SubViewport texture and saves it as a PNG.
 ##
 ## WHY SubViewport, not root.get_texture():
-##   All 3D content in this project renders inside Main/SubViewportContainer/SubViewport
-##   (the pixel-art downscale rig). root.get_texture() returns the upscaled window
-##   compositor output — not the raw pixel-art render. This script captures the source.
+##   When the game uses the SubViewport rig, all 3D content renders inside
+##   Main/SubViewportContainer/SubViewport (the SubViewport downscale rig). root.get_texture()
+##   returns the upscaled window compositor output — not the raw SubViewport render. This script
+##   captures the source.
 ##
 ## IMPORTANT — do NOT run with --headless:
 ##   Godot 4 headless mode sets the renderer to Dummy; get_image() returns a blank image.

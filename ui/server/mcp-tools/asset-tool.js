@@ -14,7 +14,7 @@ import { applyOp } from "../features/tasks/tasks-store.js";
 export function makeAssetTool(send) {
   return tool(
     "request_asset",
-    "Request ONE art asset the pipeline can't author — a texture (PNG) or a sourced low-poly " +
+    "Request ONE art asset the pipeline can't author — a texture (PNG) or a sourced 3D " +
       "model (.glb). Files a user-owned to-do that surfaces in the 🎨 Get Assets modal, where " +
       "the user picks or names a local file; the server copies it into assets/textures/ (PNG) " +
       "or assets/models/ (GLB) and hands a verify+wire task back to you. One asset per call — " +

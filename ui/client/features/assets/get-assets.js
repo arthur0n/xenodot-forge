@@ -4,7 +4,9 @@
 //      mcp__ui__request_asset tool) when it hit an art gap: titled "Asset: <name>"
 //      with the kind + tailored brief in the note ("[texture|model] <brief>"). The
 //      brief is contextual to what's being built, never hardcoded.
-//   2. Generators — the stable catalog of free, no-signup pixel-art sites.
+//   2. Sources — the stable catalog of free, no-signup CC0/CC-BY asset libraries
+//      (3D models + PBR textures). Style-specific generators (e.g. pixel-art) live in
+//      the game's loaded art specialization, not here.
 // For each request the user supplies a file two ways — pick a local file (native
 // dialog) or paste its local path — and chooses a destination "place": the game's own
 // assets/ (default) or the external shared-asset library (res://x-shared-assets, for
@@ -18,35 +20,12 @@ import { send } from "../../core/websocket.js";
 import { addUser } from "../chat/chat.js";
 import { loadState } from "../project/project-tree.js";
 
-/** Free sources — the stable WHERE (catalogue detail: library/sources/asset-sources.md
- * for textures, library/sources/model-sources.md for 3D models).
+/** Free sources — style-neutral CC0/CC-BY asset libraries (3D models + PBR textures),
+ * the stable WHERE. Style-specific generators live in the game's loaded art
+ * specialization: library/sources/model-sources.md (3D models),
+ * library/sources/asset-sources.md (pixel-art textures).
  * @type {{ name: string, url: string, fit: string }[]} */
 const GENERATORS = [
-  {
-    name: "pixler.dev",
-    url: "https://pixler.dev/",
-    fit: "no signup · transparent PNG · blade, tree, props",
-  },
-  {
-    name: "SEELE AI",
-    url: "https://www.seeles.ai/features/tools/sprite",
-    fit: "no login · PNG + frame JSON · sprite sheets",
-  },
-  {
-    name: "SpriteLab",
-    url: "https://spritelab.dev/",
-    fit: "free tier (signup) · packs & variants",
-  },
-  {
-    name: "Perchance",
-    url: "https://perchance.org/ai-pixel-art-generator",
-    fit: "no signup · quick concepts",
-  },
-  {
-    name: "Pixelorama",
-    url: "https://www.pixelorama.org/",
-    fit: "free editor · tile/seam fix, downscale",
-  },
   {
     name: "Poly Pizza",
     url: "https://poly.pizza/",
@@ -60,7 +39,17 @@ const GENERATORS = [
   {
     name: "Quaternius",
     url: "https://quaternius.com/",
-    fit: "no signup · CC0 low-poly model packs",
+    fit: "no signup · CC0 model packs",
+  },
+  {
+    name: "Poly Haven",
+    url: "https://polyhaven.com/",
+    fit: "no signup · CC0 · HD models + PBR textures + HDRIs",
+  },
+  {
+    name: "OpenGameArt",
+    url: "https://opengameart.org/art-search-advanced?field_art_type_tid%5B%5D=10&field_art_licenses_tid%5B%5D=4929",
+    fit: "no signup · CC0 · one-off props (convert to .glb)",
   },
 ];
 
@@ -150,21 +139,21 @@ function wirePrompt(ask, savedPath) {
     return (
       `I sourced the "${ask.name}" model and saved it to ${savedPath}${task}. ` +
       `First run the asset-advisor agent (gate 2) to verify it (.glb format, scale/units, materials, ` +
-      `placement, licence). Only on PASS, dispatch godot-dev to wire it per skill ` +
-      `godot-mesh-import-pixel-art — import, scale to the prop's footprint, instance it in place of the ` +
-      `matching greybox node (keep its name + position), NEAREST + Make-Unique only if it carries a ` +
-      `texture — then verify with godot-verify and mark the task done once it renders. If asset-advisor ` +
-      `fails it, report why and the corrected sourcing spec instead of wiring.`
+      `placement, licence). Only on PASS, dispatch godot-dev to wire it per the game's art-import skill ` +
+      `(asset-advisor sets the import spec from the game's art direction) — import, scale to the prop's ` +
+      `footprint, instance it in place of the matching greybox node (keep its name + position) — then ` +
+      `verify with godot-verify and mark the task done once it renders. If asset-advisor fails it, ` +
+      `report why and the corrected sourcing spec instead of wiring.`
     );
   }
   return (
     `I generated the "${ask.name}" texture and saved it to ${savedPath}${task}. ` +
     `First run the asset-advisor agent to verify it against the request (type, dimensions, alpha, ` +
-    `placement, import settings). Only on PASS, dispatch godot-dev to import it ` +
-    `(Filter = Nearest, Mipmaps = Off) and wire it per the asset-sourcing loop — e.g. bind ` +
-    `blade_texture and set use_texture = true in resources/grass_blade_material.tres, or swap the ` +
-    `relevant StandardMaterial3D albedo — then verify with godot-verify and mark the task done once it ` +
-    `renders. If asset-advisor fails it, report why and the corrected generation prompt instead of wiring.`
+    `placement, import settings). Only on PASS, dispatch godot-dev to import it per the game's ` +
+    `art-import skill (asset-advisor sets filter / mipmaps / material from the game's art direction) ` +
+    `and wire it into the matching material — e.g. the relevant StandardMaterial3D albedo — then ` +
+    `verify with godot-verify and mark the task done once it renders. If asset-advisor fails it, ` +
+    `report why and the corrected generation prompt instead of wiring.`
   );
 }
 
