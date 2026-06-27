@@ -32,6 +32,7 @@ Cross-cutting systems (run-control, "what is an enemy", "what is a weapon", sign
   - Agent-capability / tooling gap (render a frame, capture debug output) → `xenodot:cli-researcher` (result → `library/tools/` → `tools/CAPABILITIES.md`).
   - About to build a domain a saved transcript covers → `xenodot:transcript-researcher` FIRST (result → `library/transcripts/`).
 - **Code review** (after a significant implementation, or user asks for a review) → see the Codex section below when Codex is in the team; otherwise flag for human review.
+- **Embodied play-grade** (after a builder reports gate-PASS on a **significant** build — one with a `design/<slug>.md`, or that touches the core loop) → dispatch `xenodot:godot-playtester` and run the **Play-grade loop** (see below). It PLAYS the build and grades it against the design Acceptance — distinct from Codex, which reads the code. Skip it for trivial glue.
 - **Blocked on missing art** → call `mcp__ui__request_asset` with `{ name, kind: "texture" | "model", prompt }`. `prompt` = sourcing brief **tailored to this specific asset** (texture: size, alpha, tileability, style; model: noun + target footprint + licence) — never hardcoded. One call per asset. It files the to-do and surfaces in the 🎨 Get Assets modal; user picks or names a local file; server writes to `assets/textures/` (PNG) or `assets/models/` (GLB) and hands a wiring+verify task to `xenodot:godot-dev`. Never build a generator; never give up.
 - **Simple questions** (what exists, how something works, project state) → answer directly from a quick read. Don't spawn agents for lookups.
 - **Codebase / architecture questions** (how does X work, what connects to Y, where does Z live) → use the `graphify` skill to query the game's knowledge graph (`graphify-out/`) BEFORE manual grep, when a graph exists. Falls back to a quick read otherwise. (Not a `godot-*` skill, so this one IS yours to load.)
@@ -39,6 +40,8 @@ Cross-cutting systems (run-control, "what is an enemy", "what is a weapon", sign
 ## Promote to the framework
 
 New skills/agents/tools start game-local (`.claude/skills`, `.claude/agents`, or `tools/`) and are usable immediately. When one proves broadly useful — not specific to this game — **file a promotion request with `mcp__ui__promote`** (`{ kind: "skills" | "agents" | "tools", name, reason }`). That records it deterministically on the promotions board (`.xenodot/promotions.json`) where the user approves or rejects it; on approval the user runs `npm run promote -- --pending` (or `npm run promote -- <kind> <name>`) — you never move files yourself. Use the tool, don't just ask in chat: the tool IS the record, so a "should we promote this?" can't get lost when the conversation moves on. **Default to keeping things local** — promote deliberately, so the framework stays scoped to game-dev.
+
+**Determinism ratchet.** Builders and the playtester can't promote (no tool) — they surface a `tool-gap:` in their report (a drafted script for a check they improvised or eyeballed). When a report/digest carries one, **file it for them** with `mcp__ui__promote { kind: "tools", name, reason }`, pointing the reason at the draft path. That's how fuzzy hand-work becomes a deterministic gate check (`tools/lib/checks.sh`) or utility over time. Same human-gated bar — surface it, don't auto-adopt.
 
 ## Asking the user
 
@@ -83,6 +86,20 @@ A long background builder's relayed `result` truncates; a file doesn't. So for *
 - **Prefer the digest over a long raw result.** For a long report, dispatch `xenodot:handoff-summarizer` on that path (foreground, fast haiku) and act on its ≤5-line digest (gate/files/done/open). Short or foreground builds — read the result directly; no summarizer needed.
 - **Hand work onward by file reference** — give the next agent the PATH, not prose; it reads the file at full fidelity, zero cost to your context.
 - If the summarizer reports `NO HANDOFF` (worker died before writing), fall back to your own git/grep verification + redispatch — don't trust a void.
+
+## Play-grade loop (generator → evaluator)
+
+The build→grade→fix loop is a **fixed protocol driven by exit codes, not your discretion**. After a builder reports **gate-PASS** on a significant build:
+
+1. Dispatch `xenodot:godot-playtester` with the design path (`design/<slug>.md`) + the changed-file list (or the builder's handoff path).
+2. It runs `tools/playgrade.sh` → `.xenodot/playgrade/<slug>.json` (exit 0 = PASS, 1 = FAIL) and writes findings to `.xenodot/handoffs/playgrade-<slug>.md`. Digest that file with `xenodot:handoff-summarizer`.
+3. **PASS** → done; relay the digest. If it recommended promoting a `play_*.gd` into the gate, file that via `mcp__ui__promote`.
+4. **FAIL** → re-dispatch the **same domain builder** that built it, with the findings file by reference ("fix per `.xenodot/handoffs/playgrade-<slug>.md`"). Builder fixes → re-runs its own `godot-verify` gate → reports gate-PASS → you re-dispatch the playtester to regrade.
+5. **Bounded: 3 regrade rounds.** Still FAIL after 3 → STOP looping; surface the open findings to the user via `mcp__ui__ask`. Never loop unbounded.
+
+**Tune the rubric from divergence (QA learning).** If the user OVERRIDES a verdict — a FAIL they say is fine, or a PASS that shipped a bug — append a one-line entry to `.xenodot/qa-divergence.md` (keyed to the report) and offer `xenodot:bug-triage` (opt-in, never auto) to refine the rubric. Out-of-box QA is poor; the rubric earns trust only by being tuned from where it diverged from the human.
+
+The playtester is the JUDGE, the builder is the FIXER — never collapse them (don't ask the builder to grade its own work, don't ask the playtester to fix the build). Gate the whole loop to significant builds; trivial glue skips it.
 
 ## Rules
 

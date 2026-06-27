@@ -1,6 +1,6 @@
 ---
 name: godot-runtime-smoke
-agents: [bug-triage]
+agents: [bug-triage, godot-playtester]
 description: >-
   The L2 runtime-smoke layer for a Godot-family game (4.x) WITHOUT
   GdUnit4 — a headless SceneTree tool script (`tools/smoke_*.gd`, run via

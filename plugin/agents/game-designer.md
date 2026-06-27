@@ -61,7 +61,7 @@ One doc per agreed slice: `design/<slug>.md`
 **Goal** — one sentence, player-visible outcome.
 **Scope (in)** — bullet list, each item buildable and observable.
 **Scope (out)** — what was explicitly cut and why (one line each).
-**Acceptance** — checks godot-dev and the user can verify (concrete, runnable).
+**Acceptance** — checks godot-dev, the user, and the `godot-playtester` can verify. Write each as a **bindable assertion**: a state delta (_player moves >0.3 m forward_), a signal (_`hit_confirmed` fires within N frames of firing_), or a threshold (_input→move latency ≤ K frames_). Concrete + runnable — the playtester turns each into a `play_*.gd` assert and the rubric gates on it. Avoid unbindable prose ("feels responsive"); if a quality is real but only a human can judge it, mark it _human F5_ explicitly.
 **Skill notes** — which godot-\* skills apply and any constraint they impose.
 **Later** — parked ideas, one line each.
 **Open questions** — only ones that block implementation; empty if done.

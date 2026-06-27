@@ -1,6 +1,6 @@
 ---
-description: Framework self-audit — score agents/skills/orchestrator/commands across 7 quality dimensions, record findings in the ledger, propose fixes, critique itself. Manual, human-run. Forge-local (not shipped).
-argument-hint: "[D1..D7 | all]"
+description: Framework self-audit — score agents/skills/orchestrator/commands across 9 quality dimensions, record findings in the ledger, propose fixes, critique itself. Manual, human-run. Forge-local (not shipped).
+argument-hint: "[D1..D9 | all]"
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Agent, Skill, mcp__ui__form, mcp__ui__tasks, mcp__ui__ask
 model: opus
 ---
@@ -117,6 +117,26 @@ misses one ref leaves contamination behind. Completeness → `rg`; concepts → 
      audit commands (this file + its companion `framework-audit-fix.md`) for stale references
      (paths/files that moved), scope creep, dead steps, and whether each command still
      self-critiques. Apply D2/D3/D5 lenses to commands too.
+
+   - **D8 — Verification flow completeness.** Does the verify/grade story hold end-to-end across
+     builders, skills, and tools? Trace it (graphify D8): design **Acceptance** → builder gate
+     (`tools/validate.sh` composing `tools/lib/checks.sh`) → evaluator rubric (`tools/playgrade.sh`
+     - `godot-playgrade` / `godot-playtester`). Flag a break: a builder listing `godot-verify` with
+       no `## Verification (mandatory)` block; a gate step a skill claims but `validate.sh`/`checks.sh`
+       doesn't run (or a check function nothing composes); a `tools/` script that ships but nothing
+       invokes; a skill re-teaching another's job instead of pointing at it.
+
+   - **D9 — Harness still load-bearing under the current model.** Scaffolding encodes assumptions
+     about model limits that go STALE as models improve (the harness-design lesson: context-reset
+     scaffolding was DROPPED Sonnet 4.5 → Opus 4.6). Cut both ways:
+     - **Strip** — is a scaffold (a model-tier choice, a context-anxiety mitigation, sprint-style
+       decomposition, a multi-step gate) still earning its context cost under the CURRENT model, or
+       now overhead? Name what to remove/down-tier and the sample task that would prove it.
+     - **Harden** — is there a FUZZY agent-judgment step a deterministic tool should replace (the
+       determinism ratchet)? Name the `check_*` / tool to draft.
+       Model-upgrade ritual: on a major model release, strip one scaffold on a sample task, measure,
+       decide keep/strip/retier — record as D9 findings. Expect most D9 flags to need a real
+       before/after measurement, not a hunch — say which are measured vs hypothesised.
 
 4. **Judge + id each finding.** EXPECT most findings to be false positives on inspection — they are
    hypotheses until checked against the actual files: generic industry vocabulary (tank/grunt/runner)

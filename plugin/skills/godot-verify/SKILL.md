@@ -1,6 +1,6 @@
 ---
 name: godot-verify
-agents: [builders]
+agents: [builders, godot-playtester]
 description: Verify Godot scenes/scripts actually load, run, and visibly render — catching silently-dropped invalid properties and "valid but renders nothing" (black-screen, no-error) scenes. Use after ANY .tscn/.gd change and before claiming work done or verified — never assert a scene runs without these checks. Also when a scene loads but looks wrong (missing material/lighting — the silent-drop signature) or the window is empty/black with no errors.
 ---
 
