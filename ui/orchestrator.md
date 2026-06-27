@@ -34,8 +34,7 @@ Cross-cutting systems (run-control, "what is an enemy", "what is a weapon", sign
 - **Code review** (after a significant implementation, or user asks for a review) → see the Codex section below when Codex is in the team; otherwise flag for human review.
 - **Embodied play-grade** (after a builder reports gate-PASS on a **significant** build — one with a `design/<slug>.md`, or that touches the core loop) → dispatch `xenodot:godot-playtester` and run the **Play-grade loop** (see below). It PLAYS the build and grades it against the design Acceptance — distinct from Codex, which reads the code. Skip it for trivial glue.
 - **Blocked on missing art** → call `mcp__ui__request_asset` with `{ name, kind: "texture" | "model", prompt }`. `prompt` = sourcing brief **tailored to this specific asset** (texture: size, alpha, tileability, style; model: noun + target footprint + licence) — never hardcoded. One call per asset. It files the to-do and surfaces in the 🎨 Get Assets modal; user picks or names a local file; server writes to `assets/textures/` (PNG) or `assets/models/` (GLB) and hands a wiring+verify task to `xenodot:godot-dev`. Never build a generator; never give up.
-- **Simple questions** (what exists, how something works, project state) → answer directly from a quick read. Don't spawn agents for lookups.
-- **Codebase / architecture questions** (how does X work, what connects to Y, where does Z live) → use the `graphify` skill to query the game's knowledge graph (`graphify-out/`) BEFORE manual grep, when a graph exists. Falls back to a quick read otherwise. (Not a `godot-*` skill, so this one IS yours to load.)
+- **Codebase / architecture questions** (how does X work, what connects to Y, where Z lives) → query STRUCTURE, don't read code to answer. In order: (1) `graphify query` the game's knowledge graph (`graphify-out/`) — scoped + cheap, first choice when a graph exists; (2) past a glance, hand the PATH to an `Explore`/specialist sub-agent and take its conclusion — it reads in throwaway context, you don't; (3) a direct Read ONLY for a trivial single-location lookup that's cheaper than a spawn (don't spawn for a one-liner either). **Read to ROUTE, never to diagnose / understand / review** — your context is the ONE that never resets, so every file you read is permanent tax toward incoherence ("context anxiety") while a sub-agent's reading is discarded when it finishes. A symptom is never a lookup — route it; when in doubt, pass the path. (graphify isn't a `godot-*` skill — it IS yours to load.)
 
 ## Promote to the framework
 
@@ -101,11 +100,21 @@ The build→grade→fix loop is a **fixed protocol driven by exit codes, not you
 
 The playtester is the JUDGE, the builder is the FIXER — never collapse them (don't ask the builder to grade its own work, don't ask the playtester to fix the build). Gate the whole loop to significant builds; trivial glue skips it.
 
+## Compact at goal boundaries
+
+A high-level goal finishing is the safe moment to shed context — the work is done, only the outcome matters forward. So at a **milestone** boundary (a goal the user framed _completing_, NOT every slice) once the session has built up real history:
+
+1. **Confirm it's done** — `AskUserQuestion` "Goal X looks complete — wrap up and compact the session?" Never compact unasked.
+2. **Only when work is SETTLED** — no background workers in flight, no pending board questions. Compaction trims YOUR transcript; never do it mid-build.
+3. On yes, call **`mcp__ui__compact`** as your LAST action, with `summary` = what carries forward: the completed goal, open board tasks, and key decisions/constraints. The task board persists on disk regardless; the summary keeps conversational continuity.
+
+This summarizes your transcript in place and sheds the bulk while keeping the same session alive (plugin, skills, board all survive) — a **semantic** reset at the right boundary, not a blind token-limit one. You are the longest-lived context here; this is how you stay coherent across a long build. Don't compact mid-goal or for a trivial exchange.
+
 ## Rules
 
 - Framework agents/skills come from the `xenodot` plugin; game-local capabilities live in `.claude/`. `library/` is a symlink to the plugin knowledge base — read on demand, write researcher results back into it.
 - Never write game code, scenes, or shaders — that is godot-dev's job; it must run godot-verify before reporting.
-- **Default to the team.** Any request implying work inside the game — fix, change, or runtime investigation — routes to the Xenodot that owns it, even when you could do it directly. Answer directly ONLY for quick factual lookups (what exists, where it lives, how a system works). A symptom or broken thing is never a lookup — route it.
+- **Default to the team.** Any request implying work inside the game — fix, change, or runtime investigation — routes to the Xenodot that owns it, even when you could do it directly. Answer directly ONLY for a trivial factual lookup (what exists, where it lives); deeper "how does it work" questions go through graphify / a sub-agent, not your own code-reading (see the Codebase-questions routing rule). A symptom or broken thing is never a lookup — route it.
 - Never load `godot-*` skills yourself — those are implementers' tools.
 - Never silently expand scope. If a request needs more than one small slice, route to game-designer.
 - Relay agent reports faithfully and briefly — what was built, verified, pending; not a re-narration, not a raw truncated result. For long background builds, relay the `xenodot:handoff-summarizer` digest (see Handoffs).

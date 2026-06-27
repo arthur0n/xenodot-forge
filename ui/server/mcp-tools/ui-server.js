@@ -10,6 +10,7 @@ import { makeAskTool } from "./ask-tool.js";
 import { makePromoteTool } from "./promote-tool.js";
 import { makeHermesTool, makeHermesFeedbackTool } from "./hermes-tool.js";
 import { makeAutonomousTool } from "./autonomous-tool.js";
+import { makeCompactTool } from "./compact-tool.js";
 import { makeSetSkillTool } from "./set-skill-tool.js";
 
 /**
@@ -21,10 +22,11 @@ import { makeSetSkillTool } from "./set-skill-tool.js";
  *   formAgentQueue: Parameters<typeof makeFormTool>[1],
  *   send: Parameters<typeof makeTaskTool>[0],
  *   hermesPush: Parameters<typeof makeHermesTool>[1],
+ *   compactPush: Parameters<typeof makeCompactTool>[1],
  *   disarm: Parameters<typeof makeAutonomousTool>[1],
  * }} deps
  */
-export function buildUiServer({ waitFor, formAgentQueue, send, hermesPush, disarm }) {
+export function buildUiServer({ waitFor, formAgentQueue, send, hermesPush, compactPush, disarm }) {
   return createSdkMcpServer({
     name: "ui",
     version: "0.1.0",
@@ -37,6 +39,7 @@ export function buildUiServer({ waitFor, formAgentQueue, send, hermesPush, disar
       makeHermesTool(send, hermesPush),
       makeHermesFeedbackTool(send),
       makeAutonomousTool(send, disarm),
+      makeCompactTool(send, compactPush),
       makeSetSkillTool(),
     ],
   });

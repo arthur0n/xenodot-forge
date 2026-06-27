@@ -378,6 +378,7 @@ function buildMakeQuery({ inbox, canUseTool, abort, waitFor, formAgentQueue, sen
             formAgentQueue,
             send,
             hermesPush: inbox.push,
+            compactPush: inbox.push,
             disarm: checkLoop.disarm,
           }),
           // Godot docs as a source of truth — the official-docs MCP, mounted only when the
