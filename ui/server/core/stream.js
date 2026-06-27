@@ -61,7 +61,7 @@ export async function emitContextUsage(q, send) {
 /** @typedef {Awaited<ReturnType<typeof import("@anthropic-ai/claude-agent-sdk").query>>} Query */
 /** @typedef {import("@anthropic-ai/claude-agent-sdk").SDKMessage} SDKMessage */
 /** @typedef {import("@anthropic-ai/claude-agent-sdk").SDKUserMessage} SDKUserMessage */
-/** @typedef {{ agentByTool: Map<string, string>, bgSpawns: Set<string>, bgBoard: Map<string, string>, runningByTask: Map<string, RunningChip>, send: (obj: OutMsg) => void }} TrackDeps */
+/** @typedef {{ agentByTool: Map<string, string>, bgSpawns: Set<string>, bgBoard: Map<string, string>, runningByTask: Map<string, RunningChip>, lastSeen: Map<string, number>, send: (obj: OutMsg) => void }} TrackDeps */
 /** @typedef {{ send: (obj: OutMsg) => void, trackMessage: (m: SDKMessage, deps: TrackDeps) => void, trackDeps: TrackDeps, busy: { value: boolean }, sid: { value: string | null }, overload: { value: boolean }, onSessionId?: (id: string) => void, onBusyChange?: () => void }} StreamDeps */
 
 const RETRY_DELAY_MS = 5 * 60 * 1000; // 5 min between API-529 retries

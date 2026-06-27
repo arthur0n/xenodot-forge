@@ -241,9 +241,10 @@ function foldRunningSnapshot(s, agents) {
     if (a) {
       taken.add(a.toolUseId);
       next.push({ ...r, taskId: a.taskId, background: a.background });
-    } else if (now - r.started < RUNNING_GRACE_MS) {
-      next.push(r); // spawned a beat ago — its task_started hasn't landed in the snapshot yet
+    } else if (!r.taskId && now - r.started < RUNNING_GRACE_MS) {
+      next.push(r); // spawned a beat ago, not yet bound — its task_started hasn't landed yet
     }
+    // a chip WITH a taskId absent from the set was settled server-side → genuinely done, drop it
     // else: the authoritative set no longer holds it → drop the stale chip
   }
   for (const a of agents) {

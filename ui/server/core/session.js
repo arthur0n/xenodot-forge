@@ -9,6 +9,14 @@ import { sessionHistory } from "../features/transcripts/transcripts.js";
 import { buildUiServer } from "../mcp-tools/ui-server.js";
 import { uiControlAllow } from "./ui-control.js";
 import { runningChip, emitRunning, runWithRetry } from "./stream.js";
+import {
+  bridgeStart,
+  bridgeSettle,
+  settleAgentTasks,
+  sweepStragglers,
+  settleAllBackground,
+  sweepStaleAgents,
+} from "./agent-settle.js";
 import { getLive } from "./registry.js";
 import {
   createLogger,
@@ -28,14 +36,7 @@ import {
   handleAutonomousControl,
   makeCheckLoop,
 } from "../features/autonomous/autonomous-control.js";
-import {
-  applyOp,
-  pruneDoneTasks,
-  addBackgroundTask,
-  closeOpenByAgent,
-  closeStragglerTasks,
-  findOpenQuestion,
-} from "../features/tasks/tasks-store.js";
+import { applyOp, pruneDoneTasks, findOpenQuestion } from "../features/tasks/tasks-store.js";
 import { resolveSessionSkills } from "../features/skills/skills.js";
 import {
   DEFAULT_POLICY,
@@ -152,63 +153,6 @@ function makeCanUseTool({ session, sessionAllowed, waitFor, log, agentByTool, fo
   };
 }
 
-/** Bridge a backgrounded sub-agent onto the persistent board as an in_progress
- * agent task, so background work shows in the right rail (not just the running
- * strip). Only run_in_background spawns are bridged; foreground sub-agents are
- * not (they'd clutter the board). Idempotent per task_id.
- * @param {{ taskId?: string, toolUseId?: string, desc?: string }} t
- * @param {{ bgSpawns: Set<string>, bgBoard: Map<string, string>, send: (obj: OutMsg) => void }} deps
- */
-function bridgeStart(t, { bgSpawns, bgBoard, send }) {
-  if (!t.taskId || !t.toolUseId || !bgSpawns.has(t.toolUseId) || bgBoard.has(t.taskId)) return;
-  const title = (t.desc ?? "background task").slice(0, 200);
-  const { list, id } = addBackgroundTask(title, "background worker", new Date().toISOString());
-  bgBoard.set(t.taskId, id);
-  send({ type: "tasks", tasks: list });
-}
-
-/** Settle a bridged background task when its worker finishes: completed → mark
- * done (auto-pruned next turn); failed/stopped → remove it.
- * @param {{ taskId?: string, status?: string }} t
- * @param {{ bgBoard: Map<string, string>, send: (obj: OutMsg) => void }} deps
- */
-function bridgeSettle(t, { bgBoard, send }) {
-  if (!t.taskId) return;
-  const boardId = bgBoard.get(t.taskId);
-  if (!boardId) return;
-  bgBoard.delete(t.taskId);
-  const now = new Date().toISOString();
-  const list =
-    t.status === "completed"
-      ? applyOp({ op: "update", id: boardId, status: "done" }, now)
-      : applyOp({ op: "remove", id: boardId }, now);
-  send({ type: "tasks", tasks: list });
-}
-
-/** Close a finished sub-agent's own open tasks (its scratchpad), keyed by the
- * agent label recorded at task_started. task_notification fires for foreground
- * AND background sub-agents, so this deterministically restores the inline close
- * that the background change removed for foreground work — no LLM cooperation
- * needed. @param {string | undefined} taskId
- * @param {{ runningByTask: Map<string, RunningChip>, send: (obj: OutMsg) => void }} deps */
-function settleAgentTasks(taskId, { runningByTask, send }) {
-  if (!taskId) return;
-  const label = runningByTask.get(taskId)?.label;
-  runningByTask.delete(taskId);
-  if (!label) return;
-  send({ type: "tasks", tasks: closeOpenByAgent(label) });
-}
-
-/** Turn-end backstop: close any open sub-agent task whose owner is no longer
- * running — a foreground straggler whose task_notification never arrived (e.g. a
- * hard interrupt). Live sub-agents (incl. background workers) and the
- * orchestrator's own cross-turn board are preserved.
- * @param {{ runningByTask: Map<string, RunningChip>, send: (obj: OutMsg) => void }} deps */
-function sweepStragglers({ runningByTask, send }) {
-  const list = closeStragglerTasks(new Set([...runningByTask.values()].map((v) => v.label)));
-  if (list) send({ type: "tasks", tasks: list });
-}
-
 /** Record each tool_use → the agent that raised it (so canUseTool can label
  * concurrent approvals) and note which spawns are backgrounded.
  * @param {import("@anthropic-ai/claude-agent-sdk").SDKAssistantMessage} message
@@ -250,10 +194,11 @@ function surfaceDenial(message, { agentByTool, send }) {
 /** Per-message bookkeeping on the SDK stream: track tool_use→agent, bridge
  * background workers onto the board, deterministically close each sub-agent's own
  * tasks when it finishes, surface auto-denials, and sweep stragglers at turn end.
+ * `lastSeen` tracks each agent's last sign of life so sweepStaleAgents can retire a finished one whose task_notification never arrived.
  * @param {import("@anthropic-ai/claude-agent-sdk").SDKMessage} message
- * @param {{ agentByTool: Map<string, string>, bgSpawns: Set<string>, bgBoard: Map<string, string>, runningByTask: Map<string, RunningChip>, send: (obj: OutMsg) => void }} deps
+ * @param {{ agentByTool: Map<string, string>, bgSpawns: Set<string>, bgBoard: Map<string, string>, runningByTask: Map<string, RunningChip>, lastSeen: Map<string, number>, send: (obj: OutMsg) => void }} deps
  */
-function trackMessage(message, { agentByTool, bgSpawns, bgBoard, runningByTask, send }) {
+function trackMessage(message, { agentByTool, bgSpawns, bgBoard, runningByTask, lastSeen, send }) {
   if (message.type === "assistant") {
     trackToolUses(message, { agentByTool, bgSpawns });
   } else if (message.type === "system" && message.subtype === "task_started") {
@@ -261,34 +206,25 @@ function trackMessage(message, { agentByTool, bgSpawns, bgBoard, runningByTask, 
     // tasks on notification, and the running snapshot carries it to the strip.
     if (message.task_id) {
       runningByTask.set(message.task_id, runningChip(message, bgSpawns));
+      lastSeen.set(message.task_id, Date.now());
       emitRunning(runningByTask, send);
     }
     bridgeStart(
       { taskId: message.task_id, toolUseId: message.tool_use_id, desc: message.description },
       { bgSpawns, bgBoard, send },
     );
+  } else if (message.type === "system" && message.subtype === "task_progress") {
+    // A live sub-agent's heartbeat — bump liveness so the sweep never culls a working agent.
+    if (message.task_id) lastSeen.set(message.task_id, Date.now());
   } else if (message.type === "system" && message.subtype === "task_notification") {
     bridgeSettle({ taskId: message.task_id, status: message.status }, { bgBoard, send });
     settleAgentTasks(message.task_id, { runningByTask, send });
+    if (message.task_id) lastSeen.delete(message.task_id);
     emitRunning(runningByTask, send);
   } else if (message.type === "system" && message.subtype === "permission_denied") {
     surfaceDenial(message, { agentByTool, send });
   } else if (message.type === "result") {
     sweepStragglers({ runningByTask, send });
-  }
-}
-
-/** Session-teardown settle: when the SDK stream ends or errors (the whole CLI
- * subprocess — and thus every in-flight background worker — is gone), remove each
- * bridged background board task and close each still-running sub-agent's tasks, so
- * the board doesn't keep a dead worker as in_progress forever.
- * @param {{ bgBoard: Map<string, string>, runningByTask: Map<string, RunningChip>, send: (obj: OutMsg) => void }} deps */
-function settleAllBackground({ bgBoard, runningByTask, send }) {
-  for (const taskId of [...bgBoard.keys()]) {
-    bridgeSettle({ taskId, status: "stopped" }, { bgBoard, send });
-  }
-  for (const taskId of [...runningByTask.keys()]) {
-    settleAgentTasks(taskId, { runningByTask, send });
   }
 }
 
@@ -415,6 +351,8 @@ function runSession({
   const bgBoard = new Map(); // sdk task_id -> bridged board task id
   /** @type {Map<string, RunningChip>} */
   const runningByTask = new Map(); // sdk task_id -> live sub-agent chip (authoritative running set)
+  /** @type {Map<string, number>} */
+  const lastSeen = new Map(); // sdk task_id -> ms of its last task_started/progress (liveness)
   // `busy.value` lets the check loop skip ticks mid-turn; stash loop on session so the control
   // handler + autonomous tool can arm/disarm it. Shared with `ls` so the detach grace policy
   // (evaluateGrace) can tell "working" from "idle".
@@ -430,6 +368,11 @@ function runSession({
     session,
     runningByTask,
   });
+  // Liveness backstop: every 30s retire any agent silent past the stale window (finished, but
+  // its task_notification never arrived). Cleared in the finally so the timer can't leak.
+  const sweepTimer = setInterval(() => {
+    sweepStaleAgents({ bgBoard, runningByTask, lastSeen, send });
+  }, 30_000);
   void (async () => {
     try {
       resync();
@@ -459,7 +402,7 @@ function runSession({
       await runWithRetry({
         makeQuery,
         trackMessage,
-        trackDeps: { agentByTool, bgSpawns, bgBoard, runningByTask, send },
+        trackDeps: { agentByTool, bgSpawns, bgBoard, runningByTask, lastSeen, send },
         send,
         abort,
         busy,
@@ -476,6 +419,7 @@ function runSession({
       // Every exit path lands here — normal end, SDK error, or early iterator end. The
       // client clears `busy`/the running strip only on a `result`; an abnormal end emits
       // none, so settle dead background workers and signal idle to unstick the UI.
+      clearInterval(sweepTimer);
       settleAllBackground({ bgBoard, runningByTask, send });
       send({ type: "idle" });
       // The stream is over for good (it only ends via abort/inbox-close at teardown, or an SDK
