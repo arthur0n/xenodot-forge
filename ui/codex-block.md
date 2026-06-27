@@ -19,8 +19,11 @@ fire a review unprompted. That is a billing/UX guardrail, **not** a capability l
 
 ### How to run it (after the user agrees)
 
-`{{CODEX_COMPANION}}` is the vendored companion CLI (absolute path; the same script the slash
-commands wrap). Reviews run against the current working tree — your cwd is the game.
+`{{CODEX_COMPANION}}` is the framework's review companion (absolute path). Reviews run against
+the current working tree — your cwd is the game — default to the **adversarial** pass, and the
+companion **automatically applies the project's data-driven review standards** (it injects them
+for you; you never pass or restate them). Note: a review the USER launches by typing
+`/codex:review` calls the underlying tool directly and does NOT carry those standards.
 
 A review **blocks until it finishes**, so launch it in a background `Bash`, then read the output
 when it completes (the `--background`/`--wait` flags are parsed but a review always runs in the
