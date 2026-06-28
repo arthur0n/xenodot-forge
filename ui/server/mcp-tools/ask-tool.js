@@ -14,9 +14,10 @@ import { addQuestion } from "../features/tasks/tasks-store.js";
 export function makeAskTool(send) {
   return tool(
     "ask",
-    "Ask the user a question WITHOUT blocking — files it onto the task board for " +
+    "The BACKGROUND counterpart to mcp__ui__form. Ask the user a question WITHOUT blocking — " +
+      "files it onto the task board (the task panel) for " +
       "them to answer asynchronously, and returns immediately. Use this from " +
-      "background/autonomous work where you can't pause for a reply; the orchestrator " +
+      "background/autonomous/headless work where you can't pause for a reply; the orchestrator " +
       "relays the answer on a later turn. Do NOT wait on it — file the question, then " +
       "continue with your best judgment or wrap up. (Foreground agents that can pause " +
       "should use mcp__ui__form instead.)",
@@ -30,7 +31,15 @@ export function makeAskTool(send) {
       _by: z.string().optional().describe("internal — server-set; ignore"),
     },
     async (input) => {
-      const list = addQuestion(input.question, input.options, input._by, new Date().toISOString());
+      // canUseTool stamps `_by` for foreground callers; a backgrounded sub-agent is
+      // granted by the allow-subagent-ui-control hook (which bypasses canUseTool), so
+      // `_by` is absent here — attribute it to "background" (the bridge's own label).
+      const list = addQuestion(
+        input.question,
+        input.options,
+        input._by ?? "background",
+        new Date().toISOString(),
+      );
       send({ type: "tasks", tasks: list });
       return {
         content: [

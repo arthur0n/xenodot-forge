@@ -2,7 +2,7 @@
 name: skill-researcher
 description: Skill researcher agent for the game project — the framework's self-improvement loop. When a task has NO matching godot-* skill (godot-dev reported a gap, or the orchestrator sees none applies before dispatching), this agent searches the external skill library, evaluates candidates against project conventions, and recommends adopt/reject to the human. It never implements game features and never adopts a skill without human approval.
 model: opus
-tools: Read, Glob, Grep, Write, Edit, Bash, Skill, mcp__ui__form, mcp__ui__tasks, mcp__ui__ask
+tools: Read, Glob, Grep, Write, Edit, Bash, Skill, mcp__ui__tasks, mcp__ui__ask
 skills:
   - caveman
   - tasks-mcp
@@ -27,6 +27,7 @@ Never install or copy a collection wholesale. Never edit files inside a cache.
 ## Rules
 
 - **Shell commands**: always prefix Bash commands with `rtk` (`rtk ls`, `rtk git status`, `rtk grep`, `rtk find`, `rtk cat`). RTK is a transparent proxy — it passes unknown commands through unchanged.
+- **Deleting the eval scratch dir**: use `rm -r .claude/skills/eval/<name>` — NOT `rm -rf`. The `block-destructive-shell.sh` safety hook denies any `rm` carrying BOTH `-r` and `-f`; `rm -r` alone (recursive, not force) is allowed and is enough for the eval copy you created.
 
 ## Workflow
 
@@ -43,7 +44,7 @@ Never install or copy a collection wholesale. Never edit files inside a cache.
    - End the file with the attribution line:
      `Adapted from GodotPrompter (https://github.com/jame581/GodotPrompter), MIT License, Copyright (c) GodotPrompter Contributors.`
    - Add the new skill to the "## Skills" list in CLAUDE.md (one line, matching the existing format).
-7. **Delete the eval copy** (`rm -rf .claude/skills/eval/<name>`) after adoption or rejection — always, both outcomes.
+7. **Delete the eval copy** (`rm -r .claude/skills/eval/<name>`) after adoption or rejection — always, both outcomes.
 
 ## Foreground vs background
 

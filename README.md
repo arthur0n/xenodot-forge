@@ -32,6 +32,12 @@ playgrade evaluator + determinism spine, and agent-liveness fixes (subagents sur
 disconnects). Full history in [Releases](https://github.com/arthur0n/xenodot-forge/releases);
 the reference game is on [Itch](https://arthur0n.itch.io).
 
+**Since `v0.2.0`** — background sub-agents can reach the async UI tools (task board, ask,
+promote, asset) instead of auto-denying; `mcp__ui__form` is now foreground-only with
+`mcp__ui__ask` as the background → task-panel channel; a tool-domain guard keeps
+game-specific bots out of the shared plugin; a typed-export NodePath gate catches a silent
+Godot null trap; and Codex/Hermes can be set up from the Settings panel (one button, then restart).
+
 ## Why this exists
 
 Most AI-assisted game dev setups hand you a frontier model and a blank prompt. Describe your game, get some code, paste it in, pray it runs. That works, until you want to ship something repeatable, reviewable, and actually _yours_.

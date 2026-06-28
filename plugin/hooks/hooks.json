@@ -40,6 +40,15 @@
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/deny-orchestrator-game-edits.sh\""
           }
         ]
+      },
+      {
+        "matcher": "mcp__ui__tasks|mcp__ui__ask|mcp__ui__promote|mcp__ui__request_asset",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/allow-subagent-ui-control.sh\""
+          }
+        ]
       }
     ],
     "PostToolUse": [

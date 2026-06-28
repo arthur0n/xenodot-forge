@@ -8,6 +8,7 @@
 // drives the same local Claude Code the terminal uses.
 import http from "node:http";
 import { mkdirSync } from "node:fs";
+import { spawn } from "node:child_process";
 import { WebSocketServer } from "ws";
 import { parseJSON } from "../../lib/json.js";
 import {
@@ -15,6 +16,7 @@ import {
   PROJECT_DIR,
   PROJECT_FOUND,
   CONFIG_FILE,
+  FRAMEWORK_DIR,
   LOG_DIR,
   ENGINE_LABEL,
   RES_ASSET_MOUNT,
@@ -197,6 +199,64 @@ function handleCodexCheckPost(_req, res) {
   }
   res.writeHead(200, { "content-type": "application/json" });
   res.end(JSON.stringify(result));
+}
+
+/** Run a framework setup npm script (codex:setup / hermes:setup) from the framework root and
+ * report the result to the Settings panel. The integration's prompt block is injected at SESSION
+ * START (see session.js), so a fresh session is required to activate it — `needsRestart` is always
+ * true on success and the UI says so. Captures combined output (tail) so failures are visible.
+ * @param {string} script @param {string[]} extraArgs @param {string | null} manual
+ * @param {import("node:http").ServerResponse} res */
+function runSetup(script, extraArgs, manual, res) {
+  const args = ["run", script, ...(extraArgs.length ? ["--", ...extraArgs] : [])];
+  let out = "";
+  let done = false;
+  /** @param {boolean} ok @param {Record<string, unknown>} [extra] */
+  const finish = (ok, extra = {}) => {
+    if (done) return;
+    done = true;
+    res.writeHead(ok ? 200 : 500, { "content-type": "application/json" });
+    res.end(JSON.stringify({ ok, output: out.slice(-8000), needsRestart: ok, manual, ...extra }));
+  };
+  let child;
+  try {
+    child = spawn("npm", args, { cwd: FRAMEWORK_DIR });
+  } catch (e) {
+    finish(false, { error: e instanceof Error ? e.message : String(e) });
+    return;
+  }
+  const timer = setTimeout(() => {
+    child.kill("SIGKILL");
+    finish(false, { error: `${script} timed out after 5 min` });
+  }, 300_000);
+  const collect = (/** @type {Buffer} */ c) => {
+    out += c.toString();
+  };
+  child.stdout?.on("data", collect);
+  child.stderr?.on("data", collect);
+  child.on("error", (/** @type {Error} */ e) => {
+    clearTimeout(timer);
+    finish(false, { error: e.message });
+  });
+  child.on("close", (/** @type {number | null} */ code) => {
+    clearTimeout(timer);
+    finish(code === 0, code === 0 ? {} : { error: `${script} exited ${code}` });
+  });
+}
+
+/** POST /api/codex/setup — vendor the Codex review plugin (non-interactive; Codex must already
+ * be installed + logged in).
+ * @param {import("node:http").IncomingMessage} _req @param {import("node:http").ServerResponse} res */
+function handleCodexSetupPost(_req, res) {
+  runSetup("codex:setup", [], null, res);
+}
+
+/** POST /api/hermes/setup — install + wire the local Hermes agent (`--yes` skips the install
+ * prompt). The Nous Portal OAuth (`hermes portal`) is an interactive browser step the server can't
+ * perform, so it is surfaced as a manual follow-up alongside the restart.
+ * @param {import("node:http").IncomingMessage} _req @param {import("node:http").ServerResponse} res */
+function handleHermesSetupPost(_req, res) {
+  runSetup("hermes:setup", ["--yes"], "Then finish Nous auth in a terminal: `hermes portal`.", res);
 }
 
 /** A trimmed typed value, or the saved fallback when it's blank/missing.
@@ -389,6 +449,8 @@ const POST_ROUTES = {
   "/api/agent-skills": handleAgentSkillsPost,
   "/api/hermes/check": handleHermesCheckPost,
   "/api/codex/check": handleCodexCheckPost,
+  "/api/codex/setup": handleCodexSetupPost,
+  "/api/hermes/setup": handleHermesSetupPost,
 };
 
 const server = http.createServer((req, res) => {

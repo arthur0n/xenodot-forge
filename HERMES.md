@@ -23,6 +23,9 @@ built-in Xenodot researchers.
 npm run hermes:setup
 ```
 
+Or click **⚙ Settings → Hermes → Set up Hermes**, which runs this same command for you (then
+restart the session to activate; you still finish the one-time Nous Portal auth with `hermes portal`).
+
 This installs Hermes if it's missing, turns the local API server on in `~/.hermes/.env`
 (generating the `API_SERVER_KEY` for you), **sets the provider and restricts the toolset
 directly** via `hermes config set`, installs the Xenodot "partner" persona into `~/.hermes/SOUL.md`

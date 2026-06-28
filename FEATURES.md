@@ -89,6 +89,8 @@ Runs the same agents from a browser (`npm start` → `http://localhost:8338`):
   into the framework plugin.
 - **Sessions** — browse, resume (full context), and `compact` a session in place.
 - **Settings** — Hermes, Codex, Godot-docs MCP toggles; model/provider; skill scope.
+  **Set up** buttons run `codex:setup` / `hermes:setup` from the UI (restart to activate;
+  Hermes still needs the one-time `hermes portal` browser auth).
 - **Draw Level** — sketch a level on a grid; hands off to `level-designer`.
 - **Get Assets** — request/upload PNG textures or `.glb` models; placed into the
   game (`assets/`) or the shared library (`x-shared-assets/`) and wired + verified.
@@ -103,6 +105,10 @@ Runs the same agents from a browser (`npm start` → `http://localhost:8338`):
   render. Godot exits 0 on parse errors, so this exists because "verified" bugs shipped.
 - **Validate gate + smoke tests** — GDScript lint/format checks and headless
   scene/playthrough smoke runs.
+- **Typed-export NodePath gate** — `check_typed_export_nodepath` catches a silent Godot
+  trap: a concretely-typed node-ref `@export` (e.g. `var x: Node3D`) assigned a `NodePath`
+  in a `.tscn` resolves to **null** at runtime with no error — green validate, dead feature.
+  Static check on the validate/playgrade floor.
 - **Permission policy** — per-session, live-switchable: `ask` (default, every
   un-allowlisted tool prompts) / `edits` (edits auto-allowed) / `all`.
 - **PreToolUse safety hooks** — guard destructive operations and protect the
@@ -133,8 +139,11 @@ the same approvals. Off by default; set/cleared from the Autonomous panel
 A new skill/agent/tool starts **game-local** in `<game>/.claude/` and is usable
 immediately. When one proves broadly useful, file a promotion
 (`mcp__ui__promote`); you approve it on the board and run
-`npm run promote -- …` to move it into the plugin. Researchers write findings
-back into the knowledge base (`library/`, a symlink to `plugin/library/`).
+`npm run promote -- …` to move it into the plugin. **Tools carry a domain** — _universal_
+(scene-agnostic; promotable, materialises into every game) vs _game_ (hardcodes a game
+scene; stays local). A promotion guard rejects a game-domain tool so orphan bots don't
+pollute every game — see [`docs/process/promotion.md`](docs/process/promotion.md).
+Researchers write findings back into the knowledge base (`library/`, a symlink to `plugin/library/`).
 
 ## Provider flexibility
 

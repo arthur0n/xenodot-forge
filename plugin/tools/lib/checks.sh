@@ -112,6 +112,29 @@ check_lint() {
 	_xeno_pass lint
 }
 
+# Static: assert the strict warnings-as-errors contract is actually CONFIGURED. check_parse below
+# greps --check-only output for "WARNING" — but the engine only EMITS those warnings when
+# project.godot's [debug] block escalates them (gdscript/warnings/*=2). If that block is missing or
+# weakened, check_parse silently no-ops and the ENTIRE strict contract (untyped, unsafe_*, shadowed)
+# ships green and invisible (e.g. SHADOWED_GLOBAL_IDENTIFIER on `range`/`sign` reached runtime). This
+# guards the gate's own precondition: shadowed_global_identifier=2 is the sentinel for the whole
+# block (the starter ships ~20 escalations together). Restore the block from starter/project.godot.
+check_warnings_config() {
+	if [ ! -f project.godot ]; then
+		_xeno_fail "warnings-config — no project.godot found"
+		return 1
+	fi
+	if ! grep -qE '^gdscript/warnings/shadowed_global_identifier[[:space:]]*=[[:space:]]*2' project.godot; then
+		echo "  project.godot is missing the [debug] warnings-as-errors block (sentinel"
+		echo "  'gdscript/warnings/shadowed_global_identifier=2' absent). The strict GDScript"
+		echo "  contract is OFF — untyped/unsafe/shadowed warnings will ship green. Restore the"
+		echo "  block from starter/project.godot (godot-project-conventions)."
+		_xeno_fail warnings-config
+		return 1
+	fi
+	_xeno_pass warnings-config
+}
+
 # Parse + analyzer warnings (project.godot [debug] escalates warnings to errors). --import first
 # rebuilds the global class cache so new class_name scripts resolve.
 #
@@ -165,6 +188,39 @@ check_props() {
 		return 1
 	fi
 	_xeno_pass scenes
+}
+
+# Static: a TYPED node-reference @export assigned a NodePath in a hand-authored .tscn. A
+# `@export var hp: PlayerHealth` set as `hp = NodePath("../PlayerHealth")` does NOT resolve — it
+# stays null at runtime with NO error: green validate, dead feature (it once severed Slice-4
+# contact damage). Only an UNTYPED `@export var hp: NodePath` (or `: Node`) auto-resolves a .tscn
+# NodePath. Catch: any property assigned `= NodePath(...)` in a .tscn whose script declares it
+# `@export var <p>: <T>` with <T> a concrete class (not NodePath/Node/Array) is the trap. Fix:
+# type the export `NodePath` (or `Node`) and `get_node()` it in `_ready()`, or assign the node by
+# reference in the editor. Engine-free static text check; no game-specific paths.
+check_typed_export_nodepath() {
+	local exports gd tscn prop type fails=0
+	# Map every concretely-typed export → its type ("<prop>=<Type>"), one pass over the scripts.
+	exports="$(
+		for gd in $(xeno_gd_files); do
+			grep -oE '@export[[:space:]]+var[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*:[[:space:]]*[A-Za-z_][A-Za-z0-9_]*' "$gd" 2>/dev/null
+		done | sed -E 's/.*var[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*:[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)/\1=\2/' | sort -u
+	)"
+	for tscn in $(xeno_scene_files); do
+		while IFS= read -r prop; do
+			[ -z "$prop" ] && continue
+			type="$(printf '%s\n' "$exports" | awk -F= -v p="$prop" '$1 == p { print $2; exit }')"
+			[ -z "$type" ] && continue                          # not a typed export → fine
+			case "$type" in NodePath | Node | Array) continue ;; esac # untyped escape hatches resolve
+			echo "  $tscn: '$prop = NodePath(...)' but its export is typed ': $type' — resolves to null at runtime (use ': NodePath' or ': Node' + get_node() in _ready(), or assign the node by reference)"
+			fails=1
+		done < <(grep -oE '^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*[[:space:]]*=[[:space:]]*NodePath\(' "$tscn" 2>/dev/null | sed -E 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*).*/\1/')
+	done
+	[ "$fails" -eq 1 ] && {
+		_xeno_fail typed_export_nodepath
+		return 1
+	}
+	_xeno_pass typed_export_nodepath
 }
 
 # Per-scene headless error capture (godot-verify layer 2b) — loads every .tscn and fails on any

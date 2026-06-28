@@ -28,8 +28,10 @@ SCENE_RES=""
 # --- generic floor (shared by every game) -----------------------------------------------------
 check_format || exit 1
 check_lint || exit 1
+check_warnings_config || exit 1
 check_parse || exit 1
 check_props || exit 1
+check_typed_export_nodepath || exit 1
 check_scene_errors || exit 1
 check_smoke "$SCENE_RES" || exit 1
 check_smoke_bots || exit 1
