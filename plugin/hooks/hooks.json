@@ -1,5 +1,5 @@
 {
-  "description": "Xenodot Forge hooks — block destructive git/shell ops before they run, grant sub-agent game/library edits so backgrounded workers aren't auto-denied, log sub-agent rtk-prefix usage (observe-only), log which named sub-agent reaches for raw grep search (Grep tool / grep|rg via Bash) so we can see who should get the graphify skill (observe-only), and (opt-in) refresh the game's graphify knowledge graph after edits (PostToolUse — AST-only graphify update; OFF by default, enabled per-game via graphify-out/.autoupdate or XENODOT_GRAPHIFY_AUTOUPDATE). (rtk enforcement itself is the user's own global hook, not shipped here — this only measures whether sub-agents follow the instruction.)",
+  "description": "Xenodot Forge hooks — block destructive git/shell ops before they run, grant sub-agent game/library edits so backgrounded workers aren't auto-denied, deny ORCHESTRATOR game-content edits so it routes work to a builder instead of implementing (mirror of the sub-agent grant; enforces orchestrator.md), log sub-agent rtk-prefix usage (observe-only), log which named sub-agent reaches for raw grep search (Grep tool / grep|rg via Bash) so we can see who should get the graphify skill (observe-only), and (opt-in) refresh the game's graphify knowledge graph after edits (PostToolUse — AST-only graphify update; OFF by default, enabled per-game via graphify-out/.autoupdate or XENODOT_GRAPHIFY_AUTOUPDATE). (rtk enforcement itself is the user's own global hook, not shipped here — this only measures whether sub-agents follow the instruction.)",
   "hooks": {
     "PreToolUse": [
       {
@@ -34,6 +34,10 @@
           {
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/allow-game-edits.sh\""
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/deny-orchestrator-game-edits.sh\""
           }
         ]
       }
