@@ -38,10 +38,14 @@ export function makeTaskTool(send) {
       _by: z.string().optional().describe("internal — server-set; ignore"),
     },
     async (input) => {
+      // canUseTool stamps `_by` for foreground callers; a backgrounded sub-agent is
+      // granted by the allow-subagent-ui-control hook (which bypasses canUseTool), so
+      // `_by` is absent here — attribute it to "background" (the bridge's own label).
+      const by = input._by ?? "background";
       const list =
         input.op === "complete_open"
-          ? closeOpenAgentTasks(input._by)
-          : applyOp(input, new Date().toISOString());
+          ? closeOpenAgentTasks(by)
+          : applyOp({ ...input, _by: by }, new Date().toISOString());
       send({ type: "tasks", tasks: list });
       return { content: [{ type: "text", text: summarize(list) }] };
     },

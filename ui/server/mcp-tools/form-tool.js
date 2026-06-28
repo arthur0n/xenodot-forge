@@ -31,7 +31,11 @@ const FIELD = z.object({
 export function makeFormTool(waitFor, formAgentQueue) {
   return tool(
     "form",
-    "Show the user a form and wait for their answers. Use it over AskUserQuestion when you " +
+    "FOREGROUND ONLY. Show the user a form and BLOCK until they submit — so a backgrounded / " +
+      "headless agent cannot use this (the call auto-denies, since there is no interactive " +
+      "approver to receive the reply). If you are running in the background, use `mcp__ui__ask` " +
+      "instead: it posts your question to the task panel and returns immediately. " +
+      "Use this (foreground) over AskUserQuestion when you " +
       "need typed input (free text, numbers, toggles) or several answers in one go. The " +
       "session pauses until they submit; answers come back as JSON keyed by field id. " +
       "Keep forms short — ask only what you need to proceed. For an approval or a multi-item " +

@@ -39,8 +39,9 @@ npm run codex:check     # verify: CLI present? logged in? plugin vendored? model
 `npm run codex:setup -- --reset` undoes it (disables the switch and removes the vendored
 clone). Pin the plugin to a tag with `--ref=<tag>`; skip prompts with `--yes`.
 
-You can also toggle it from **⚙ Settings → Codex** (an Enable checkbox + a **Test Codex**
-button that runs the same readiness probe).
+You can also do it all from **⚙ Settings → Codex**: an Enable checkbox, a **Set up Codex**
+button that runs `npm run codex:setup` for you (then restart the session to activate), and a
+**Test Codex** button that runs the same readiness probe.
 
 ### How it wires up
 

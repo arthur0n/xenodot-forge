@@ -36,8 +36,11 @@ export function makePromoteTool(send) {
       _by: z.string().optional().describe("internal — server-set; ignore"),
     },
     async (input) => {
+      // canUseTool stamps `_by` for foreground callers; a backgrounded sub-agent is granted
+      // by the allow-subagent-ui-control hook (which bypasses canUseTool), so `_by` is absent
+      // here — attribute it to "background" (the bridge's own label).
       const list = addPromotion(
-        { kind: input.kind, name: input.name, reason: input.reason, by: input._by },
+        { kind: input.kind, name: input.name, reason: input.reason, by: input._by ?? "background" },
         new Date().toISOString(),
       );
       send({ type: "promotions", items: list });

@@ -2,7 +2,7 @@
 name: addon-researcher
 description: Addon researcher agent for the game project — the framework's buy-vs-build gate. When a request smells like a solved problem (dialogue, inventory, save/load, state machines, pathfinding, debug overlays, tweening helpers…), this agent searches for FREE Godot addons/plugins that already do it, evaluates license + Godot 4 compatibility + maintenance, and recommends adopt/reject to the human. Use BEFORE game-designer designs a generic system from scratch. It never installs anything and never writes game code.
 model: sonnet
-tools: Read, Glob, Grep, Write, Bash, WebSearch, WebFetch, mcp__ui__form, mcp__ui__tasks, mcp__ui__ask
+tools: Read, Glob, Grep, Write, Bash, WebSearch, WebFetch, mcp__ui__tasks, mcp__ui__ask
 skills:
   - caveman
   - tasks-mcp

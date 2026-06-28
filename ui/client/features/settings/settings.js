@@ -96,6 +96,28 @@ async function testCodex() {
   }
 }
 
+/** Run a framework setup script server-side (codex/hermes :setup) and report it. The integration's
+ * prompt block loads at SESSION START, so success ALWAYS says RESTART; `manual` adds Hermes' OAuth.
+ * @param {string} statusId @param {string} endpoint @param {string} pending */
+async function runIntegrationSetup(statusId, endpoint, pending) {
+  const status = $(statusId);
+  $("settings-error").textContent = "";
+  status.className = "settings-status pending";
+  status.textContent = pending;
+  try {
+    const r = /** @type {{ ok: boolean, error?: string, manual?: string }} */ (
+      await postJSON(endpoint, {})
+    );
+    status.className = `settings-status ${r.ok ? "ok" : "bad"}`;
+    status.textContent = r.ok
+      ? `✓ Set up. ${r.manual ? r.manual + " " : ""}RESTART the session to activate.`
+      : `✗ Setup failed — ${r.error ?? "see the server log"}`;
+  } catch {
+    status.className = "settings-status bad";
+    status.textContent = "✗ Setup request failed — is the UI server up to date?";
+  }
+}
+
 /** Render skill toggle rows into a container element.
  * @param {HTMLElement} container
  * @param {{ name: string, description: string }[]} skills
@@ -503,6 +525,16 @@ export function initSettings() {
   };
   $("codex-test").onclick = () => {
     void testCodex();
+  };
+  $("codex-setup").onclick = () => {
+    void runIntegrationSetup("codex-status", "/api/codex/setup", "Setting up Codex…");
+  };
+  $("hermes-setup").onclick = () => {
+    void runIntegrationSetup(
+      "hermes-status",
+      "/api/hermes/setup",
+      "Setting up Hermes… (installs the local agent)",
+    );
   };
   $("hermes-model").addEventListener("change", () => {
     toggleCustom("");
