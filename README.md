@@ -26,10 +26,11 @@ The tools are here. The shape of the framework is yours to decide.
 
 > **Disclaimer:** I don't have much time, so progress is slower than I'd like — but I'll keep the updates coming.
 
-**Latest: `v0.1.9`** — FleetView stale-card fix (authoritative running snapshot), orchestrator
-concurrency rules, opt-in Codex reviewer, domain-grouped UI refactor. Full history in
-[Releases](https://github.com/arthur0n/xenodot-forge/releases); the reference game is on
-[Itch](https://arthur0n.itch.io).
+**Latest: `v0.2.0`** — graphify knowledge-graph integration (opt-in), agents that author
+their own tools/skills, `./start_server` / `./stop_server` detached launchers, embodied
+playgrade evaluator + determinism spine, and agent-liveness fixes (subagents survive browser
+disconnects). Full history in [Releases](https://github.com/arthur0n/xenodot-forge/releases);
+the reference game is on [Itch](https://arthur0n.itch.io).
 
 ## Why this exists
 
@@ -197,7 +198,15 @@ The web UI runs the same agents from a browser (full feature list in
 
 ```bash
 cd xenodot-forge
-npm start                    # opens http://localhost:8338
+npm start                    # foreground — opens http://localhost:8338 (Ctrl-C to stop)
+```
+
+**Run it detached** (survives the terminal; PID + log under `.xenodot-run/`, reclaims the
+port if a stale server holds it):
+
+```bash
+./start_server                  # the configured game; ./start_server /path/to/game to override
+./stop_server                   # stop it; PORT=9000 ./start_server for a different port
 ```
 
 `npm run new` (or `npm run setup`) already saved your game's path to `.xenodot.json`

@@ -1,5 +1,5 @@
 ; Engine configuration file.
-; Minimal starter scaffolded by `xenodot-forge` bootstrap (`npm run bootstrap -- <game> --starter`).
+; Minimal starter scaffolded by `xenodot-forge` (`npm run new -- <game>`).
 ; It is a neutral, runnable base — replace it with your own game. The agent
 ; pipeline and skills are installed into `.claude/` alongside it.
 
