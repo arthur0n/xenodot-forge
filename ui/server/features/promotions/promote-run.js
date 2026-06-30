@@ -103,16 +103,19 @@ function gameDomainRef(p) {
 export function promoteOne(kind, name, game) {
   if (!PROMOTE_KINDS.has(kind)) return { ok: false, msg: `skip ${kind}/${name}: unknown kind` };
   const { src, dst } = locate(kind, name, game);
-  if (!existsSync(src)) return { ok: false, msg: `skip ${kind}/${name}: not found at ${src}` };
+  // Check "already in the plugin" BEFORE "missing game-local source": a capability already shipped
+  // in the plugin usually has NO game-local copy, so the src-missing check would otherwise fire a
+  // confusing "not found at <game path>" instead of the clear "already in the plugin" skip.
   if (existsSync(dst))
     return {
       ok: false,
       msg:
-        `skip ${kind}/${name}: it is a materialized core file already in the plugin (${dst}). ` +
+        `skip ${kind}/${name}: it is already in the plugin (${dst}). ` +
         `promote only ADDS new capabilities — it never UPDATES core. To improve it, edit it ` +
         `in the plugin directly (it re-materializes to every game); keep game-specific bits ` +
         `in a game-local extension the core sources. See docs/process/promotion.md → "Updating an existing core file".`,
     };
+  if (!existsSync(src)) return { ok: false, msg: `skip ${kind}/${name}: not found at ${src}` };
   if (kind === "tools") {
     const ref = gameDomainRef(src);
     if (ref)

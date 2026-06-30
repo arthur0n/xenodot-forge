@@ -1,7 +1,9 @@
 # Framework self-audit ledger
 
-Read FIRST, append AFTER. `/framework-audit` writes findings here; `/framework-audit-fix <ids>`
-reads them, applies the agreed ones, marks them `done`. **The ledger is EPHEMERAL working state, not
+Read FIRST, append AFTER. Three commands write findings here — `/framework-audit` (cold spine scan),
+`/framework-feedback` (distil the just-finished conversation), and `/harvest-sessions` (mine past
+session logs for recurring friction); `/framework-audit-fix <ids>` reads them, applies the agreed
+ones, marks them `done`. **The ledger is EPHEMERAL working state, not
 a history log: once a pass fully resolves, prune it back to the "Last audit" line below — the fixes
 live in the files + git, not here.** Only keep rows that are still `open`/`later`.
 
@@ -62,3 +64,20 @@ SILENT lock-in). Open findings below.
 | D7-fix-no-selfcritique   | 5      | framework-audit-fix.md has no self-critique/process-note step (framework-audit + token-audit do)                                                                                                                                                                                                                                                                                                                                                                                                              | later   | open            |
 
 Process note: D8 worked but its open question lived only in the ledger's Last-audit line — the command file never documented D8 (D7-d8-missing). Folded that into a finding. Also: agents over-returned; next pass, cap each gather agent's reply to ~12 findings to keep judging cheap.
+
+### 2026-06-30 — dimensions: D7 (via /framework-feedback)
+
+| id            | bucket | finding + proposed fix                                                                                                                                                                                                                                                                                                                                                                                                         | verdict | status |
+| ------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- | ------ |
+| D7-loop-index | 5      | forge-local self-improvement COMMAND loop (`framework-audit` cold-scan → `framework-feedback` convo-distil → `framework-audit-fix` apply → `token-audit`) is indexed nowhere; `README.md:15` self-improvement para names only the AGENT loop (bug-triage/skill-researcher/godot-refactor). Fix: add `docs/process/self-improvement.md` mapping the 4 commands + the LEDGER as shared state (or extend README:15 to name them). | later   | open   |
+
+Process note: first `/framework-feedback` run. Distilling THIS session correctly yielded ZERO findings about the just-built on-ramp (already shipped — not re-filed) and one real adjacent gap (the command loop it joins is undocumented). The "don't re-file what's built; surface the real adjacent learning" path works. none else.
+
+### 2026-06-30 — dimensions: D7 (via /harvest-sessions — session `2026-06-30T09-05-12-845Z`)
+
+| id                           | bucket | finding + proposed fix                                                                                                                                                                                                                                                                                                                                                                                                        | verdict | status          |
+| ---------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------- |
+| D7-promote-already-in-plugin | 4      | `promote` surfaces a confusing error when a capability already ships in the plugin: log shows `Couldn't promote "run_gd_bots-slug-scoping": skip tools/...: not found at .../game/tools/...` + human "we should not try to promote a tool that is already in the plugin". Fix: in the promote CLI (`ui/server/cli/promote*`) detect "already in `plugin/`" and skip with a clear message, not a game-local "not found" error. | fix-now | done 2026-06-30 |
+| D7-jq-grep-recipe            | 3      | `plugin/commands/token-audit.md:55-56` extraction examples pipe `rtk grep '...json...' \| jq`, but rtk's grep filter mangles JSON → `jq` parse error (hit live this harvest). Fix: filter ndjson with `jq 'select(.type==...)'` directly, no `rtk grep` prefilter. (harvest-sessions.md step 3 had the same bug — self-fixed inline this run.)                                                                                | fix-now | done 2026-06-30 |
+
+Process note: first `/harvest-sessions` run. `user_input` turns were the gold signal (corrections + the promote complaint); the result-failure sweep was EMPTY (clean session exit) so don't rely on it alone — human turns carry the friction. TWO process bugs found, one self-fixed: (1) `rtk grep | jq` mangles JSON → recipe switched to direct `jq`, token-audit's copy filed as D7-jq-grep-recipe. (2) Taxonomy gap: a "skill missing a technique/caveat" finding (e.g. navmesh `agent_radius`→`cell_size` quantization warning, seen 3× but dropped as marginal + game-config) maps to no clean D1–D9 dimension — consider adding a skill-content-gap dimension.

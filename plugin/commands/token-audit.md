@@ -51,9 +51,11 @@ and critiques itself. You won't get it right the first time — that's expected.
    - **Costliest turns** — sort `result` lines by `total_cost_usd` (or token total) and ask
      what that money bought.
 
-   Example sweep (adapt; `$LOGS` = `"$CLAUDE_PLUGIN_ROOT/../logs"`):
-   - costliest turns: `rtk grep '"type":"result"' "$LOGS/<file>" | jq -c '.message | {cost:.total_cost_usd, u:.usage}'`
-   - tool-call frequency: `rtk grep '"type":"tool_use"' "$LOGS/<file>" | jq -r '.message.message.content[]? | select(.type=="tool_use") | .name' | sort | uniq -c | sort -rn`
+   Example sweep (adapt; `$LOGS` = `"$CLAUDE_PLUGIN_ROOT/../logs"`). Filter the ndjson with `jq
+select(...)` directly — do NOT pipe `rtk grep` into `jq`: rtk's grep filter mangles JSON and breaks
+   the `jq` parse. Each log line is `{type:"event", message:{…}}`, so select on `.message.type`:
+   - costliest turns: `jq -c 'select(.type=="event" and .message.type=="result") | .message | {cost:.total_cost_usd, u:.usage}' "$LOGS/<file>"`
+   - tool-call frequency: `jq -r 'select(.type=="event" and .message.type=="assistant") | .message.message.content[]? | select(.type=="tool_use") | .name' "$LOGS/<file>" | sort | uniq -c | sort -rn`
 
 4. **Judge opportunities.** For each pattern, ask: _could this run without a model?_ If yes,
    name it concretely — the operation, its rough token/$ cost over the sessions seen, and the
