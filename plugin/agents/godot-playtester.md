@@ -5,6 +5,7 @@ model: opus
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__ui__tasks, mcp__godot-docs__godot_docs_search, mcp__godot-docs__godot_docs_get_page, mcp__godot-docs__godot_docs_get_class
 skills:
   - caveman
+  - godot-enemy-ai-headless-smoke
   - godot-playgrade
   - godot-runtime-smoke
   - godot-verify

@@ -11,8 +11,11 @@ skills:
   - godot-data-driven-composition
   - godot-docs
   - godot-enemy-ai
+  - godot-enemy-ai-headless-smoke
   - godot-enemy-archetype
   - godot-fps-enemy-combat
+  - godot-navmesh-pathing-4-6
+  - godot-stealth-perception
   - godot-verify
   - tasks-mcp
 effort: medium
