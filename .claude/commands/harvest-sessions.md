@@ -1,5 +1,5 @@
 ---
-description: Harvest past session logs for recurring framework friction — mine logs/session-*.ndjson (human corrections, agent errors, ask-storms), distil into framework findings, append to the audit ledger as open rows. The automated sibling of /framework-feedback. Never auto-applies; the human applies via /framework-audit-fix. Manual, human-run. Forge-local (not shipped).
+description: Harvest past session logs for recurring framework friction — mine logs/session-*.ndjson (human corrections, agent errors, ask-storms), distil into framework findings, append to the audit ledger as open findings. The automated sibling of /framework-feedback. Never auto-applies; the human applies via /framework-audit-fix. Manual, human-run. Forge-local (not shipped).
 argument-hint: "[N | session-tag]"
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, mcp__ui__ask
 model: opus
@@ -23,8 +23,8 @@ runs **`/framework-audit-fix <ids>`** to apply exactly the ones they agree to. R
 you just had. Neither sees friction that only shows up as a **pattern across many past sessions**.
 `/token-audit` already reads these same logs — but only for token _cost_. Nothing reads them for
 framework _quality_. This command is that reader: logs → recurring friction → the same human-gated
-bucket flow. No new infrastructure — it writes to the SAME `.claude/framework-audits/LEDGER.md` and is
-applied by the SAME `/framework-audit-fix`.
+bucket flow. No new infrastructure — it writes to the SAME `.claude/framework-audits/LEDGER.json` and
+is applied by the SAME `/framework-audit-fix`.
 
 ## Where the data lives (repo-relative; cwd = forge root)
 
@@ -41,9 +41,11 @@ applied by the SAME `/framework-audit-fix`.
     a `tool_result` with `is_error`; hook failures. (Same `.message.*` shape `/token-audit` uses.)
   - **`type=="ask"`** — an agent stopped to ask the human. A storm of asks in one domain = ambiguity
     in a skill/rule worth tightening.
-- **Ledger (write findings here):** `.claude/framework-audits/LEDGER.md` — read FIRST (dedup), append
-  AFTER. Its header defines the **dimensions D1–D9**, **buckets** (3/4/5/6), **verdict** and
-  **status**. Reuse them exactly — `/framework-audit-fix` resolves by id.
+- **Ledger (write findings here):** `.claude/framework-audits/LEDGER.json` — the SOURCE OF TRUTH
+  (a `findings[]` array); read FIRST (dedup), append AFTER (push objects, then `npm run ledger`).
+  `LEDGER.md` / `ledger.html` are GENERATED VIEWS — never hand-edit. Its meta defines the
+  **dimensions D1–D9**, **buckets** (3/4/5/6), **verdict** and **status**. Reuse them exactly —
+  `/framework-audit-fix` resolves by id. Schema: `.claude/framework-audits/README.md`.
 - **Coverage sidecar:** `.claude/framework-audits/harvested-sessions.txt` — one session-tag per line,
   the sessions already harvested. Read first so you never re-scan; append after. Create it if absent.
 
@@ -53,9 +55,9 @@ lines, which `rtk grep`/`jq` handle.)
 
 ## Steps
 
-1. **Read coverage + ledger.** Open `harvested-sessions.txt` (the covered tags) and `LEDGER.md` (the
-   `open`/`later` rows + last-audit line). So you neither re-scan a covered session nor re-file a
-   finding already recorded.
+1. **Read coverage + ledger.** Open `harvested-sessions.txt` (the covered tags) and parse `LEDGER.json`
+   (its `findings[]` still `open`/`later` + the `lastAudit` line). So you neither re-scan a covered
+   session nor re-file a finding already recorded.
 
 2. **Pick scope.** List `logs/session-*.ndjson`, drop tags already in the coverage file, take the
    newest **2** of what remains. `$ARGUMENTS` overrides: a bare number sets the count (e.g. `4`); a
@@ -90,9 +92,10 @@ lines, which `rtk grep`/`jq` handle.)
    dimension** `<Dn>` (D1 over-cap agent · D2 contamination · D3 name↔scope · D4 data-driven · D5
    bloat/dup · D6 orchestrator · D7 commands · D8 verify-flow · D9 harness) so `/framework-audit-fix`'s
    playbook applies; write the **fix concretely** (target `file` + before→after / block to add);
-   assign **bucket**/`verdict`/**id** `<Dn>-<slug>` (reuse an existing id for the same issue). Append
-   `open` row(s) under a dated entry (ledger template at its top). Don't duplicate a row already
-   `open`. Keep it scannable — one line per finding.
+   assign **bucket**/`verdict`/**id** `<Dn>-<slug>` (reuse an existing id for the same issue). Push
+   ONE `open` object per finding to `LEDGER.json`'s `findings[]` — `{ id, dim, bucket, verdict,
+status: "open", finding }` (`dim` = the id's `D`-prefix) — then run `npm run ledger`. Don't
+   duplicate an id already in `findings[]`. Keep each `finding` one line.
 
 7. **Record coverage.** Append every scanned tag to `harvested-sessions.txt` (even ones that yielded
    no finding — they're covered). The next run skips them.

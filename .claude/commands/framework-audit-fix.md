@@ -19,7 +19,9 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
 
 ## Where the data lives (repo-relative; cwd = forge root)
 
-- **Ledger:** `.claude/framework-audits/LEDGER.md` — the source of truth for ids, fixes, status.
+- **Ledger:** `.claude/framework-audits/LEDGER.json` — the SOURCE OF TRUTH (a `findings[]` array) for
+  ids, fixes, status. `LEDGER.md` / `ledger.html` are GENERATED VIEWS — never hand-edit; run
+  `npm run ledger` after any write. Schema: `.claude/framework-audits/README.md`.
 - **Targets:** `plugin/skills/*/SKILL.md`, `plugin/agents/*.md`, `ui/orchestrator.md`,
   `plugin/commands/*.md`, the forge-local `.claude/commands/*.md` (the self-improvement commands —
   when a D7 finding targets an audit command itself), `plugin/library/{transcripts,verdicts}/`.
@@ -35,9 +37,9 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
 
 ## Steps
 
-1. **Resolve ids.** Read the ledger. For each requested id find its row. If an id is missing
-   (already resolved — applied rows are REMOVED, not kept), or is `later`/`skip` (not `fix-now`),
-   **skip it and say so** — do not apply.
+1. **Resolve ids.** Parse `LEDGER.json` (a real JSON parse of `findings[]`). For each requested id
+   find its object. If an id is missing (already resolved — applied findings are REMOVED, not kept),
+   or is `later`/`skip` (not `fix-now`), **skip it and say so** — do not apply.
 2. **Itemize before acting.** List each id → the exact files it will change and the operation.
    For destructive or wide-blast ops (a rename touching many refs, a file move/delete, an agent
    split), confirm with `mcp__ui__ask` first if available; otherwise state it plainly and
@@ -86,12 +88,12 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
    warnings — this also runs the skill-scope check, catching D1/D3/D5 wiring mistakes) and
    `rtk npx prettier --write` on the touched files. Report the result honestly; if validate
    fails, fix or revert that id and say so — never leave the gate red.
-5. **Record — REMOVE, don't stamp.** DELETE each applied id's row from the ledger table — do NOT
-   mark it `done <YYYY-MM-DD>` (git + this run's commit message are the "what was fixed" record, so
-   the ledger stays lean — no `done` rows accumulate as distraction). If removing rows leaves an
-   audit entry with no rows left, delete that entry's heading + table too. If it clears the LAST
-   `open`/`fix-now` row anywhere in the ledger (the whole backlog is resolved), prune back to the
-   single "Last audit" line and refresh it. Leave `later`/`skip` and un-applied rows untouched.
+5. **Record — REMOVE, don't stamp.** DELETE each applied id's object from `LEDGER.json`'s `findings[]`
+   (match by `id`) — do NOT mark it `done <YYYY-MM-DD>` (git + this run's commit message are the "what
+   was fixed" record, so the ledger stays lean — no `done` findings accumulate as distraction). If it
+   clears the LAST `open`/`fix-now` finding anywhere in the ledger (the whole backlog is resolved),
+   set `lastAudit` to a fresh one-line summary. Leave `later`/`skip` and un-applied findings untouched.
+   Then run `npm run ledger` to regenerate `LEDGER.md` / `ledger.html` (never hand-edit those).
 6. **Report — terse.** Per id: applied / skipped (+why), files changed, validate result. This
    per-id summary IS the fix record now that rows are removed — carry it into the commit message
    (git, not the ledger, is the changelog; no separate changelog needed). End with anything still
@@ -100,7 +102,7 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
 ## Never
 
 - Fix an id the human didn't pass, or invent findings not in the ledger.
-- Apply a `later`/`skip` finding, or one already resolved (its row was removed / isn't in the ledger).
+- Apply a `later`/`skip` finding, or one already resolved (its object was removed from `findings[]`).
 - Leave `npm run validate` failing — green gate or revert.
 - Put game-specific content into a skill — strip it; the game holds its facts game-local
   (`plugin/library/` is for AGNOSTIC records, NOT game facts).

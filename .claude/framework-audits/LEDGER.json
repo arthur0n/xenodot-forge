@@ -1,0 +1,216 @@
+{
+  "_source_of_truth": "EDIT THIS FILE. `LEDGER.md` and `ledger.html` are GENERATED views — never hand-edit them; run `npm run ledger` (pre-commit also regenerates). Schema + workflow: README.md in this folder.",
+  "ledgerPhilosophy": "EPHEMERAL working state, not history. Applied findings are DELETED (git + the commit message are the fix record), never stamped done. Keep only open/later rows + skip-tombstones.",
+  "lastAudit": "2026-07-01 — weekly cold scan (D1,D4 clean) + human-steered promotion/authoring-seam deep-dive. Applied+removed this cycle: D2-enemy-ai-codenames, D7-scope-stale-four, D7-fix-targets-plugin-only, D7-fix-prunes-on-done, D7-tool-domains-doc, D7-agnostic-authoring-convention, D7-promote-board-vapor, D7-lesson-record-template, D9-contamination-check, D8-smoke-misassigned, D8-verify-gate-gap, D6-symptom-route-triplication, D8-runtime-smoke-wiring-stale, D8-capabilities-registry-drift, D7-harvest-grep-contradiction (record → git).",
+  "parking": [
+    "skill-content-gap dimension — a skill missing a known technique/caveat maps to no clean D1–D9",
+    "D10 'seam integrity' dimension — do the framework's own gates (promote/materialize/validate) enforce the conventions its docs state?"
+  ],
+  "dimensions": {
+    "D1": "agents over the index cap",
+    "D2": "skill/agent game-path contamination",
+    "D3": "name↔scope (+ paradigm/genre fit)",
+    "D4": "data-driven orientation",
+    "D5": "prompt bloat/duplication",
+    "D6": "orchestrator",
+    "D7": "the framework's own commands",
+    "D8": "verification flow",
+    "D9": "harness load-bearing under the current model"
+  },
+  "buckets": { "3": "no-brainer", "4": "improvement", "5": "system/later", "6": "skip" },
+  "verdicts": { "fix-now": "buckets 3/4", "later": "bucket 5", "skip": "bucket 6" },
+  "findings": [
+    {
+      "id": "D7-token-audit-ships",
+      "dim": "D7",
+      "bucket": 4,
+      "verdict": "fix-now",
+      "status": "open",
+      "finding": "token-audit.md ships via plugin to every game but mines forge logs/ + cites forge ui/ internals — move to .claude/commands/ or strip the forge premise."
+    },
+    {
+      "id": "D2-blockout",
+      "dim": "D2",
+      "bucket": 4,
+      "verdict": "fix-now",
+      "status": "open",
+      "finding": "pixel-lighting:21,30,43,61 asserts blockout_01.tscn 'already carries the rig' as an existing fact — teach the rig values directly instead."
+    },
+    {
+      "id": "D2-roadmap",
+      "dim": "D2",
+      "bucket": 4,
+      "verdict": "fix-now",
+      "status": "open",
+      "finding": "pixel-lighting:25,79,86 cites docs/roadmap/first_game.md / a Phase-5 gate as scope authority — give an agnostic technical (pixel-readability) rationale instead."
+    },
+    {
+      "id": "D2-library-records",
+      "dim": "D2",
+      "bucket": 4,
+      "verdict": "fix-now",
+      "status": "open",
+      "finding": "shipped library/addons + tools/*.md digests are game-COUPLED throughout (scene names, Main/SubViewportContainer/SubViewport, 640x360, pixel-art rig; 'DiceOfFate' in sprint-view-model-feel.md; pushable_enemy.gd in library/addons/enemy-ai.md) yet plugin/library/ is AGNOSTIC-only. ~10 files. DECIDE: (a) genericize keeping the reusable verdict/caveat, or (b) move game-local."
+    },
+    {
+      "id": "D5-asset-advisor-bloat",
+      "dim": "D5",
+      "bucket": 4,
+      "verdict": "fix-now",
+      "status": "open",
+      "finding": "asset-advisor (largest agent) restates per-medium facts 4x — collapse Classification+Checklist into one table, trim 2 worked examples (~25-30%)."
+    },
+    {
+      "id": "D3-ranged-combat",
+      "dim": "D3",
+      "bucket": 4,
+      "verdict": "fix-now",
+      "status": "open",
+      "finding": "agent named 'ranged-combat' owns godot-effect-composition (melee/traps/buffs/dots) — the name mis-signals routing; consider rename (godot-weapons-abilities). Weigh churn (just split)."
+    },
+    {
+      "id": "D8-render-tools-missing",
+      "dim": "D8",
+      "bucket": 4,
+      "verdict": "fix-now",
+      "status": "open",
+      "finding": "godot-verify frames render-health as a 'godot-dev build / contract' (:71) yet names tools/verify_arena_render.gd 'mandatory' (:79) + gives a copy-paste Layer-4 tools/verify_render_action.gd command (:85); NEITHER ships (only spread-only verify_render.gd). A builder running Layer 4 hits file-not-found. Fix: ship both OR mark 'build per contract (not shipped)' + stop presenting the Layer-4 command as runnable."
+    },
+    {
+      "id": "D8-enemy-smoke-orphan-naming",
+      "dim": "D8",
+      "bucket": 4,
+      "verdict": "fix-now",
+      "status": "open",
+      "finding": "godot-enemy-ai-headless-smoke names its examples check_nav_bake.gd/test_enemy_health.gd (:35,:58,:138), but the gate glob only runs smoke_*/play_* (checks.sh:285) — so check_*/test_* NEVER join the gate, contradicting the skill's own ':128 smoke_*.gd auto-joins'. Rename examples to smoke_nav_bake.gd/smoke_enemy_health.gd."
+    },
+    {
+      "id": "D5-handoff-restates-agent-report",
+      "dim": "D5",
+      "bucket": 4,
+      "verdict": "fix-now",
+      "status": "open",
+      "finding": "4 builder agents re-spell the preloaded agent-report skill's steps verbatim (godot-visuals:49, godot-assets:51, godot-player:46, godot-dev:79) — 'write full report gate-first to handoff file, relay only <path> — gate PASS/FAIL' duplicates agent-report:15,17,31. Preloaded + known step (handoff) → trim each to 'For handoffs, follow the preloaded agent-report skill.'"
+    },
+    {
+      "id": "D8-smoke-bloat",
+      "dim": "D8",
+      "bucket": 5,
+      "verdict": "later",
+      "status": "open",
+      "finding": "godot-runtime-smoke ~425L = 3-4 capabilities (smoke-author + input-bot playthrough + log-capture + navigability) — split input-bot to its own skill, demote machine-verified empirics to library/findings/; sweep its firing_yard/cycle_level contamination during the split."
+    },
+    {
+      "id": "D5-agent-restatement",
+      "dim": "D5",
+      "bucket": 5,
+      "verdict": "later",
+      "status": "open",
+      "finding": "3x-restatement pattern in transcript-researcher (archive policy, 'no spawn'), level-designer (handoff), bug-triage (no game code), skill-researcher (config gating) — state each constraint once."
+    },
+    {
+      "id": "D2-engine-version",
+      "dim": "D2",
+      "bucket": 5,
+      "verdict": "later",
+      "status": "open",
+      "finding": "engine version drift across skills: 'Godot 4.6' (greybox, enemy-ai, godot-assets) vs '4.3+' (pixel-lighting) — framework-wide consistency pass."
+    },
+    {
+      "id": "D3-greybox-fps",
+      "dim": "D3",
+      "bucket": 5,
+      "verdict": "later",
+      "status": "open",
+      "finding": "godot-greybox framed entirely as 'Godot 4.6 FPS arena' — discloses the lock but is genre-locked; product call whether the framework is FPS-maker or genre-general."
+    },
+    {
+      "id": "D3-fps-enemy",
+      "dim": "D3",
+      "bucket": 5,
+      "verdict": "later",
+      "status": "open",
+      "finding": "godot-fps-enemy-combat hit/death contract is shooter-generic (camera-agnostic); 'fps' over-narrows — rename to godot-shooter-enemy-combat someday."
+    },
+    {
+      "id": "D6-directive-verbose",
+      "dim": "D6",
+      "bucket": 5,
+      "verdict": "later",
+      "status": "open",
+      "finding": "orchestrator data-driven directive (lines 3-10, 8 lines of prose) above routing — condense to ~4 bullets."
+    },
+    {
+      "id": "D7-fix-no-selfcritique",
+      "dim": "D7",
+      "bucket": 5,
+      "verdict": "later",
+      "status": "open",
+      "finding": "framework-audit-fix.md has no self-critique/process-note step (framework-audit + token-audit do)."
+    },
+    {
+      "id": "D7-loop-index",
+      "dim": "D7",
+      "bucket": 5,
+      "verdict": "later",
+      "status": "open",
+      "finding": "forge-local self-improvement COMMAND loop (framework-audit → framework-feedback → framework-audit-fix → token-audit) is indexed nowhere; README.md:15 names only the AGENT loop. Fix: add docs/process/self-improvement.md mapping the commands + the LEDGER as shared state."
+    },
+    {
+      "id": "D9-gdscript-shadow-lint",
+      "dim": "D9",
+      "bucket": 5,
+      "verdict": "later",
+      "status": "open",
+      "finding": "recurring runtime GDScript::reload warnings the gate never caught: SHADOWED_GLOBAL_IDENTIFIER (range, sign — ability_data.gd, directional_force_effect.gd, aim_line_resolver.gd) + CONFUSABLE_LOCAL_DECLARATION (next_pos — guard.gd). Harden: add a deterministic lint check (gdstyle rule / check_* in tools/lib/checks.sh). Verify first whether gdstyle already covers it."
+    },
+    {
+      "id": "D7-display-clobber",
+      "dim": "D7",
+      "bucket": 5,
+      "verdict": "later",
+      "status": "open",
+      "finding": "INVESTIGATE: human repeatedly reports the game's display/window settings reverting ('back to super small, mode !=2'). Determine whether a framework step (materialize/doctor/setup, or the screenshot/verify GD scripts) rewrites project.godot display settings instead of preserving the game's; if game-local config, drop."
+    },
+    {
+      "id": "D3-verify-subviewport-lock",
+      "dim": "D3",
+      "bucket": 5,
+      "verdict": "later",
+      "status": "open",
+      "finding": "godot-verify Layer 3/4 capture 'the SubViewport (the pixel-art rig)' (:79,:95,:116-119); the framework also spans HD (godot-mesh-import-hd/-hd-material-import) where a non-pixel game renders 3D to the root viewport → the capture silently assumes a pixelation rig. Scope: SubViewport when the game uses a pixelation rig, else root. Park for the HD-vs-pixel branch."
+    },
+    {
+      "id": "D5-builder-restates-verify",
+      "dim": "D5",
+      "bucket": 5,
+      "verdict": "later",
+      "status": "open",
+      "finding": "builder agents restate preloaded godot-verify content — the interactive-acceptance paragraph (godot-dev:73, godot-visuals:45 ≈ godot-verify:143-154) + tscn/Transform3D rules (godot-dev:61-63 ≈ godot-verify:160-163). COLLIDES with 'verify gates stay inline (reliability>DRY)' → the gate one-liner stays inline regardless; human decides if the LONG paragraph + technical-rule copies are redundant."
+    },
+    {
+      "id": "D9-audit-fanout",
+      "dim": "D9",
+      "bucket": 5,
+      "verdict": "later",
+      "status": "open",
+      "finding": "STRIP (hypothesised, NEEDS measurement): framework-audit.md:61 'one sub-agent per dimension (parallel)' is context-anxiety scaffolding; under 1M-context Opus the plugin/ spine fits one context. Run /framework-audit all single-agent vs fan-out once, compare findings+tokens, keep fan-out only if it still wins."
+    },
+    {
+      "id": "D9-greybox-eye-harden",
+      "dim": "D9",
+      "bucket": 5,
+      "verdict": "later",
+      "status": "open",
+      "finding": "HARDEN (partial): godot-greybox:47 ships a 'self-audit BY EYE' gate; a subset is deterministic (nav-graph reachability, dead-end count, missing NavigationRegion3D, cover-node count) — sibling godot-gridmap-level already hardened its by-eye out. Draft check_greybox_reachability; visual principles (sightline, mystery) stay by-eye."
+    },
+    {
+      "id": "D5-research-intake",
+      "dim": "D5",
+      "bucket": 6,
+      "verdict": "skip",
+      "status": "skip",
+      "finding": "NOT a clean extraction (verified): the shared research-intake core is only ~2 sentences (Hermes-intake principle + forge-facts rule) and each researcher tailors it — partial dedup + always-needed → inline (reliability > DRY). Kept as a tombstone so it isn't re-filed."
+    }
+  ]
+}

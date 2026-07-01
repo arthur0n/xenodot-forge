@@ -1,5 +1,5 @@
 ---
-description: Compress the feedback loop — distill THIS conversation into one (or few) concrete framework finding(s) and append them to the audit ledger as open rows. Never auto-applies; the human applies via /framework-audit-fix. Manual, human-run. Forge-local (not shipped).
+description: Compress the feedback loop — distill THIS conversation into one (or few) concrete framework finding(s) and append them to the audit ledger as open findings. Never auto-applies; the human applies via /framework-audit-fix. Manual, human-run. Forge-local (not shipped).
 argument-hint: "[hint — e.g. 'godot-enemy missed the navmesh rebake step']"
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, mcp__ui__ask
 model: opus
@@ -29,10 +29,12 @@ applied by the SAME `/framework-audit-fix`.
 
 ## Where the data lives (repo-relative; cwd = forge root)
 
-- **Ledger (write here):** `.claude/framework-audits/LEDGER.md` — read FIRST (dedup), append AFTER.
-  Its header defines the **dimensions D1–D9**, the **buckets** (3 no-brainer · 4 improvement · 5
-  system/later · 6 skip), the **verdict** (`fix-now` 3/4 · `later` 5 · `skip` 6) and **status**
-  (`open` · `done <date>` · `skip`). Reuse them exactly — `/framework-audit-fix` resolves by id.
+- **Ledger (write here):** `.claude/framework-audits/LEDGER.json` — the SOURCE OF TRUTH (a `findings[]`
+  array); read FIRST (dedup), append AFTER (push objects, then `npm run ledger`). `LEDGER.md` /
+  `ledger.html` are GENERATED VIEWS — never hand-edit. Its meta defines the **dimensions D1–D9**, the
+  **buckets** (3 no-brainer · 4 improvement · 5 system/later · 6 skip), the **verdict** (`fix-now` 3/4 ·
+  `later` 5 · `skip` 6) and **status** (`open` · `skip` — applied findings are REMOVED, never stamped
+  `done`). Reuse them exactly — `/framework-audit-fix` resolves by id. Schema: its `README.md`.
 - **Likely targets a finding points at:** `plugin/skills/*/SKILL.md`, `plugin/agents/*.md`,
   `ui/orchestrator.md`, `plugin/commands/*.md`, and the forge-local commands themselves.
 - **Search with the Grep TOOL or `/opt/homebrew/bin/rg` (full path), NEVER bash `grep`** — the `rtk`
@@ -41,8 +43,9 @@ applied by the SAME `/framework-audit-fix`.
 
 ## Steps
 
-1. **Read the ledger.** Open `LEDGER.md`. Note the rows still `open`/`later` and the last-audit line
-   — so you neither re-file a finding already recorded nor re-surface one already resolved.
+1. **Read the ledger.** Parse `LEDGER.json` (its `findings[]`). Note the findings still `open`/`later`
+   and the `lastAudit` line — so you neither re-file a finding already recorded nor re-surface one
+   already resolved.
 
 2. **Distill the conversation's framework learnings.** Look back over THIS session for moments where a
    framework artifact under-delivered or a reusable lesson emerged — a skill whose steps were wrong /
@@ -68,9 +71,10 @@ applied by the SAME `/framework-audit-fix`.
    - Assign **bucket** (3 mechanical / 4 needs-judgment / 5 later), **verdict** (`fix-now`/`later`),
      **id** `<Dn>-<slug>` (reuse an existing id if it's the same issue).
 
-5. **Append to the ledger — brief, dedup.** Add the row(s) under a dated entry (ledger template at
-   its top), status `open`. Don't duplicate a row already `open`. Keep it scannable — one line per
-   finding, no essays. The ledger is ephemeral working state; the fix lives in files+git once applied.
+5. **Append to the ledger — brief, dedup.** Push ONE object per finding to `LEDGER.json`'s `findings[]`
+   — `{ id, dim, bucket, verdict, status: "open", finding }` (`dim` = the id's `D`-prefix) — then run
+   `npm run ledger`. Don't duplicate an id already `open`. Keep each `finding` one line, no essays.
+   The ledger is ephemeral working state; the fix lives in files+git once applied.
 
 6. **Present — terse, then hand off.** Per finding: id · the one-line fix · verdict. Then tell the
    human to run **`/framework-audit-fix <ids>`** with the ids they agree to (recommend which). If a

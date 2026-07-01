@@ -33,8 +33,11 @@ properties the promotion rubric (`plugin/docs/process/promotion.md`) demands.
 - **Commands:** `plugin/commands/*.md` and ALL forge-local self-improvement commands
   (`.claude/commands/*.md`: this file, `framework-audit-fix.md`, `harvest-sessions.md`,
   `framework-feedback.md`).
-- **Library (where game-specifics belong):** `plugin/library/{transcripts,verdicts,findings}/`.
-- **Ledger:** `.claude/framework-audits/LEDGER.md` — read FIRST, append AFTER.
+- **Library (AGNOSTIC records only — ships to every game):** `plugin/library/{transcripts,verdicts,findings}/`. A game's specific FACTS live GAME-LOCAL (the game repo), never here.
+- **Ledger:** `.claude/framework-audits/LEDGER.json` — the SOURCE OF TRUTH (a `findings[]` array);
+  read FIRST, append findings AFTER (push objects to `findings[]`, dedup by `id`). `LEDGER.md` /
+  `ledger.html` are GENERATED VIEWS — never hand-edit; run `npm run ledger` after any write. Full
+  schema: `.claude/framework-audits/README.md`.
 
 **Search with the Grep TOOL or `/opt/homebrew/bin/rg` (full path) — NOT bash `grep`.** A hook routes
 bash `grep`/`rg` through `rtk`, which silently DROPS and MANGLES matches (it rewrote the literal word
@@ -55,9 +58,10 @@ misses one ref leaves contamination behind. Completeness → `rg`; concepts → 
 0. **Load caveman first.** Before anything else, invoke the `caveman` skill — this command
    reports in caveman mode (terse; all technical substance kept, only fluff dropped).
 
-1. **Read the ledger.** Open `LEDGER.md` — pruned after each pass, so it holds the last-audit date
-   plus any rows still `open`/`later`. Don't re-surface a finding already listed open/later (or one
-   the last-audit line says was resolved); otherwise audit fresh against the current files.
+1. **Read the ledger.** Parse `LEDGER.json` (a real JSON parse of `findings[]`, not a table scan) —
+   pruned after each pass, so it holds the last-audit date (`lastAudit`) plus any findings still
+   `open`/`later`. Don't re-surface a finding already in `findings[]` open/later (or one `lastAudit`
+   says was resolved); otherwise audit fresh against the current files.
 
 2. **Pick scope.** Default `all`. `$ARGUMENTS` overrides: a **dimension id** (`D3`) audits just
    that one; a **finding id** (`D7-scope-stale-four`) re-verifies that single open ledger finding
@@ -158,12 +162,14 @@ misses one ref leaves contamination behind. Completeness → `rg`; concepts → 
    (e.g. `D1-combat`, `D2-greybox`, `D5-research-presenting`) — the fix command targets findings by
    this id, so reuse the same id across runs for the same issue.
 
-5. **Record — brief, and KEEP THE LEDGER LEAN.** Append ONE entry to `LEDGER.md` (template at its
-   top): date + per-finding rows `id | bucket | one-line finding + proposed fix | verdict | status`.
-   The ledger is EPHEMERAL working state, not a history log: carry only rows still `open`/`later`.
-   **Once a pass fully resolves (nothing left `open`), PRUNE the ledger back to its single
-   "Last audit" line** (date + a one-line summary of what the pass did) — the fixes live in the files
-   - git, not here. Don't let it accumulate done/skip history.
+5. **Record — brief, and KEEP THE LEDGER LEAN.** For each surviving finding, push ONE object to
+   `LEDGER.json`'s `findings[]` (dedup by `id`): `{ id, dim, bucket, verdict, status, finding }` —
+   `finding` is one line (problem + proposed fix), `dim` is the id's `D`-prefix. Update `lastAudit`,
+   then run `npm run ledger` to regenerate `LEDGER.md` / `ledger.html` (never hand-edit those). The
+   ledger is EPHEMERAL working state, not a history log: carry only findings still `open`/`later`.
+   **Once a pass fully resolves (nothing left `open`), PRUNE `findings[]` empty and set `lastAudit`
+   to a one-line summary of what the pass did** — the fixes live in the files + git, not here. Don't
+   let it accumulate done/skip history.
 
 6. **Present — the 6 buckets (skill-researcher convention).** Report like the **skill-researcher**
    agent does (`plugin/agents/skill-researcher.md`): never gate a finding with a bare
@@ -196,6 +202,7 @@ misses one ref leaves contamination behind. Completeness → `rg`; concepts → 
 - Auto-apply fixes or write under `plugin/`. This command reports; `/framework-audit-fix`
   applies the agreed ids; the human decides. (Step 7's tweaks to this command / ledger are the
   one exception.)
-- Add game-specific content to the framework. If a finding IS game-specific, its home is
-  `plugin/library/`, not a skill.
+- Add game-specific content to the framework — and that INCLUDES `plugin/library/`, which ships
+  to every game (AGNOSTIC records only). A game's specific FACTS live GAME-LOCAL (the game repo),
+  never in a skill and never in `plugin/library/`.
 - Write a long ledger entry. Brevity is the point.

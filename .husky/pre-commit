@@ -12,6 +12,12 @@ fi
 # then lint + format the staged files (lint-staged also tidies the re-staged README).
 # update-badges git-adds what it touches so it lands in the commit.
 node ui/server/cli/update-badges.js
+
+# Regenerate the audit ledger views from LEDGER.json (source of truth) and stage the readable
+# LEDGER.md so it tracks the JSON. ledger.html is gitignored (a generated view, not committed).
+node ui/server/cli/gen-ledger.js
+git add .claude/framework-audits/LEDGER.md
+
 npx lint-staged
 
 # Enforce the by-domain layout: no loose modules at the top of ui/server or ui/client.

@@ -18,6 +18,7 @@
     "doctor": "node ui/server/cli/doctor.js",
     "start": "node ui/server/core/index.js",
     "badges": "node ui/server/cli/update-badges.js",
+    "ledger": "node ui/server/cli/gen-ledger.js",
     "release": "node ui/server/cli/release-stage.js",
     "check": "tsc --noEmit",
     "check:structure": "node ui/structure.check.js",

@@ -9,7 +9,7 @@
 //   human reviews the batch diff  →  one commit  →  /framework-audit-fix for the judgment-heavy 4/5
 //
 // WHY sequential (a plain for-await, not parallel/pipeline): every applier edits the SAME
-// LEDGER.md (and each runs `npm run validate`), so concurrent runs would race the file and the
+// LEDGER.json (and each runs `npm run validate`), so concurrent runs would race the file and the
 // gate. "One by one" is the correct shape here, and it keeps each validate attributable to one id.
 //
 // This NEVER commits — it leaves the batch staged so a human eyeballs the diff first. Bucket 4/5/6
@@ -54,9 +54,10 @@ phase("Scan");
 let ids = Array.isArray(args) && args.length ? args : null;
 if (!ids) {
   const scan = await agent(
-    "Read `.claude/framework-audits/LEDGER.md`. Return ONLY the finding ids whose bucket column is " +
-      "`3` AND verdict is `fix-now` AND status is `open`. Do not include bucket 4/5/6, later, skip, " +
-      "or already-resolved rows. Preserve ledger order. Use the Grep tool or full-path rg, never bash grep.",
+    "Parse `.claude/framework-audits/LEDGER.json` (a real JSON parse of its `findings[]` array). " +
+      'Return ONLY the ids of findings where `bucket === 3` AND `verdict === "fix-now"` AND ' +
+      '`status === "open"`. Do not include bucket 4/5/6, later, skip, or already-resolved findings. ' +
+      "Preserve `findings[]` order. (`LEDGER.md` / `ledger.html` are generated views — read the JSON, not them.)",
     { schema: IDS_SCHEMA, phase: "Scan", label: "scan:no-brainers" },
   );
   ids = scan?.ids ?? [];
@@ -66,7 +67,7 @@ log(`${ids.length} no-brainer(s) to apply: ${ids.join(", ") || "(none)"}`);
 phase("Apply");
 const results = [];
 for (const id of ids) {
-  // Sequential on purpose — shared LEDGER.md + per-id validate. Each agent self-guards to bucket-3.
+  // Sequential on purpose — shared LEDGER.json + per-id validate. Each agent self-guards to bucket-3.
   const report = await agent(`Apply the framework-audit no-brainer with id: ${id}`, {
     agentType: "framework-nobrainer-fixer",
     model: "sonnet",
