@@ -70,7 +70,7 @@ These thresholds are **INFERRED — CALIBRATE before trusting.** Capture 5–10 
 
 ### Frame the ARENA, not the HUD+horizon (mandatory for level-render PRs)
 
-The black-arena bug PASSED because the check averaged the WHOLE viewport including the HUD — bright HUD text/bars masked a black 3D render. For any change to a level's lighting / environment / materials, capture from **arena gameplay vantages** (forward across the floor, down at the floor, at a wall) — NOT a HUD-inclusive horizon frame — and gate multiple yaw angles (spawn + yaw90 + yaw180). `tools/verify_arena_render.gd` does a 3-vantage arena capture; it is **mandatory** for level-render PRs. (The same metric set above applies per vantage.)
+The black-arena bug PASSED because the check averaged the WHOLE viewport including the HUD — bright HUD text/bars masked a black 3D render. For any change to a level's lighting / environment / materials, capture from **arena gameplay vantages** (forward across the floor, down at the floor, at a wall) — NOT a HUD-inclusive horizon frame — and gate multiple yaw angles (spawn + yaw90 + yaw180). A 3-vantage arena capture (the metric set above applied per vantage, emitting `VERIFY-ARENA: ALL PASS`) is **mandatory** for level-render PRs. Like `render_health`, the script that does it (a `verify_arena_render.gd`) is a **godot-dev build, NOT shipped** — this skill defines the contract; build it per this section and calibrate thresholds per project before trusting.
 
 Notes:
 
@@ -79,22 +79,21 @@ Notes:
 - Run on `main.tscn` only (or standalone entry-point scenes). Levels and entity scenes don't render standalone in Main-shell architecture (Main provides camera — skill: godot-main-scene). Layers 1–2 still run on all changed scenes.
 - **Scope: startup render only.** Layer 3 proves the scene is not unhealthy at frame ~20 with NO input — it samples frames and checks the metric set above. It does NOT drive input, advance through interactions, or prove gameplay. Input-driven / mid-gameplay / first-person VIEW-MODEL visuals (a weapon shown at rest, a mesh face clipping the near plane after a swing, anything behind a keypress/tween) are INVISIBLE to it. An F5/F6 play-through remains mandatory for view-model and interaction visuals; do not report those as verified from Layer 3.
 
-## Layer 4 — input-driven render assert (OPT-IN)
+## Layer 4 — input-driven render assert (OPT-IN, build per contract — NOT shipped)
 
-```bash
-$GODOT --path . --resolution 640x360 -s tools/verify_render_action.gd \
-    -- main.tscn method:Melee:try_melee 60 40
+Catches the class of bug Layer 3 cannot see: a near-plane-clip solid square filling the screen after a melee swing, or a view-model mesh rendered over the HUD after an action. **No script for this ships** — build it per the full contract in `plugin/library/tools/verify-render-action.md` (a `verify_render_action.gd`: load the scene, warm up 20 frames, fire the trigger, wait `settle_frames` for tweens to finish, capture the render target, and assert no single color bucket floods more than `flood_threshold_pct`% of pixels). The interface it must expose:
+
+```
+verify_render_action.gd -- <scene> <trigger> <settle_frames> <flood_threshold_pct> [output_png]
 ```
 
-Args (after `--`): `<scene> <trigger> <settle_frames> <flood_threshold_pct> [output_png]`
-
 - `<trigger>`: `method:<node_name>:<method_name>` | `action:<action_name>` | `none`
-- `<settle_frames>`: physics frames to wait after trigger before capture (default `60`)
-- `<flood_threshold_pct>`: fail if dominant color bucket covers more than N% of SubViewport pixels (default `40`)
+- `<settle_frames>`: physics frames to wait after trigger before capture (e.g. `60`)
+- `<flood_threshold_pct>`: fail if the dominant color bucket covers more than N% of render-target pixels (e.g. `40`)
 
-**Scope: input-driven view-model / interaction artifacts.** Catches the class of bug Layer 3 cannot see: a near-plane-clip solid square filling the screen after a melee swing, or a view-model mesh rendered over the HUD after an action. Loads the scene, warms up 20 frames, fires the trigger (method call or input action), waits `settle_frames` for tweens/animations to finish, captures the SubViewport (pixel-art rig), and asserts no single color bucket floods more than `flood_threshold_pct`% of pixels.
+**Scope: input-driven view-model / interaction artifacts** — the class Layer 3 (a no-input startup snapshot) is structurally blind to.
 
-Output:
+Output the built script must emit:
 
 ```
 VERIFY-RENDER-ACTION: OK   — <scene> trigger=<trigger> (dominant_color_pct=X%)
@@ -104,12 +103,12 @@ VERIFY-RENDER-ACTION: SKIP — no display (headless renderer detected)
 
 Exit 0 = pass or skip; 1 = fail. Frame saved to `.godot/verify_render_action_last.png`.
 
-Notes:
+Contract notes:
 
-- **Not headless** — needs display; same constraint as Layer 3. On headless renderer (CI without Xvfb) it self-skips with exit 0 — safe to call unconditionally in a CI job.
-- `method:` trigger uses `find_child(name, recursive=true)` — node name only, not a path.
+- **Not headless** — needs display; same constraint as Layer 3. On a headless renderer (CI without Xvfb) it must self-skip with exit 0 — safe to call unconditionally in a CI job.
+- `method:` trigger resolves by node name (`find_child(name, recursive=true)`), not a path.
 - Set `settle_frames` ≥ `cooldown / physics_delta` so the tween completes before capture (e.g. 60 frames @ 60 fps covers a 0.45 s cooldown).
-- **OPT-IN — NOT in `validate.sh` default gate.** Slow (display required, settles N frames) and trigger-specific. Run manually or in a targeted CI job when merging view-model or weapon PRs.
+- **OPT-IN — NOT in the `validate.sh` default gate.** Slow (display required, settles N frames) and trigger-specific. Build + run manually, or wire into a targeted CI job, when merging view-model or weapon PRs.
 
 ## Layer 5 — CanvasLayer / overlay UI capture (root viewport)
 
@@ -186,9 +185,9 @@ If Godot binary unavailable: say so explicitly — do not claim verification.
 | `VERIFY-RENDER: FAIL ... flat color` on `main.tscn`                                                                                                  | Camera aimed at nothing (wrong transform — see hand-authoring rules), no current Camera3D, or Sky with no Sky resource                                                                                                                                                                                                                                                                                                                                                                                          |
 | Layer 3 flat color on level/entity scene                                                                                                             | Expected in Main-shell — levels/entities have no camera. Layer 3 doesn't apply; only layers 1–2 required                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Layer 3 looks wrong but says OK                                                                                                                      | Spread check only proves _something_ rendered — composition/look is human's call; run F5/F6                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| Layer 3 says OK but the screen is all-WHITE, or the 3D is BLACK behind a visible HUD                                                                 | Spread-only assertion with no mean bound, sampling the HUD-inclusive whole viewport. White passes (high spread); HUD spread masks a black 3D. Assert the render-health metric SET (mean-in-calibrated-range + stdev + entropy + unique-count + 4×4 cell-spread) on an ARENA-framed capture (`tools/verify_arena_render.gd`, mandatory for level-render PRs), NOT whole-viewport spread. Calibrate thresholds vs real known-good frames — don't hardcode.                                                        |
+| Layer 3 says OK but the screen is all-WHITE, or the 3D is BLACK behind a visible HUD                                                                 | Spread-only assertion with no mean bound, sampling the HUD-inclusive whole viewport. White passes (high spread); HUD spread masks a black 3D. Assert the render-health metric SET (mean-in-calibrated-range + stdev + entropy + unique-count + 4×4 cell-spread) on an ARENA-framed 3-vantage capture (build per Layer 3's contract — a `verify_arena_render.gd`, not shipped; mandatory for level-render PRs), NOT whole-viewport spread. Calibrate thresholds vs real known-good frames — don't hardcode.      |
 | Render OK but scene behaviorally broken (no enemies, actors inert/floating, nothing spawns)                                                          | Layer 3 only proves something rendered, not that gameplay works. Asserting the scene actually _behaves_ (spawn/actor counts ≥ expected, `NavigationRegion3D` present, state machines live, player can walk) is **godot-runtime-smoke**'s job — a headless `smoke_*.gd` that boots the scene, steps physics, and asserts invariants; the player-can-walk / navigability-smoke case specifically is its companion **godot-playthrough-bot**. Complements the static actor-inventory check in godot-gridmap-level. |
-| View-model / post-interaction artifact (weapon on top of HUD, solid square after an action) passed Layer 3                                           | Expected — Layer 3 is a startup snapshot, no input. Run Layer 4: `$GODOT --path . --resolution 640x360 -s tools/verify_render_action.gd -- main.tscn method:<node>:<method> 60 40`. If it reports `FAIL … floods X%`, the artifact is confirmed; investigate near-plane clip (camera near plane too large) or view-model visibility logic.                                                                                                                                                                      |
+| View-model / post-interaction artifact (weapon on top of HUD, solid square after an action) passed Layer 3                                           | Expected — Layer 3 is a startup snapshot, no input. Use Layer 4 (build per contract, not shipped — see `plugin/library/tools/verify-render-action.md`): trigger the action, settle, flood-check the render target. If it reports `FAIL … floods X%`, the artifact is confirmed; investigate near-plane clip (camera near plane too large) or view-model visibility logic.                                                                                                                                       |
 | Headless `VERIFY: OK` but editor errors on open ("node name clashes") or runtime uses default/stale exports                                          | Editor-only scene-structure trap headless can't see: `script=` re-set on an instanced node, or `type=`/`instance=` override on an inherited/packed node. Remove the redundant override; fix at the source (entity `.tscn` / builder), then open in editor to confirm.                                                                                                                                                                                                                                           |
 | `Leaked instance` / `RID allocations leaked at exit` / `ObjectDB instances leaked` / `resources still in use at exit` / `Pages in use exist at exit` | Benign Godot 4 headless cleanup noise — NOT an error. Ignore. `resources still in use at exit` fires when actively-playing **looping audio** holds its stream as `--quit-after` terminates before scene-tree teardown; the Layer 2 smoke grep excludes these. If you hit a benign-noise line NOT yet excluded, do NOT edit `validate.sh` yourself (plugin-owned, gitignored gate) — report it as friction so the exclusion is promoted upstream.                                                                |
 | UI overlay / CanvasLayer screen renders blank or is missing from a capture                                                                           | The SubViewport texture (Layer 3/4) excludes CanvasLayer overlays. Capture the composited ROOT viewport instead: `await RenderingServer.frame_post_draw` then `root.get_texture().get_image()`, windowed (no `--headless`) — see Layer 5.                                                                                                                                                                                                                                                                       |

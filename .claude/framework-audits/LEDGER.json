@@ -21,14 +21,6 @@
   "verdicts": { "fix-now": "buckets 3/4", "later": "bucket 5", "skip": "bucket 6" },
   "findings": [
     {
-      "id": "D8-render-tools-missing",
-      "dim": "D8",
-      "bucket": 4,
-      "verdict": "fix-now",
-      "status": "open",
-      "finding": "godot-verify frames render-health as a 'godot-dev build / contract' (:71) yet names tools/verify_arena_render.gd 'mandatory' (:79) + gives a copy-paste Layer-4 tools/verify_render_action.gd command (:85); NEITHER ships (only spread-only verify_render.gd). A builder running Layer 4 hits file-not-found. Fix: ship both OR mark 'build per contract (not shipped)' + stop presenting the Layer-4 command as runnable."
-    },
-    {
       "id": "D8-enemy-smoke-orphan-naming",
       "dim": "D8",
       "bucket": 4,
