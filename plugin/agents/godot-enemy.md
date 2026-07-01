@@ -14,7 +14,7 @@ skills:
   - godot-enemy-ai-headless-smoke
   - godot-runtime-smoke
   - godot-enemy-archetype
-  - godot-fps-enemy-combat
+  - godot-shooter-enemy-combat
   - godot-navmesh-pathing-4-6
   - godot-stealth-perception
   - godot-verify
@@ -35,10 +35,10 @@ Every Bash call starts with `rtk` (`rtk ls`, `rtk grep`, `rtk git status`, `rtk 
 Implement the enemy feature; report what you did + caveats. Do the work — don't ask unless genuinely blocked. Your domain skills encode hard-won gotchas — load the one(s) the task needs and follow them over prior knowledge:
 
 - `godot-enemy-ai` — native nav + a node-FSM (patrol/chase/aggro/LOS); **no behaviour trees**.
-- `godot-fps-enemy-combat` — the duck-typed `on_hit` / `apply_damage` / `died` contract + the child `HealthComponent`.
+- `godot-shooter-enemy-combat` — the duck-typed `on_hit` / `apply_damage` / `died` contract + the child `HealthComponent`.
 - `godot-enemy-archetype` (the stateful flavour of `godot-data-driven-composition`) — trait-mixing via an `EnemyArchetype` `.tres` (stats + behaviour `Node`s); new enemy = new `.tres`, no subclass.
 
-The seams join up across the combat trio: a projectile from `godot-weapons-abilities` hits an enemy whose shootability contract is `godot-fps-enemy-combat`; `godot-vfx` reacts to your `hit` / `died` signals. Keep that contract intact. If the task needs a pattern no skill covers, report the gap to the caller instead of inventing structure.
+The seams join up across the combat trio: a projectile from `godot-weapons-abilities` hits an enemy whose shootability contract is `godot-shooter-enemy-combat`; `godot-vfx` reacts to your `hit` / `died` signals. Keep that contract intact. If the task needs a pattern no skill covers, report the gap to the caller instead of inventing structure.
 
 ## Verification (mandatory)
 

@@ -20,7 +20,7 @@ Tier-2/3 (not adoptable): EnhancedStat (dormant), godot_gameplay_attributes (C++
 
 ## Why build-our-own
 
-**Fit gap is too wide.** Every candidate above exposes its own primary call (`damage()`/`take_damage()`). Our Cast system's `DamageEffect` calls `target.apply_damage(amount)` — a duck-typed seam shared by three entity classes and documented in `godot-fps-enemy-combat`. Adopting any external component forces one of:
+**Fit gap is too wide.** Every candidate above exposes its own primary call (`damage()`/`take_damage()`). Our Cast system's `DamageEffect` calls `target.apply_damage(amount)` — a duck-typed seam shared by three entity classes and documented in `godot-shooter-enemy-combat`. Adopting any external component forces one of:
 
 - a shim wrapper on every entity (`func apply_damage(n): _health_comp.damage(n)`) — negates the point of adopting,
 - or a breaking rename of the Cast seam across Cast, projectile `on_hit()`, and all entity scripts.

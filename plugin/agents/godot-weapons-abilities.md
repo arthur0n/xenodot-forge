@@ -33,7 +33,7 @@ Implement the weapons/abilities feature; report what you did + caveats. Do the w
 - `godot-travelling-projectile-3d` — projectile movement + the fire→hit seam (fire-rate, lifetime, collision).
 - `godot-effect-composition` (the stateless flavour of `godot-data-driven-composition`) — abilities/effects as `.tres`: WHAT (`Effect`) decoupled from WHOM (`TargetResolver`); damage/heal/knockback/slow + buffs/debuffs/dots all slot here. New ability = new `.tres`, no code.
 
-The seams join up across the combat trio: your projectile hits an enemy whose shootability contract is `godot-fps-enemy-combat` (owned by `godot-enemy`); `godot-vfx` reacts to your `fired` / `hit` signals. If the task needs a pattern no skill covers, report the gap to the caller instead of inventing structure.
+The seams join up across the combat trio: your projectile hits an enemy whose shootability contract is `godot-shooter-enemy-combat` (owned by `godot-enemy`); `godot-vfx` reacts to your `fired` / `hit` signals. If the task needs a pattern no skill covers, report the gap to the caller instead of inventing structure.
 
 ## Verification (mandatory)
 

@@ -10,7 +10,7 @@
 | 2 | Decouple via signals: HealthComponent emits, visual/audio components listen — never poll HP per frame | holds | covered | our `signal died` + `health_changed(current,max)`; enemy/target/npc/player listen | match |
 | 3 | HealthComponent stores max+current, does damage calc + optional heal, NO visual/audio itself | holds | covered | shipped `apply_damage`/`heal`/`get_health_percent`; visuals in `_flash_hit`/HUD | match |
 | 4 | clamp current health 0..max | holds | covered | shipped `max(_current-amount,0)` / `min(_current+amount,max)` | match |
-| 5 | Emit `health_changed` + `died`; HP→0 emits died then `queue_free()` if valid | holds w/ caveat | covered (better) | we emit died ONCE via `_dead` guard; we do NOT self-free (parent owns free → reparent-before-free death SFX, godot-fps-enemy-combat). Video frees inside component = would cut death SFX tail | match (ours safer) |
+| 5 | Emit `health_changed` + `died`; HP→0 emits died then `queue_free()` if valid | holds w/ caveat | covered (better) | we emit died ONCE via `_dead` guard; we do NOT self-free (parent owns free → reparent-before-free death SFX, godot-shooter-enemy-combat). Video frees inside component = would cut death SFX tail | match (ours safer) |
 | 6 | Separate `damaged(amount)` signal distinct from `health_changed` | holds | partial | we fold non-fatal hit-flash onto `health_changed`; no dedicated `damaged(amount)` carrying the delta | minor gap (cosmetic) |
 | 7 | `class_name` on components → appears in Add-Node menu, typed @export, no preload | holds | covered | shipped `class_name HealthComponent` | match |
 | 8 | Wire deps as `@export` node refs in inspector, not hardcoded paths | holds | covered | our parents bind `max_health` + connect in scene/`_ready` | match |
@@ -23,7 +23,7 @@
 
 - regen, invuln/i-frames, armor/shield, damage types, overflow → these came from our own addon verdict (`library/addons/health-component.md`, BananaHolograma/cluttered-code), already parked in `design/health_component.md` slice 3 (Shield+typed) + Later (regen/invuln/DoT). Video teaches NONE of these.
 
-**Recommended next** — nothing to act on now. Video fully covered by shipped slice 1/2 + godot-composition + godot-fps-enemy-combat. No new gap surfaced for the current build.
+**Recommended next** — nothing to act on now. Video fully covered by shipped slice 1/2 + godot-composition + godot-shooter-enemy-combat. No new gap surfaced for the current build.
 
 **Later** (valid, not from this video — already on our roadmap, do NOT re-dispatch from here):
 

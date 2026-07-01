@@ -85,14 +85,6 @@
       "finding": "godot-greybox framed entirely as 'Godot 4.6 FPS arena' — discloses the lock but is genre-locked; product call whether the framework is FPS-maker or genre-general."
     },
     {
-      "id": "D3-fps-enemy",
-      "dim": "D3",
-      "bucket": 5,
-      "verdict": "later",
-      "status": "open",
-      "finding": "godot-fps-enemy-combat hit/death contract is shooter-generic (camera-agnostic); 'fps' over-narrows — rename to godot-shooter-enemy-combat someday."
-    },
-    {
       "id": "D6-directive-verbose",
       "dim": "D6",
       "bucket": 5,

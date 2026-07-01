@@ -13,11 +13,11 @@
 
 1. **Legacy viewmodel arch.** Addon uses SubViewport + layer-20 cull mask for weapon-clip prevention. Godot 4.6 `BaseMaterial3D.use_z_clip_scale` is the native solution (~0 LOC). Adopting the addon's SubViewport viewmodel rig means carrying that dead architecture indefinitely — and in a game that already runs its own SubViewport pixelation rig, wiring the addon's second viewport is a hack (`viewport_camera_script.gd` collapses to a transform-proxy).
 
-2. **Unbridged projectile seam.** Hitscan path bridges to `on_hit()` via `hitscan_hit()` on the enemy body (working). Projectile path calls `body.projectile_hit()` — no bridge exists, not compatible with the framework's `on_hit()`/`died` enemy contract (`godot-fps-enemy-combat`). Fixing requires either modifying addon internals or polluting the enemy script with a second hit method.
+2. **Unbridged projectile seam.** Hitscan path bridges to `on_hit()` via `hitscan_hit()` on the enemy body (working). Projectile path calls `body.projectile_hit()` — no bridge exists, not compatible with the framework's `on_hit()`/`died` enemy contract (`godot-shooter-enemy-combat`). Fixing requires either modifying addon internals or polluting the enemy script with a second hit method.
 
 3. **Bundled player SM conflicts with conventions.** Addon ships `player_character_script.gd` + `InputManagementComponent` (full state machine, 14 input actions). The framework's `godot-first-person-controller` skill owns the player controller. Stripping the player layer from the addon is effectively a rewrite.
 
-Build cost is low: hitscan ~40–80 LOC (`PhysicsDirectSpaceState3D.intersect_ray`), recoil/bob/sway ~50 LOC, `WeaponResource` + `WeaponManager` ammo/reload/fire-gate ~100 LOC. Existing skills `godot-travelling-projectile-3d` and `godot-fps-enemy-combat` cover projectile strategy and hit contract. `use_z_clip_scale` eliminates the viewmodel-clip problem entirely.
+Build cost is low: hitscan ~40–80 LOC (`PhysicsDirectSpaceState3D.intersect_ray`), recoil/bob/sway ~50 LOC, `WeaponResource` + `WeaponManager` ammo/reload/fire-gate ~100 LOC. Existing skills `godot-travelling-projectile-3d` and `godot-shooter-enemy-combat` cover projectile strategy and hit contract. `use_z_clip_scale` eliminates the viewmodel-clip problem entirely.
 
 **Input assertion note** — `assert(false)` in `input_management_component_script.gd:131` fires only if an exported `StringName` action is `""` (not a missing action). Missing actions are auto-added to InputMap at runtime with defaults. Not a hard crash risk.
 
@@ -34,4 +34,4 @@ Build cost is low: hitscan ~40–80 LOC (`PhysicsDirectSpaceState3D.intersect_ra
 **Later**
 
 - If a more mature FPS weapon addon appears (maintained, no bundled player SM, Godot 4.6+ native clip), revisit. Candidates to watch: none identified at evaluation time.
-- `godot-fps-weapon` skill should be created to document the custom build contract (WeaponResource fields, FiringStrategy interface, seam with godot-fps-enemy-combat).
+- `godot-fps-weapon` skill should be created to document the custom build contract (WeaponResource fields, FiringStrategy interface, seam with godot-shooter-enemy-combat).

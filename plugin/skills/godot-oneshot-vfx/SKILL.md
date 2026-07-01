@@ -36,7 +36,7 @@ the routing map, never a per-effect singleton.
 - `godot-code-rules` — strict typed GDScript; loaded before any `.gd` edit.
 - Renderer **Forward+** (per `project.godot` `config/features`). GPUParticles3D
   trails and Decal are Forward+/Mobile only — never Compatibility.
-- Combat seams already exist: `godot-fps-enemy-combat` (enemy `died`, weapon
+- Combat seams already exist: `godot-shooter-enemy-combat` (enemy `died`, weapon
   `hit_confirmed` / `kill_confirmed`) and `godot-travelling-projectile-3d`
   (projectile `signal hit(target)`, weapon `signal fired`). VFX only _listens_
   on these — it changes no contract.
@@ -121,7 +121,7 @@ func on_died(enemy: Node3D) -> void:
 
 Wire it by connecting the existing seams to these handlers (e.g. projectile
 `hit` → `on_hit`, enemy `died` → `on_died`, weapon `fired` → the muzzle pulse
-below). The contract owners (`godot-fps-enemy-combat`,
+below). The contract owners (`godot-shooter-enemy-combat`,
 `godot-travelling-projectile-3d`) are unchanged — VFX only hangs a listener.
 
 ### 3. Muzzle flash off `fired` — reuse the existing OmniLight3D

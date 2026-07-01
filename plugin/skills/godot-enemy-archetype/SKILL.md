@@ -1,7 +1,7 @@
 ---
 name: godot-enemy-archetype
 agents: [godot-enemy]
-description: The STATEFUL flavour of data-driven composition (Godot 4.x) — trait-mixing enemies via an `EnemyArchetype` Resource (`.tres`: stats + an ordered list of behaviour `PackedScene`s) whose pieces are stateful `EnemyBehaviour` child NODES instanced fresh per enemy, NOT stateless Resources. One generic `Enemy` scene reads the archetype at spawn; behaviours plug into its attack/movement seams. A trait-mix (tank + magnet, tank + shooter) is a new `.tres`, no subclass, no code. Use when "trait-mixing", "enemy archetype", "tank that also shoots", "data-driven enemy" appears. Builds on `godot-data-driven-composition`; the stateless sibling is `godot-effect-composition`. Composes `godot-enemy-ai` (FSM, no BTs), `godot-composition`, `godot-fps-enemy-combat` (hit/death contract).
+description: The STATEFUL flavour of data-driven composition (Godot 4.x) — trait-mixing enemies via an `EnemyArchetype` Resource (`.tres`: stats + an ordered list of behaviour `PackedScene`s) whose pieces are stateful `EnemyBehaviour` child NODES instanced fresh per enemy, NOT stateless Resources. One generic `Enemy` scene reads the archetype at spawn; behaviours plug into its attack/movement seams. A trait-mix (tank + magnet, tank + shooter) is a new `.tres`, no subclass, no code. Use when "trait-mixing", "enemy archetype", "tank that also shoots", "data-driven enemy" appears. Builds on `godot-data-driven-composition`; the stateless sibling is `godot-effect-composition`. Composes `godot-enemy-ai` (FSM, no BTs), `godot-composition`, `godot-shooter-enemy-combat` (hit/death contract).
 ---
 
 # Enemy archetypes — the stateful flavour (trait-mixing enemies)
@@ -33,7 +33,7 @@ reason this matters live in the base skill; `godot-effect-composition` is the st
   up / calls down. `bind(enemy)` is calls-down. Extract a behaviour only when a variant needs it.
 - `godot-enemy-ai` — the enemy keeps its native nav + node-FSM. Behaviours plug INTO the existing
   `perform_attack` / movement seams; they do NOT replace the FSM. **NO behaviour trees.**
-- `godot-fps-enemy-combat` — the archetype MUST preserve the duck-typed `on_hit()` / `apply_damage`
+- `godot-shooter-enemy-combat` — the archetype MUST preserve the duck-typed `on_hit()` / `apply_damage`
   / `died(enemy)` contract and the child `HealthComponent`. Stats only seed `HealthComponent`.
 
 ## Project conventions
@@ -140,7 +140,7 @@ Engine-agnostic shape; adapt paths/names to the host project.
 
    The enemy stays THIN: it owns nav / perception / health / death; behaviours own how-it-fights and
    how-it-moves. The hit/death contract (`on_hit` → `apply_damage` → HealthComponent → `died`) is
-   untouched — `godot-fps-enemy-combat` still holds.
+   untouched — `godot-shooter-enemy-combat` still holds.
 
 **Trait-mixing is the payoff.** A behaviour piece binds to whatever stats the archetype carries:
 
@@ -205,4 +205,4 @@ its manually-set `@export` stats exactly as before. Migrate one type at a time:
 
 ---
 
-The stateful flavour of `godot-data-driven-composition`; stateless sibling `godot-effect-composition`. Composes `godot-enemy-ai` (FSM, no BTs), `godot-composition`, `godot-fps-enemy-combat` — cross-referenced, not duplicated.
+The stateful flavour of `godot-data-driven-composition`; stateless sibling `godot-effect-composition`. Composes `godot-enemy-ai` (FSM, no BTs), `godot-composition`, `godot-shooter-enemy-combat` — cross-referenced, not duplicated.

@@ -62,14 +62,14 @@ Scope of the skill = **the rig + the routing pattern only**:
 
 ### 2. Effect family ownership (do NOT pile all into the new skill)
 
-| Family                           | Home                                                                                                                                                                                 |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| muzzle flash particles           | NEW `godot-oneshot-vfx` (off the `fired` seam; reuse existing MuzzleFlash light)                                                                                                     |
-| impact / hit-spark / death burst | NEW skill (off `hit`/`hit_confirmed`/`died`) — but the hit/death _contract_ stays `godot-fps-enemy-combat`; VFX just hangs a listener on `died`/`hit_confirmed`. No contract change. |
-| projectile trail                 | EXISTING `godot-travelling-projectile-3d` — trail is a property baked onto the projectile mesh, not a one-shot. Add as a small addition there, NOT the VFX skill.                    |
-| rescue halo                      | NEW skill (off npc green branch) — build task once palette known                                                                                                                     |
-| **damage vignette**              | EXISTING `godot-screen-effects` (shaders/post/) — NOT a new skill. Hermes wrongly thought it absent.                                                                                 |
-| scorch / blood decals            | NEW skill (pooled Decal) — but design doc parks decals as "Later"; DEFER.                                                                                                            |
+| Family                           | Home                                                                                                                                                                                     |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| muzzle flash particles           | NEW `godot-oneshot-vfx` (off the `fired` seam; reuse existing MuzzleFlash light)                                                                                                         |
+| impact / hit-spark / death burst | NEW skill (off `hit`/`hit_confirmed`/`died`) — but the hit/death _contract_ stays `godot-shooter-enemy-combat`; VFX just hangs a listener on `died`/`hit_confirmed`. No contract change. |
+| projectile trail                 | EXISTING `godot-travelling-projectile-3d` — trail is a property baked onto the projectile mesh, not a one-shot. Add as a small addition there, NOT the VFX skill.                        |
+| rescue halo                      | NEW skill (off npc green branch) — build task once palette known                                                                                                                         |
+| **damage vignette**              | EXISTING `godot-screen-effects` (shaders/post/) — NOT a new skill. Hermes wrongly thought it absent.                                                                                     |
+| scorch / blood decals            | NEW skill (pooled Decal) — but design doc parks decals as "Later"; DEFER.                                                                                                                |
 
 ### 3. Open questions to route BEFORE any build
 
@@ -102,7 +102,7 @@ Sections:
 
 - Title + why (fire-and-free mirrors audio house style; one rig, many effects; on-demand).
 - `## Requirements`: godot-composition, godot-code-rules; Forward+ renderer; combat seams exist
-  (godot-fps-enemy-combat, godot-travelling-projectile-3d).
+  (godot-shooter-enemy-combat, godot-travelling-projectile-3d).
 - `## Project conventions`: effect scenes in entities/vfx/<name>.tscn; PascalCase nodes; freed
   one-shots reparent under a surviving VfxRoot before owner queue_free() (audio pattern); no autoload.
 - `## Steps`: (1) vfx_base.tscn + VfxOneShot.gd (one_shot/explosiveness/finished→queue_free,

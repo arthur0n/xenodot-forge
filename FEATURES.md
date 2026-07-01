@@ -70,7 +70,7 @@ the implementers that own them, not invoked directly. Across these domains:
 - **Rendering & visuals** — 3D pixelation (SubViewport), pixel-readability
   lighting, screen-space effects, orthographic follow camera, foliage, one-shot VFX.
 - **3D mechanics** — first-person controller, travelling projectiles, enemy AI
-  (NavigationAgent3D + state machine), FPS enemy combat contract, GridMap levels.
+  (NavigationAgent3D + state machine), shooter enemy combat contract, GridMap levels.
 - **Art & assets** — animation libraries, mesh/texture pixel-art import,
   procedural model & texture generation, level-design principles.
 

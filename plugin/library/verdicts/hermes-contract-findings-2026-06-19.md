@@ -34,7 +34,7 @@ contradicts all three:
   `if body.has_method("take_damage")` — not `if body is Player`."
 - godot-code-rules (SEAM section): "Do NOT fix with `is Player`/`as Player` — coupling entities
   to concrete types is the violation."
-- godot-fps-enemy-combat: whole hit/kill contract is `has_method("on_hit")` + `has_signal("died")`.
+- godot-shooter-enemy-combat: whole hit/kill contract is `has_method("on_hit")` + `has_signal("died")`.
 
 These are intentional (engine-portability across Godot/Redot/Blazium; loose coupling). So rec #1
 is not a free win — it would reverse a stated principle. Weigh against project rule "modularize /
@@ -47,15 +47,15 @@ formalize ON DEMAND only" (premature-abstraction guard).
 **REJECT (for now). Recommendation: reject.**
 
 - Conflicts with godot-composition r6 + godot-code-rules SEAM policy + the entire
-  godot-fps-enemy-combat contract.
+  godot-shooter-enemy-combat contract.
 - Current seam count is small and works; no parse-time bug has bitten. "On demand" not met:
   one shootable type (enemy) today.
 - The imminent NPC (StaticBody3D, entities/npc/npc.gd) becomes a SECOND shootable. Still only
-  two — a shared `on_hit()` duck-typed seam (already specified by godot-fps-enemy-combat) covers
+  two — a shared `on_hit()` duck-typed seam (already specified by godot-shooter-enemy-combat) covers
   it with zero new abstraction. Make NPC implement `on_hit()`; do NOT introduce an abstract base.
 - IF a third+ shootable arrives AND silent typo-on-method-name bugs appear, revisit: at that point
   an `@abstract class_name HitReceiver` is a legitimate hardening and would be a NEW skill
-  (godot-hit-contract) or an addition to godot-fps-enemy-combat — not a CLAUDE.md line.
+  (godot-hit-contract) or an addition to godot-shooter-enemy-combat — not a CLAUDE.md line.
 - Park: pattern is valid 4.6, documented here for later.
 
 ### 2. WaveManager: replace find_child+has_method with @export injection or autoload
@@ -113,7 +113,7 @@ formalize ON DEMAND only" (premature-abstraction guard).
   is next touched: (#2) inject WaveManager via `@export`; (#3/enemy) collapse data-only enemy
   subclasses to `@export`.
 - The headline ask (#1 abstract contract) is rejected as premature and convention-conflicting.
-  NPC shootability = implement the existing duck-typed `on_hit()` seam (godot-fps-enemy-combat),
+  NPC shootability = implement the existing duck-typed `on_hit()` seam (godot-shooter-enemy-combat),
   no abstract base.
 - Parked for later (revisit triggers noted): `@abstract HitReceiver` if 3rd shootable + typo bugs;
   WeaponData/EnemyStats Resources if variant count/designer-authoring grows.
@@ -121,5 +121,5 @@ formalize ON DEMAND only" (premature-abstraction guard).
 ## Immediate unblock for the NPC task (t215)
 
 Decide shootability BEFORE building npc.gd: NPC implements `func on_hit() -> void` (duck-typed seam
-per godot-fps-enemy-combat) — no new contract type. That is the recommended path pending user
+per godot-shooter-enemy-combat) — no new contract type. That is the recommended path pending user
 confirmation below.

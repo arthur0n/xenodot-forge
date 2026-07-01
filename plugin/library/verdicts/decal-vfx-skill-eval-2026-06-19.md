@@ -114,7 +114,7 @@ the projectile/collision-normal plumbing is godot-dev (t253), not the skill.
   fire-and-fade lifecycle distinct from godot-oneshot-vfx (which it must cite as the
   particles/mesh sibling).
 - `## Requirements`: Forward+ renderer; godot-composition (router is a component, not autoload);
-  godot-code-rules; the collision-normal seam (godot-fps-enemy-combat / projectile) supplies the
+  godot-code-rules; the collision-normal seam (godot-shooter-enemy-combat / projectile) supplies the
   normal.
 - `## Project conventions`: `entities/vfx/`, PascalCase nodes, scorch PNG path, decal import
   settings table (premult FALSE / fix_alpha_border TRUE / mipmaps TRUE / Lossless), pool size 8,
