@@ -1,6 +1,6 @@
 ---
 name: godot-data-driven-composition
-agents: [godot-enemy, godot-ranged-combat]
+agents: [godot-enemy, godot-weapons-abilities]
 description: The GENERIC data-driven composition pattern in Godot 4.x — a typed `.tres` Resource carrier holds an ordered list of typed, composable pieces, so new variants are authored as DATA (a new `.tres`), not code. The shared base for the two flavours — stateless fire-once `Effect` Resources (`godot-effect-composition`) and stateful per-frame `Node` behaviours (`godot-enemy-archetype`). Use when designing ANY "carrier + ordered pieces" system (abilities, enemies, items, traps, status effects) and deciding how to structure it so designers edit resources, not scripts. Pick the flavour by piece-shape (stateless vs stateful) — this skill is the shared core + that decision.
 ---
 
@@ -81,21 +81,21 @@ composition decentralized.
 - **The carrier `.tres` is assigned non-null on the live node in the shipped scene** — not only
   loadable. Authored + read is TWO halves; the third is WIRED. Load the entity scene, instantiate,
   and assert `node.get(prop) != null` (the deterministic `check_scene_export_assigned(scene, node,
-  prop)` check). An `@export` that is authored and read but never assigned in the `.tscn` is a dead
+prop)` check). An `@export` that is authored and read but never assigned in the `.tscn` is a dead
   feature behind a green gate — and a smoke that INJECTS the resource itself proves the seam, not
   that production wires it, so it must be a SEPARATE check that reads the real scene without
   injecting.
 
 ## Error → Fix
 
-| Symptom                                                         | Fix                                                                                                                                                                             |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Want JSON config                                                | Use `.tres` typed Resources — typed sub-resources, editor authoring, load-time checks; JSON loses all three.                                                                    |
-| `UNSAFE_METHOD_ACCESS` fails the strict gate                    | Annotate the guarded duck-typed call `@warning_ignore("unsafe_method_access")`; never lower warning levels.                                                                     |
-| Part crashes on some hosts                                      | Don't assume a type — `has_method` guard, no-op when the seam is absent.                                                                                                        |
-| State bleeds across instances / all share a counter or material | A `.tres` shares sub-resources across loaders. Stateless part → fine; stateful → use a Node (enemy flavour) or `duplicate()` the resource/material before mutating.             |
-| A central manager grew and owns everything                      | Move iteration back into the owning entity; a manager only validates prereqs / builds context for instigator-side or multi-stage cases.                                         |
-| Adding a part forces call-site edits                            | The host must only iterate the part list + duck-check the role method; a new part is a new scene/`.tres`, never a call-site change. Widen the seam contract once, not per part. |
+| Symptom                                                         | Fix                                                                                                                                                                                                                                                                                                                                                                                 |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Want JSON config                                                | Use `.tres` typed Resources — typed sub-resources, editor authoring, load-time checks; JSON loses all three.                                                                                                                                                                                                                                                                        |
+| `UNSAFE_METHOD_ACCESS` fails the strict gate                    | Annotate the guarded duck-typed call `@warning_ignore("unsafe_method_access")`; never lower warning levels.                                                                                                                                                                                                                                                                         |
+| Part crashes on some hosts                                      | Don't assume a type — `has_method` guard, no-op when the seam is absent.                                                                                                                                                                                                                                                                                                            |
+| State bleeds across instances / all share a counter or material | A `.tres` shares sub-resources across loaders. Stateless part → fine; stateful → use a Node (enemy flavour) or `duplicate()` the resource/material before mutating.                                                                                                                                                                                                                 |
+| A central manager grew and owns everything                      | Move iteration back into the owning entity; a manager only validates prereqs / builds context for instigator-side or multi-stage cases.                                                                                                                                                                                                                                             |
+| Adding a part forces call-site edits                            | The host must only iterate the part list + duck-check the role method; a new part is a new scene/`.tres`, never a call-site change. Widen the seam contract once, not per part.                                                                                                                                                                                                     |
 | Smoke/gate passes but the feature is dead in the shipped scene  | A smoke bot INJECTED the `.tres`/dependency programmatically — it proves the seam, not that production wires it. Assert the live-node assignment with a SEPARATE `check_scene_export_assigned` / `smoke_*_wire_check.gd` that loads the real `.tscn` and reads `node.get(prop) != null` WITHOUT injecting. A bot that injects what production must wire manufactures a false green. |
 
 ---

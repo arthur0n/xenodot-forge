@@ -22,7 +22,7 @@ export const ORCH = "@orchestrator";
 export const BUILDERS = [
   "godot-dev",
   "godot-refactor",
-  "godot-ranged-combat",
+  "godot-weapons-abilities",
   "godot-enemy",
   "godot-vfx",
   "godot-player",

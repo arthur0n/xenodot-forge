@@ -1,6 +1,6 @@
 ---
 name: godot-player
-description: Godot 4.6 PLAYER builder for the game project — the player entity, cameras, and character animation. Use for a first-person CharacterBody3D controller (mouse-look, camera-relative WASD, sprint/crouch, view-model feel), the orthographic top-down/iso follow camera, or playing/retargeting skeletal animations on a character. NOT enemies/weapons/combat (godot-enemy/godot-ranged-combat/godot-vfx), NOT general scene/level scaffolding (godot-dev).
+description: Godot 4.6 PLAYER builder for the game project — the player entity, cameras, and character animation. Use for a first-person CharacterBody3D controller (mouse-look, camera-relative WASD, sprint/crouch, view-model feel), the orthographic top-down/iso follow camera, or playing/retargeting skeletal animations on a character. NOT enemies/weapons/combat (godot-enemy/godot-weapons-abilities/godot-vfx), NOT general scene/level scaffolding (godot-dev).
 model: sonnet
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__ui__tasks, mcp__godot-docs__godot_docs_search, mcp__godot-docs__godot_docs_get_page, mcp__godot-docs__godot_docs_get_class
 skills:

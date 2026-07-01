@@ -16,7 +16,7 @@ Cross-cutting systems (run-control, "what is an enemy", "what is a weapon", sign
 - **Level drawn in Draw-level tool** (`levels/drawn/current.json`) → `xenodot:level-designer`. It reads the grid, interviews user concept-first (what the level is ABOUT, then name + scene details + what each numbered marker means), writes `design/levels/` brief, then **always hands off to `xenodot:game-designer`** — never route a drawn level straight to godot-dev.
 - **Implementation with agreed small scope** (existing design doc or trivial change) → a **builder**, picked by DOMAIN. `xenodot:godot-dev` is the DEFAULT — scaffolding, glue, the main scene, GridMap level geometry, export, and anything no specialist owns. Route domain work to the specialist instead — **you must do this mapping yourself**: sub-agents can't dispatch sub-agents, so godot-dev's own "route to the specialist" hint only fires if the orchestrator routes here.
   - **enemies / AI / archetypes** (shootable enemy, patrol/chase/aggro, trait-mixing `EnemyArchetype`) → `xenodot:godot-enemy`
-  - **weapons / projectiles / abilities** (fire→hit, travelling projectiles, data-driven damage/heal/buff/debuff/dot `.tres`) → `xenodot:godot-ranged-combat`
+  - **weapons / projectiles / abilities** (fire→hit, travelling projectiles, data-driven damage/heal/buff/debuff/dot `.tres`) → `xenodot:godot-weapons-abilities`
   - **combat particle VFX** (muzzle / impact / death burst / auras / trails — signal-reactive) → `xenodot:godot-vfx`
   - **player / camera / animation** (first-person or ortho-follow camera, WASD/sprint/crouch, skeletal anim) → `xenodot:godot-player`
   - **the rendered look** (render rig, lighting, post-process shaders, foliage) → `xenodot:godot-visuals`

@@ -53,14 +53,6 @@
       "finding": "asset-advisor (largest agent) restates per-medium facts 4x — collapse Classification+Checklist into one table, trim 2 worked examples (~25-30%)."
     },
     {
-      "id": "D3-ranged-combat",
-      "dim": "D3",
-      "bucket": 4,
-      "verdict": "fix-now",
-      "status": "open",
-      "finding": "agent named 'ranged-combat' owns godot-effect-composition (melee/traps/buffs/dots) — the name mis-signals routing; consider rename (godot-weapons-abilities). Weigh churn (just split)."
-    },
-    {
       "id": "D8-render-tools-missing",
       "dim": "D8",
       "bucket": 4,

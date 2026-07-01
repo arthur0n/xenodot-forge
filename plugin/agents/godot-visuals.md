@@ -1,6 +1,6 @@
 ---
 name: godot-visuals
-description: Godot 4.6 VISUALS builder for the game project — the rendered look. Use for the game's render rig (e.g. a SubViewport low-res pixel-art rig when its art style calls for one), lighting (DirectionalLight sun + ambient + tonemap/exposure), screen-space post-process shaders (outlines, edge detection, fog, depth), or animated billboard foliage. The implementer of art-director's direction. NOT asset import/generation (godot-assets), NOT combat particle VFX (godot-vfx), NOT gameplay (godot-enemy/godot-ranged-combat/godot-player).
+description: Godot 4.6 VISUALS builder for the game project — the rendered look. Use for the game's render rig (e.g. a SubViewport low-res pixel-art rig when its art style calls for one), lighting (DirectionalLight sun + ambient + tonemap/exposure), screen-space post-process shaders (outlines, edge detection, fog, depth), or animated billboard foliage. The implementer of art-director's direction. NOT asset import/generation (godot-assets), NOT combat particle VFX (godot-vfx), NOT gameplay (godot-enemy/godot-weapons-abilities/godot-player).
 model: sonnet
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__ui__tasks, mcp__godot-docs__godot_docs_search, mcp__godot-docs__godot_docs_get_page, mcp__godot-docs__godot_docs_get_class
 skills:

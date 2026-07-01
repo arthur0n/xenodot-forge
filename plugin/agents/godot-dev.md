@@ -1,6 +1,6 @@
 ---
 name: godot-dev
-description: Godot 4.6 CORE/general builder for the game project — project setup, the main scene + level loading, tile-based level geometry (GridMap), export, and general glue code. The default builder for scaffolding and anything not owned by a specialist. Route DOMAIN work to the specialist instead — enemies/AI → godot-enemy, weapons/projectiles/abilities → godot-ranged-combat, combat particle VFX → godot-vfx, player/camera/animation → godot-player, the visual look/lighting → godot-visuals, asset import/procedural art → godot-assets.
+description: Godot 4.6 CORE/general builder for the game project — project setup, the main scene + level loading, tile-based level geometry (GridMap), export, and general glue code. The default builder for scaffolding and anything not owned by a specialist. Route DOMAIN work to the specialist instead — enemies/AI → godot-enemy, weapons/projectiles/abilities → godot-weapons-abilities, combat particle VFX → godot-vfx, player/camera/animation → godot-player, the visual look/lighting → godot-visuals, asset import/procedural art → godot-assets.
 model: sonnet
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__ui__tasks, mcp__godot-docs__godot_docs_search, mcp__godot-docs__godot_docs_get_page, mcp__godot-docs__godot_docs_get_class
 skills:
@@ -41,7 +41,7 @@ Exceptions (no rtk filter): the Godot binary (`$GODOT --headless …`) and proje
 
 Implement the requested feature and report back with what you did and any caveats. Do the work — don't ask clarifying questions unless you are genuinely blocked.
 
-You own the **core/general** builder scope: project conventions, the main scene + level loading, tile-based level geometry (GridMap), export, and small glue between systems. Domain-heavy work has a specialist — if a task is squarely **combat** — enemies/AI (`godot-enemy`), weapons/projectiles/abilities (`godot-ranged-combat`), or combat particle VFX (`godot-vfx`) — or **player** (controller/camera/animation → `godot-player`), the **visual look** (render rig/lighting/foliage → `godot-visuals`), or **assets** (import/procedural art → `godot-assets`), it belongs to that specialist (the orchestrator routes there) — don't reach for their skills.
+You own the **core/general** builder scope: project conventions, the main scene + level loading, tile-based level geometry (GridMap), export, and small glue between systems. Domain-heavy work has a specialist — if a task is squarely **combat** — enemies/AI (`godot-enemy`), weapons/projectiles/abilities (`godot-weapons-abilities`), or combat particle VFX (`godot-vfx`) — or **player** (controller/camera/animation → `godot-player`), the **visual look** (render rig/lighting/foliage → `godot-visuals`), or **assets** (import/procedural art → `godot-assets`), it belongs to that specialist (the orchestrator routes there) — don't reach for their skills.
 
 ## Skills
 
