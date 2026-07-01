@@ -17,8 +17,9 @@ description: >-
   the logic is wrong, not the syntax. Reuses a project's own proven
   integration-test pattern. NOT the render/draw/pipeline-count
   checks (those need a real window — godot-verify layer 3 /
-  `verify_render_action.gd`), NOT the load-and-renders gate (godot-verify), and
-  NOT a feel/polish sweep (not yet a skill).
+  `verify_render_action.gd`), NOT the load-and-renders gate (godot-verify),
+  NOT a feel/polish sweep (not yet a skill), NOT the input-driven playthrough
+  bot (`godot-playthrough-bot`).
 ---
 
 # Godot runtime smoke (L2 — headless logic asserts)
@@ -49,30 +50,28 @@ new dependency.
 
 ## The headless caveat (split logic vs render — load-bearing)
 
-Verified on Godot 4.6.3, this machine:
+`--headless` runs the **dummy renderer**: there is NO RenderingDevice, and draw-call /
+`pipeline_compilations` monitors read **0** (probed empirically —
+`library/verdicts/polish-quality-eval-2026-06-19.md`). That forces the split this skill
+turns on:
 
-- `--headless` has **NO RenderingDevice**: `RenderingServer.get_rendering_device() == null`,
-  and `Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)` /
-  `pipeline_compilations` read **0** — it's the dummy renderer.
-- Therefore an L2 smoke test asserting **gameplay logic** (signal emitted, correct
-  arity, recoil applied, health decremented, `died` fired, score incremented,
-  node freed) runs fine headless. THIS skill.
-- An L2 test asserting **render / draw-calls / pipeline-count / pixels** does NOT
-  work headless — it needs a real window. That is godot-verify layer 3 /
-  `tools/verify_render_action.gd` (which opens a window). Do NOT put a draw-call or
-  pipeline-monitor assert in a `tools/smoke_*.gd` — it will read 0 and either falsely
-  pass or falsely fail.
+- An L2 smoke asserting **gameplay logic** (signal emitted, correct arity, recoil applied,
+  health decremented, `died` fired, score incremented, node freed) runs fine headless. THIS
+  skill.
+- An L2 test asserting **render / draw-calls / pipeline-count / pixels** does NOT work
+  headless — it needs a real window. That is godot-verify layer 3 /
+  `tools/verify_render_action.gd`. Do NOT put a draw-call or pipeline-monitor assert in a
+  `tools/smoke_*.gd` — it will read 0 and either falsely pass or falsely fail.
 
-**Split rule:** logic/signal/state asserts → headless `smoke_*.gd` (gated in
-validate.sh). Render/perf/pipeline asserts → windowed run (verify_render_action,
-F5 territory).
+**Split rule:** logic/signal/state asserts → headless `smoke_*.gd` (gated in validate.sh).
+Render/perf/pipeline asserts → windowed run (verify_render_action, F5 territory).
 
-Headless physics also does **not** process overlap detection synchronously between
-two separately-added nodes within a few frames. If your seam depends on
+Headless physics also does **not** process overlap detection synchronously between two
+separately-added nodes within a few frames. If your seam depends on
 `get_overlapping_bodies()` / `body_entered`, assert the method it _would_ call
-(`_apply_hit(enemy)`) directly via the duck-typed seam — exactly as a
-stationary-overlap integration test does — and prove the code path
-exists/is callable, leaving the real overlap to F5.
+(`_apply_hit(enemy)`) directly via the duck-typed seam — exactly as a stationary-overlap
+integration test does — and prove the code path exists/is callable, leaving the real overlap
+to F5.
 
 ## Project conventions
 
@@ -101,9 +100,9 @@ exists/is callable, leaving the real overlap to F5.
   `e.get("_health") as int`, set via `node.set("_swing_active", true)`; annotate the
   duck-typed call site with `@warning_ignore("unsafe_method_access")` /
   `("unsafe_cast")` exactly per godot-code-rules — never widen warning levels.
-- Input actions for seam-driving: `move_left, move_right, move_forward, move_back,
-jump, cycle_level`. Fire/recoil/hit are driven by calling the entity's own methods,
-  not by faking `Input`.
+- Input actions for seam-driving: the generic movement set (`move_left, move_right,
+move_forward, move_back, jump`) plus any game-specific actions the project defines.
+  Fire/recoil/hit are driven by calling the entity's own methods, not by faking `Input`.
 - **Per-domain coverage rule — a smoke must vary the inputs the seam's domain depends
   on, not just the happy path.** Pick the smoke's discriminating cases from what the
   seam reads, by domain:
@@ -136,6 +135,8 @@ jump, cycle_level`. Fire/recoil/hit are driven by calling the entity's own metho
    extends SceneTree
 
    const LEVEL_SCENE := "res://levels/<level>.tscn"
+   const ENEMY_SCENE := "res://entities/<enemy>.tscn"
+   const WEAPON_SCENE := "res://entities/<weapon>.tscn"
 
    var _pass_count: int = 0
    var _fail_count: int = 0
@@ -189,16 +190,16 @@ jump, cycle_level`. Fire/recoil/hit are driven by calling the entity's own metho
 
    ```gdscript
    func _test_hit_emits_died() -> void:
-       var e := _spawn(GRUNT_SCENE) as Enemy
+       var e := _spawn(ENEMY_SCENE) as Enemy
        if e == null:
-           _fail("grunt failed to spawn")
+           _fail("enemy failed to spawn")
            return
        # arity check: died(enemy) — payload must be the enemy that died.
        var got: Array = [0, null]  # [count, last_payload]
        e.died.connect(func(en: Enemy) -> void:
            got[0] = (got[0] as int) + 1
            got[1] = en)
-       e.on_hit()  # health=1 grunt: fatal
+       e.on_hit()  # health=1 enemy: fatal
        _assert(got[0] == 1, "died emitted exactly once on fatal hit")
        _assert(got[1] == e, "died payload is the enemy (correct arity/payload)")
        if is_instance_valid(e):
@@ -247,87 +248,13 @@ jump, cycle_level`. Fire/recoil/hit are driven by calling the entity's own metho
    there is gitignored + overwritten on re-materialization. Each script self-reports
    pass/fail counts and sets the exit code; the gate only needs the exit code.
 
-## Input-driven playthrough (headless)
+## Input-driven playthrough → `godot-playthrough-bot`
 
-The signal/state smoke above drives ONE seam by calling its method. A **playthrough
-bot** drives the actual _input_ layer — walk/jump/crouch/aim/fire on a timeline — and
-asserts the player+combat systems respond. Same `extends SceneTree` family, no GdUnit4.
-Verified on Godot 4.6.3, this machine. Two input paths, pick by how the controller reads:
-
-- **Polled actions** (move/jump/crouch/fire — anything read via
-  `Input.is_action_pressed` / `Input.get_vector` / `Input.get_action_strength`):
-  `Input.action_press(action)` / `Input.action_release(action)`. Works headless,
-  **state-only**, and **does NOT fire `_input()`**. The CharacterBody3D reads the held
-  state in `_physics_process`, so this drives movement correctly.
-- **Typed `InputEvent`s** (anything that flows through `_input` / `_unhandled_input`,
-  incl. mouse-look): `viewport.push_input(event)` — the canonical headless path.
-  Feed an `InputEventMouseMotion` with `.relative` set for look; `InputEventMouseButton`
-  for click-driven fire. `root.push_input(ev)` runs headless.
-- **Toggles / UI open-close / menu / pause-screen seams:** drive the REAL input — the
-  toggle action (`Input.action_press`) OR `viewport.push_input(InputEventKey)` — step
-  physics frames, then assert the OBSERVABLE flip: screen `visible` toggled,
-  `get_tree().paused` toggled, the screen node added/removed. Do NOT call the screen's
-  `_open()`/`_close()` directly and do NOT assert only an internal toggle bool — that
-  bypasses the input path where the bug lives. **A toggle handled in
-  `_input`/`_unhandled_input` on a node whose `process_mode = WHEN_PAUSED` is DEAD while
-  the game is unpaused** (and the inverse while paused) — only a real-input sim catches
-  it; a logic-only assert passes a dead toggle. (Capturing the resulting screen for
-  occlusion/layout is godot-verify Layer 5, root viewport.)
-
-Headless mouse-look limits (load-bearing):
-
-- `Input.parse_input_event(ev)` needs a manual `Input.flush_buffered_events()` to
-  deliver under headless (godot#73557) — so prefer `push_input` (no flush needed).
-- `Input.warp_mouse()` and `Input.MOUSE_MODE_CAPTURED` are **UNAVAILABLE headless**
-  (need a window). So test mouse-look by feeding `InputEventMouseMotion.relative` and
-  asserting **Head pitch / body yaw deltas**, NOT cursor/warp position.
-
-Driver + stepping:
-
-- Run: `$GODOT --headless --fixed-fps 60 --path . --script tools/bot_playthrough.gd`.
-  `--fixed-fps 60` makes physics integration deterministic per step.
-- Step with `await tree.physics_frame` (NOT a `_process` frame count) so
-  CharacterBody3D movement integrates between presses.
-- Assert on position/state **DELTAS** (snapshot before, snapshot after) — not just
-  "input landed". A held action that moves the body 0 units is a failure even though
-  the press "worked".
-- Signal-await-with-timeout (hand-rolled, no GdUnit4): race the signal against a timer
-  via a bool flag, fail if the timer wins.
-
-Minimal reusable press-for-N-frames pattern:
-
-```gdscript
-func _press_for(tree: SceneTree, action: StringName, frames: int) -> void:
-    Input.action_press(action)
-    for _i in frames:
-        await tree.physics_frame
-    Input.action_release(action)
-```
-
-Look / typed-event pattern (mouse-look — assert Head pitch delta, not cursor):
-
-```gdscript
-func _look(viewport: Viewport, dx: float, dy: float) -> void:
-    var ev := InputEventMouseMotion.new()
-    ev.relative = Vector2(dx, dy)
-    viewport.push_input(ev)  # flows through _input/_unhandled_input; no flush needed
-```
-
-Signal-await-with-timeout helper (await signal OR N-frame timeout → fail):
-
-```gdscript
-func _await_signal(tree: SceneTree, sig: Signal, timeout: float) -> bool:
-    var fired: Array = [false]
-    sig.connect(func(_a: Variant = null) -> void: fired[0] = true, CONNECT_ONE_SHOT)
-    var timer := tree.create_timer(timeout)
-    while not (fired[0] as bool):
-        if timer.time_left <= 0.0:
-            return false
-        await tree.physics_frame
-    return true
-```
-
-(Implementation lives in `tools/bot_playthrough.gd` — a godot-dev task, not this skill.)
+The signal/state smoke above drives ONE seam by calling its method. Driving the actual _input_
+layer instead (walk/jump/crouch/aim/fire on a timeline, mouse-look, toggle/pause seams) and the
+**navigability smoke** (a level that renders but is unwalkable) are the companion skill
+`godot-playthrough-bot` — same `extends SceneTree` family, no GdUnit4. Reach for it when the bug
+is in the input path or trigger wiring, not in a directly-callable seam.
 
 ## Engine-error log capture
 
@@ -364,22 +291,6 @@ THE HEADLESS / WINDOWED SPLIT (critical — do NOT assume headless catches every
 
 - Run `$GODOT --headless --path . --script tools/smoke_combat.gd` directly →
   prints `=== RESULTS: N pass / 0 fail ===` and exits 0.
-- Bot playthrough: pressing `move_forward` N frames moves `player.position.z` by a
-  non-zero delta; `jump` flips `is_on_floor()` false then true; crouch lowers eye
-  height / collider; a mouse-look `InputEventMouseMotion` changes Head pitch.
-- **Navigability smoke** (a `tools/nav_smoke.gd` / `bot_playthrough.gd` step — a
-  godot-dev build): catches a level that RENDERS but is unwalkable (player falls through
-  the floor, no collider, spawned mid-air). Physics + navigation run under the headless
-  DUMMY renderer (no RenderingDevice needed), so this is headless L2 — NOT a windowed
-  render check. After instancing the player into the level + 2 `physics_frame`s of
-  navmesh settle, press `move_forward` ~120 frames and assert: `moved > 1.0` unit,
-  `end_pos.y > -10` (did NOT fall through), `is_on_floor()`, upright (`rotation.x < 90°`).
-  Thorough variant: drive a `NavigationAgent3D` to a known reachable point, assert
-  `dist < 2.0` (doubles as a navmesh-baked check — an unbaked navmesh yields an empty
-  path). Caveat: only works if the controller polls `Input` in `_physics_process`
-  (standard CharacterBody3D) — if it reads `_unhandled_input`, feed events via
-  `viewport.push_input`. Wire it into `validate.sh` as an L2 step alongside the
-  `smoke_*.gd` glob (report the wiring to the verifier — `tools/` is plugin-materialized).
 - `--log-file` capture: a deliberate `push_error("x")` in a smoke run appears as
   `ERROR: x` in the log and the grep flags it; a forced runtime null prints a
   `SCRIPT ERROR:` + `GDScript backtrace` block with file:line.
@@ -397,27 +308,24 @@ THE HEADLESS / WINDOWED SPLIT (critical — do NOT assume headless catches every
 
 ## Error → Fix
 
-| Symptom                                                                                                                     | Fix                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Smoke passes but the feature is dead in play (minimap empty, trigger never armed)                                           | Smoke called the private `_arm`/`_spawn` method and checked node-existence. Drive the real signal/trigger path with a group-tagged body (~30 frames for `Area3D` overlap) and assert the downstream observable — group membership / registry entry / persistence — not "node exists".                                                                                                                                                                               |
-| Asserts run before state populated (signals never connected, overlaps empty)                                                | Drive at `_frame == 3`, not 1 — frame 1 is only `_ready()`.                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `pipeline_compilations` / draw-call assert reads 0 and always passes/fails                                                  | Headless has no RenderingDevice — move that assert to a windowed `verify_render_action`-style run.                                                                                                                                                                                                                                                                                                                                                                  |
-| `get_overlapping_bodies()` empty for two separately-added nodes                                                             | Headless physics doesn't sync overlap in a few frames — assert the method the overlap would call (`_apply_hit`) directly via the duck-typed seam.                                                                                                                                                                                                                                                                                                                   |
-| Lambda "Cannot assign to captured local"                                                                                    | Capture a one-element `Array` and mutate `arr[0]`, don't reassign the local.                                                                                                                                                                                                                                                                                                                                                                                        |
-| `UNSAFE_METHOD_ACCESS` / `UNSAFE_CAST` fails parse                                                                          | Annotate the duck-typed seam call with `@warning_ignore("unsafe_method_access")` / `("unsafe_cast")` immediately above it; never lower warning levels.                                                                                                                                                                                                                                                                                                              |
-| Script exits 0 even though the seam is broken                                                                               | The assert reads a value that's true regardless — assert the _delta_ (before != after) or the exact payload, not mere "not null".                                                                                                                                                                                                                                                                                                                                   |
-| New leak lines appear in validate.sh smoke greps                                                                            | `queue_free()` every spawned node at the end of each test; check `is_instance_valid` first.                                                                                                                                                                                                                                                                                                                                                                         |
-| Editing `tools/validate.sh` doesn't persist                                                                                 | `tools/` is plugin-materialized + gitignored — don't hand-edit; report the step to the verifier to add upstream.                                                                                                                                                                                                                                                                                                                                                    |
-| Bot input had no effect (body never moved)                                                                                  | Controller reads `_input()`, not polled state — `action_press` is state-only and skips `_input`; feed the event via `viewport.push_input(ev)` instead.                                                                                                                                                                                                                                                                                                              |
-| Mouse-look assert fails / cursor never moves headless                                                                       | `warp_mouse` + `MOUSE_MODE_CAPTURED` are unavailable headless — feed `InputEventMouseMotion.relative` via `push_input` and assert the Head pitch / body yaw delta, not cursor position.                                                                                                                                                                                                                                                                             |
-| Bot moves 0 units but assert passes                                                                                         | Assert the position/state DELTA (before != after), not "input landed"; step with `await tree.physics_frame` so movement integrates.                                                                                                                                                                                                                                                                                                                                 |
-| Toggle / UI screen "does nothing" in play but the smoke passed                                                              | Smoke asserted internal toggle logic or called `_open()`/`_close()` directly, skipping the input path. Drive the real toggle action / key event through the SceneTree, step frames, assert the observable flip (`visible`, `get_tree().paused`, node added). If the UI node uses `process_mode = WHEN_PAUSED`, its `_input` never fires while unpaused — handle the toggle on an always-processing node (`PROCESS_MODE_ALWAYS`) or read the action where it's live. |
-| `parse_input_event` event never delivered headless                                                                          | godot#73557 — needs `Input.flush_buffered_events()`; prefer `push_input` (no flush) or `action_press` (polled).                                                                                                                                                                                                                                                                                                                                                     |
-| Log grep finds nothing though errors occurred                                                                               | Regex is `^(ERROR                                                                                                                                                                                                                                                                                                                                                                                                                                                   | SCRIPT ERROR):`— drop Hermes`E <ts>:`(absent in 4.6); run grep AFTER the benign-teardown filter, on the`--log-file` path. |
-| `material.*is null` never fires headless                                                                                    | Render-path errors don't execute under the `--headless` dummy renderer — needs a windowed/Xvfb run (deferred, tech_debt #4); do not expect headless to catch it.                                                                                                                                                                                                                                                                                                    |
-| Level renders fine in L3 but player falls through / can't walk / spawns mid-air                                             | Render check ≠ navigability. Add a headless nav smoke (physics+nav run under DUMMY): press `move_forward` ~120 frames, assert `moved>1.0`, `end_pos.y>-10`, `is_on_floor()`, upright. A `NavigationAgent3D` reach-target variant doubles as a navmesh-baked check (empty path = unbaked).                                                                                                                                                                           |
-| Spatial-seam smoke passes but the transform reference (local vs global) is wrong                                            | Every case used an identity / yaw=0 origin, where local==global. Drive >=1 case with a NON-identity origin (rotated yaw AND translated) so a `rotation.y` vs `global_rotation.y` (or local-vs-world basis) bug is forced to diverge; assert a discriminating OFF-AXIS target. (Per-domain coverage rule, Project conventions.)                                                                                                                                      |
-| Gate-step diagnostic (`await nav_region.bake_finished`, any awaited engine signal) hangs forever / runs away with no output | A bare `await signal` in a gate has no escape — an empty/failing headless bake never emits. Race the signal against a frame budget: await the signal OR an N-frame timeout, and on timeout print a FAIL line + `quit(1)`. Never let a gate step await unbounded — reuse the `_await_signal` timeout helper above.                                                                                                                                                   |
+| Symptom                                                                           | Fix                                                                                                                                                                                                                                                                                                                            |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Smoke passes but the feature is dead in play (minimap empty, trigger never armed) | Smoke called the private `_arm`/`_spawn` method and checked node-existence. Drive the real signal/trigger path with a group-tagged body (~30 frames for `Area3D` overlap) and assert the downstream observable — group membership / registry entry / persistence — not "node exists".                                          |
+| Asserts run before state populated (signals never connected, overlaps empty)      | Drive at `_frame == 3`, not 1 — frame 1 is only `_ready()`.                                                                                                                                                                                                                                                                    |
+| `pipeline_compilations` / draw-call assert reads 0 and always passes/fails        | Headless has no RenderingDevice — move that assert to a windowed `verify_render_action`-style run.                                                                                                                                                                                                                             |
+| `get_overlapping_bodies()` empty for two separately-added nodes                   | Headless physics doesn't sync overlap in a few frames — assert the method the overlap would call (`_apply_hit`) directly via the duck-typed seam.                                                                                                                                                                              |
+| Lambda "Cannot assign to captured local"                                          | Capture a one-element `Array` and mutate `arr[0]`, don't reassign the local.                                                                                                                                                                                                                                                   |
+| `UNSAFE_METHOD_ACCESS` / `UNSAFE_CAST` fails parse                                | Annotate the duck-typed seam call with `@warning_ignore("unsafe_method_access")` / `("unsafe_cast")` immediately above it; never lower warning levels.                                                                                                                                                                         |
+| Script exits 0 even though the seam is broken                                     | The assert reads a value that's true regardless — assert the _delta_ (before != after) or the exact payload, not mere "not null".                                                                                                                                                                                              |
+| New leak lines appear in validate.sh smoke greps                                  | `queue_free()` every spawned node at the end of each test; check `is_instance_valid` first.                                                                                                                                                                                                                                    |
+| Editing `tools/validate.sh` doesn't persist                                       | `tools/` is plugin-materialized + gitignored — don't hand-edit; report the step to the verifier to add upstream.                                                                                                                                                                                                               |
+| Log grep finds nothing though errors occurred                                     | Regex is `^(ERROR\|SCRIPT ERROR):` — drop the Hermes `E <ts>:` short form (absent in 4.6); run grep AFTER the benign-teardown filter, on the `--log-file` path.                                                                                                                                                                |
+| `material.*is null` never fires headless                                          | Render-path errors don't execute under the `--headless` dummy renderer — needs a windowed/Xvfb run (deferred, tech_debt #4); do not expect headless to catch it.                                                                                                                                                               |
+| Spatial-seam smoke passes but the transform reference (local vs global) is wrong  | Every case used an identity / yaw=0 origin, where local==global. Drive >=1 case with a NON-identity origin (rotated yaw AND translated) so a `rotation.y` vs `global_rotation.y` (or local-vs-world basis) bug is forced to diverge; assert a discriminating OFF-AXIS target. (Per-domain coverage rule, Project conventions.) |
+
+For input-path / navigability failures (bot input had no effect, mouse-look, toggle/UI "does
+nothing", player falls through the floor, an unbounded gate `await` hangs), see
+`godot-playthrough-bot`.
 
 Authored from a project's own proven integration-test pattern; no external
 library source.

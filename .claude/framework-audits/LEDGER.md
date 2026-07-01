@@ -2,7 +2,7 @@
 
 # Framework audit ledger
 
-**open (fix-now): 2 · later: 12 · skip: 1**
+**open (fix-now): 2 · later: 11 · skip: 1**
 
 _Last audit:_ 2026-07-01 — weekly cold scan (D1,D4 clean) + human-steered promotion/authoring-seam deep-dive. Applied+removed this cycle: D2-enemy-ai-codenames, D7-scope-stale-four, D7-fix-targets-plugin-only, D7-fix-prunes-on-done, D7-tool-domains-doc, D7-agnostic-authoring-convention, D7-promote-board-vapor, D7-lesson-record-template, D9-contamination-check, D8-smoke-misassigned, D8-verify-gate-gap, D6-symptom-route-triplication, D8-runtime-smoke-wiring-stale, D8-capabilities-registry-drift, D7-harvest-grep-contradiction (record → git).
 
@@ -17,9 +17,8 @@ _none_
 - **D8-render-tools-missing** · `D8` · _open_ — godot-verify frames render-health as a 'godot-dev build / contract' (:71) yet names tools/verify_arena_render.gd 'mandatory' (:79) + gives a copy-paste Layer-4 tools/verify_render_action.gd command (:85); NEITHER ships (only spread-only verify_render.gd). A builder running Layer 4 hits file-not-found. Fix: ship both OR mark 'build per contract (not shipped)' + stop presenting the Layer-4 command as runnable.
 - **D8-enemy-smoke-orphan-naming** · `D8` · _open_ — godot-enemy-ai-headless-smoke names its examples check*nav_bake.gd/test_enemy_health.gd (:35,:58,:138), but the gate glob only runs smoke*_/play\__ (checks.sh:285) — so check*\*/test*_ NEVER join the gate, contradicting the skill's own ':128 smoke\__.gd auto-joins'. Rename examples to smoke_nav_bake.gd/smoke_enemy_health.gd.
 
-## Bucket 5 — later (12) · system / parked
+## Bucket 5 — later (11) · system / parked
 
-- **D8-smoke-bloat** · `D8` · _open_ — godot-runtime-smoke ~425L = 3-4 capabilities (smoke-author + input-bot playthrough + log-capture + navigability) — split input-bot to its own skill, demote machine-verified empirics to library/findings/; sweep its firing_yard/cycle_level contamination during the split.
 - **D5-agent-restatement** · `D5` · _open_ — 3x-restatement pattern in transcript-researcher (archive policy, 'no spawn'), level-designer (handoff), bug-triage (no game code), skill-researcher (config gating) — state each constraint once.
 - **D2-engine-version** · `D2` · _open_ — engine version drift across skills: 'Godot 4.6' (greybox, enemy-ai, godot-assets) vs '4.3+' (pixel-lighting) — framework-wide consistency pass.
 - **D6-directive-verbose** · `D6` · _open_ — orchestrator data-driven directive (lines 3-10, 8 lines of prose) above routing — condense to ~4 bullets.

@@ -18,7 +18,7 @@ small:
   into the 5 criteria below and writes `.xenodot/playgrade/<slug>.json` (exit 0 iff overall PASS;
   SKIPs never fail). Re-run it; same build → same verdict.
 - **You** do only what a script can't: (1) **author** the adversarial `tools/play_<slug>.gd` bots
-  it runs (from the design Acceptance — see godot-runtime-smoke for the SceneTree bot pattern), and
+  it runs (from the design Acceptance — see godot-playthrough-bot for the SceneTree bot pattern), and
   (2) **root-cause** each FAIL into the report's `findings`.
 
 Never hand-wave a PASS the script didn't produce, and never overrule a deterministic FAIL — fix the
@@ -69,7 +69,7 @@ having measured the good build.
 
 ## Authoring the play bots (criteria 3 and 5)
 
-From the design Acceptance, author `tools/play_<slug>.gd` (the godot-runtime-smoke SceneTree
+From the design Acceptance, author `tools/play_<slug>.gd` (the godot-playthrough-bot SceneTree
 pattern: `Input.action_press` / `viewport.push_input`, `await physics_frame`, assert state-deltas
 and signals via await-with-timeout, exit 0/1). For each Acceptance check, add the straight-line
 assertion plus at least one adversarial edge case the builder's own `smoke_*.gd` did not cover (a

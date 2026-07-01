@@ -15,6 +15,7 @@ skills:
   - godot-orthographic-follow-camera
   - godot-animation-libraries
   - godot-runtime-smoke
+  - godot-playthrough-bot
 effort: medium
 ---
 
