@@ -22,12 +22,13 @@
     "check": "tsc --noEmit",
     "check:structure": "node ui/structure.check.js",
     "check:skills": "node ui/server/cli/gen-skill-scope.js",
+    "check:contamination": "node ui/server/cli/gen-contamination.js",
     "test": "node ui/reducer.check.js && node ui/server/features/skills/skills.check.js",
     "test:onboarding": "node ui/server/cli/onboarding.check.js",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix --max-warnings 0",
     "format": "prettier --write .",
-    "validate": "npm run check && npm run lint && npm run check:structure && npm run check:skills",
+    "validate": "npm run check && npm run lint && npm run check:structure && npm run check:skills && npm run check:contamination",
     "prepare": "husky || true"
   },
   "dependencies": {
