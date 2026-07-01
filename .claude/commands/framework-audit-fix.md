@@ -7,6 +7,7 @@ model: opus
 
 # Apply framework-audit fixes — only the ids the human agreed
 
+FIRST load CAVEMAN and acknowledge to the user.
 The companion to `/framework-audit`. The audit **reports**; this command **acts**, on exactly
 the findings you name. It never invents new findings, never fixes an id you didn't pass, and
 never deletes/overwrites beyond the recorded fix. Run it caveman.

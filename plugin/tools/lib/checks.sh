@@ -309,3 +309,18 @@ run_gd_bots() {
 check_smoke_bots() { run_gd_bots smoke; }
 # The evaluator's adversarial playthrough bots (driven by playgrade).
 check_play_bots() { run_gd_bots play; }
+
+# Optional: a game's own tools/check_nav_bake.gd (asserts a NavigationRegion3D's baked mesh has
+# polygons > 0 at _ready()). Guards a known Godot 4.6 landmine where the editor bake ships an empty
+# NavigationMesh. SKIPs cleanly if the game hasn't authored that checker — not every game uses nav.
+check_navmesh_baked() {
+	if [ ! -f tools/check_nav_bake.gd ]; then
+		echo "$XENO_GATE: SKIP navmesh-baked — tools/check_nav_bake.gd not present"
+		return 0
+	fi
+	if ! "$GODOT" --headless --path . -s tools/check_nav_bake.gd; then
+		_xeno_fail navmesh-baked
+		return 1
+	fi
+	_xeno_pass navmesh-baked
+}
