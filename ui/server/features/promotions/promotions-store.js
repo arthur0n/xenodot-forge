@@ -5,10 +5,11 @@
 // `npm run promote -- --pending` (which moves the files and marks them promoted).
 // Pure disk module, same shape as tasks-store: re-read/written per mutation,
 // lives next to tasks.json in the game's .xenodot/.
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { parseJSON } from "../../../lib/json.js";
 import { PROJECT_DIR } from "../../core/config.js";
+import { locate, isGateWired } from "./promote-run.js";
 
 /** @typedef {import("../../../lib/types.js").Promotion} Promotion */
 
@@ -48,10 +49,26 @@ function nextId(list) {
 
 /** File a promotion request (status `requested`). Idempotent on (kind, name) while
  * still open — a duplicate request for an already-pending capability just refreshes
- * its reason rather than stacking. @param {{ kind: string, name: string, reason?: string, by?: string }} req
- * @param {string} now @returns {Promotion[]} */
-export function addPromotion(req, now) {
+ * its reason rather than stacking. Enforces the local-first ratchet promotion.md states:
+ * rejects (throws) a request whose source doesn't exist yet, or whose tool isn't gate-wired.
+ * @param {{ kind: string, name: string, reason?: string, by?: string }} req
+ * @param {string} now @param {string} [game] @returns {Promotion[]} */
+export function addPromotion(req, now, game = PROJECT_DIR) {
   if (!KINDS.has(req.kind) || !req.name) return readPromotions();
+  const { src } = locate(req.kind, req.name, game);
+  if (!existsSync(src)) {
+    throw new Error(
+      `${req.kind}/${req.name} not found at ${src} — author it locally as a real, working, ` +
+        `gate-wired ${req.kind.replace(/s$/, "")} and prove it in THIS game first, then file.`,
+    );
+  }
+  if (req.kind === "tools" && !isGateWired(req.name, game)) {
+    throw new Error(
+      `${req.kind}/${req.name} exists at ${src} but isn't gate-wired (no validate.sh/checks.sh ` +
+        `reference, and doesn't match the smoke_*/play_*.gd auto-glob) — wire it into the gate ` +
+        `and prove it in THIS game first, then file.`,
+    );
+  }
   const list = readPromotions();
   const open = list.find(
     (p) =>

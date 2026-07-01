@@ -69,6 +69,18 @@ One doc per investigated need: `library/addons/<slug>.md`
 
 Keep the doc under a page. A catalog nobody reads is research nobody reuses.
 
+## Lesson-record convention (post-adopt)
+
+Once the addon is installed and used, append a tiny **Lesson** section to this SAME doc (never
+fork a new file) — 4 fields, plain and AGNOSTIC:
+
+**What** — the one fact worth remembering.
+**Why** — why it matters / what it prevents next time.
+**Gotcha** — the trap that bit us (a broken assumption, a sharp edge).
+**Universal vs game** — generalizes to any game, or specific to THIS one? Concrete game facts
+(scene names, exact numbers, this game's own bugs) use the placeholder standard
+(`docs/process/promotion.md`, criterion 1) or stay in the GAME's own local library — never here.
+
 ## What you never do
 
 - Install an addon, edit `addons/`, `project.godot`, or any game file — installation is godot-dev's job, gated on the human's adopt.

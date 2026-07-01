@@ -2,12 +2,36 @@
 // plugin destination and move it. Pure (no argv, no process.exit), so both the
 // CLI (`promote.js`) and the UI server (a one-click "Promote now" from the
 // promotions board) share the exact same move semantics.
-import { existsSync, renameSync, rmSync, mkdirSync, cpSync } from "node:fs";
+import { existsSync, readFileSync, renameSync, rmSync, mkdirSync, cpSync } from "node:fs";
 import path from "node:path";
 import { FRAMEWORK_PLUGIN_DIR } from "../../core/config.js";
 import { scanPath } from "./contamination.js";
 
 export const PROMOTE_KINDS = new Set(["skills", "agents", "tools"]);
+
+// smoke_*.gd / play_*.gd auto-join the gate by filename glob (tools/lib/checks.sh
+// run_gd_bots) — no explicit reference needed.
+const AUTO_GLOB_RE = /^(smoke|play)_.*\.gd$/;
+
+/** Whether a game-local tool is actually wired into the gate: it either matches the
+ * smoke_ / play_ auto-glob prefix, or its name is referenced by the game's validate.sh /
+ * validate.local.sh / checks.sh. Used to reject promoting an orphan tool nothing runs.
+ * @param {string} name @param {string} game @returns {boolean} */
+export function isGateWired(name, game) {
+  if (AUTO_GLOB_RE.test(name)) return true;
+  const wiringFiles = [
+    path.join(game, "tools", "validate.sh"),
+    path.join(game, "tools", "validate.local.sh"),
+    path.join(game, "tools", "lib", "checks.sh"),
+  ];
+  return wiringFiles.some((file) => {
+    try {
+      return readFileSync(file, "utf8").includes(name);
+    } catch {
+      return false;
+    }
+  });
+}
 
 /** Resolve the game-local source path and the plugin destination for this capability.
  * @param {string} kind @param {string} name @param {string} game */

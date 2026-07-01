@@ -68,6 +68,18 @@ One doc per capability: `library/tools/<slug>.md`
 
 Keep it under a page. A registry nobody can query is research nobody reuses.
 
+## Lesson-record convention (post-build)
+
+Once the tool is built and used, append a tiny **Lesson** section to this SAME doc (never fork a
+new file) — 4 fields, plain and AGNOSTIC:
+
+**What** — the one fact worth remembering.
+**Why** — why it matters / what it prevents next time.
+**Gotcha** — the trap that bit us (a broken assumption, a sharp edge).
+**Universal vs game** — generalizes to any game, or specific to THIS one? Concrete game facts
+(scene names, exact numbers, this game's own bugs) use the placeholder standard
+(`docs/process/promotion.md`, criterion 1) or stay in the GAME's own local library — never here.
+
 ## What you never do
 
 - Run shell commands without the `rtk` prefix.
