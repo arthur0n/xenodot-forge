@@ -21,14 +21,6 @@
   "verdicts": { "fix-now": "buckets 3/4", "later": "bucket 5", "skip": "bucket 6" },
   "findings": [
     {
-      "id": "D5-asset-advisor-bloat",
-      "dim": "D5",
-      "bucket": 4,
-      "verdict": "fix-now",
-      "status": "open",
-      "finding": "asset-advisor (largest agent) restates per-medium facts 4x — collapse Classification+Checklist into one table, trim 2 worked examples (~25-30%)."
-    },
-    {
       "id": "D8-render-tools-missing",
       "dim": "D8",
       "bucket": 4,
