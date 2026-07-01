@@ -2,7 +2,7 @@
 
 # Framework audit ledger
 
-**open (fix-now): 9 · later: 14 · skip: 1**
+**open (fix-now): 8 · later: 14 · skip: 1**
 
 _Last audit:_ 2026-07-01 — weekly cold scan (D1,D4 clean) + human-steered promotion/authoring-seam deep-dive. Applied+removed this cycle: D2-enemy-ai-codenames, D7-scope-stale-four, D7-fix-targets-plugin-only, D7-fix-prunes-on-done, D7-tool-domains-doc, D7-agnostic-authoring-convention, D7-promote-board-vapor, D7-lesson-record-template, D9-contamination-check, D8-smoke-misassigned, D8-verify-gate-gap, D6-symptom-route-triplication, D8-runtime-smoke-wiring-stale, D8-capabilities-registry-drift, D7-harvest-grep-contradiction (record → git).
 
@@ -12,9 +12,8 @@ _Last audit:_ 2026-07-01 — weekly cold scan (D1,D4 clean) + human-steered prom
 
 _none_
 
-## Bucket 4 — improvements (9) · fix-now · needs judgment (/framework-audit-fix)
+## Bucket 4 — improvements (8) · fix-now · needs judgment (/framework-audit-fix)
 
-- **D7-token-audit-ships** · `D7` · _open_ — token-audit.md ships via plugin to every game but mines forge logs/ + cites forge ui/ internals — move to .claude/commands/ or strip the forge premise.
 - **D2-blockout** · `D2` · _open_ — pixel-lighting:21,30,43,61 asserts blockout_01.tscn 'already carries the rig' as an existing fact — teach the rig values directly instead.
 - **D2-roadmap** · `D2` · _open_ — pixel-lighting:25,79,86 cites docs/roadmap/first_game.md / a Phase-5 gate as scope authority — give an agnostic technical (pixel-readability) rationale instead.
 - **D2-library-records** · `D2` · _open_ — shipped library/addons + tools/\*.md digests are game-COUPLED throughout (scene names, Main/SubViewportContainer/SubViewport, 640x360, pixel-art rig; 'DiceOfFate' in sprint-view-model-feel.md; pushable_enemy.gd in library/addons/enemy-ai.md) yet plugin/library/ is AGNOSTIC-only. ~10 files. DECIDE: (a) genericize keeping the reusable verdict/caveat, or (b) move game-local.

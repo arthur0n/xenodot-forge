@@ -1,5 +1,5 @@
 ---
-description: Daily token-usage audit — scan the 2 newest unanalyzed session logs for agent/LLM turns that could be deterministic, record offenders in the ledger, and file a task per opportunity. Self-improving.
+description: Daily token-usage audit — scan the 2 newest unanalyzed session logs for agent/LLM turns that could be deterministic, record offenders in the ledger, and file a task per opportunity. Self-improving. Manual, human-run. Forge-local (not shipped).
 argument-hint: "[N | session-tag]"
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, mcp__ui__tasks
 model: opus
@@ -22,13 +22,13 @@ and critiques itself. You won't get it right the first time — that's expected.
 
 ## Where the data lives
 
-- Session logs: `"$CLAUDE_PLUGIN_ROOT/../logs"/session-*.ndjson` (the forge's `logs/` dir).
+- Session logs: `logs/session-*.ndjson` (the forge's `logs/` dir; cwd = forge root).
   Filenames are ISO timestamps, so a lexical sort is chronological. The tag is the part
   between `session-` and `.ndjson`.
 - Each line is `{ts, dir, type, message, ...}`. The signals you want:
   - `result` events → `message.usage.{input_tokens,output_tokens,cache_creation_input_tokens,cache_read_input_tokens}` and `message.total_cost_usd` (per turn).
   - `assistant` events → `message.message.content[].{type:"tool_use", name, input}` (the actual `Read`/`Grep`/`Glob`/`Bash`/`Task`/`Agent` calls) and `parent_tool_use_id` (subagent nesting).
-- Ledger: `$CLAUDE_PLUGIN_ROOT/library/token-audits/LEDGER.md` — read first, append after.
+- Ledger: `.claude/token-audits/LEDGER.md` — read first, append after.
 
 ## Steps
 
@@ -51,7 +51,7 @@ and critiques itself. You won't get it right the first time — that's expected.
    - **Costliest turns** — sort `result` lines by `total_cost_usd` (or token total) and ask
      what that money bought.
 
-   Example sweep (adapt; `$LOGS` = `"$CLAUDE_PLUGIN_ROOT/../logs"`). Filter the ndjson with `jq
+   Example sweep (adapt; `$LOGS` = `logs`). Filter the ndjson with `jq
 select(...)` directly — do NOT pipe `rtk grep` into `jq`: rtk's grep filter mangles JSON and breaks
    the `jq` parse. Each log line is `{type:"event", message:{…}}`, so select on `.message.type`:
    - costliest turns: `jq -c 'select(.type=="event" and .message.type=="result") | .message | {cost:.total_cost_usd, u:.usage}' "$LOGS/<file>"`
