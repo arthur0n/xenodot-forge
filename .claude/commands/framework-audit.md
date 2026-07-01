@@ -81,7 +81,7 @@ misses one ref leaves contamination behind. Completeness → `rg`; concepts → 
      `gen-skill-scope.js`.)
 
    - **D2 — Game/path contamination in skills.** A skill must be game-agnostic. Grep
-     `plugin/skills/*/SKILL.md` **and the shipped library prose `plugin/library/{addons,tools}/*.md`**
+     `plugin/skills/*/SKILL.md` **and the shipped library prose `plugin/library/{addons,tools,transcripts,verdicts}/*.md`**
      (it ships to every game too) for: game proper nouns, character/mechanic/enemy/arena names,
      binary names, hardcoded paths (`../game`, absolutes, specific `.tscn`/`.gd` files),
      "game-local" self-declarations. Quote `file:line`. **skill = METHOD, game = FACTS:** strip the
@@ -89,7 +89,13 @@ misses one ref leaves contamination behind. Completeness → `rg`; concepts → 
      `design/`, scenes, `.claude/`) — do NOT copy the worked example into `plugin/library/` (it
      symlinks/ships to every game = re-contamination; that folder is for AGNOSTIC records only). Apply
      this to AGENT prompts too (`description:` / `name:` / body / cache namespaces), not just skills —
-     and to game-PARADIGM lock-in (see D3).
+     and to game-PARADIGM lock-in (see D3). **Roadmap citations are the same bug:** `docs/roadmap/*.md`
+     is forge-local project history (a specific game's plan, retired once that game ships/POCs) —
+     grep for `docs/roadmap/`, `Phase-N`/`Phase N`/`phase A3`-style ids, and phase-gate language
+     ("the Phase-5 gate") in any shipped file. Citing it as scope/reference authority is D2
+     contamination; give the agnostic technical rationale instead and drop the citation entirely.
+     `docs/roadmap/*.md` itself is NEVER an audit target — it's allowed to be as game-specific as it
+     likes; only flag a SHIPPED file (skill/agent/library) that points at it.
 
    - **D3 — Name vs scope.** Does each skill's `name` match what it actually covers? Flag
      names too broad for narrow content or too narrow for broad content (the classic: a
@@ -205,4 +211,6 @@ misses one ref leaves contamination behind. Completeness → `rg`; concepts → 
 - Add game-specific content to the framework — and that INCLUDES `plugin/library/`, which ships
   to every game (AGNOSTIC records only). A game's specific FACTS live GAME-LOCAL (the game repo),
   never in a skill and never in `plugin/library/`.
+- Flag or edit `docs/roadmap/*.md` itself — it's forge-local project history, out of audit scope.
+  Only flag a SHIPPED file that cites it as reference/authority (D2); the roadmap doc stays untouched.
 - Write a long ledger entry. Brevity is the point.

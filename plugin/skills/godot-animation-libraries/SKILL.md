@@ -6,7 +6,7 @@ description: Import and play skeletal animations on a sourced 3D character in Go
 
 # Animation libraries for a sourced 3D character
 
-Animated character = **sourced rigged `.glb` (skeleton + skinned mesh) + anim clips in separate anim-only glTF files, merged into one `AnimationLibrary` loaded onto an `AnimationPlayer` on a node you own.** Model and anims stay apart: re-sourcing either is a one-file swap. Foreign skeleton clips (Mixamo, Quaternius) retarget via `SkeletonProfileHumanoid`. Phase 8 gate: animated character playing looping idle from a separate anim file.
+Animated character = **sourced rigged `.glb` (skeleton + skinned mesh) + anim clips in separate anim-only glTF files, merged into one `AnimationLibrary` loaded onto an `AnimationPlayer` on a node you own.** Model and anims stay apart: re-sourcing either is a one-file swap. Foreign skeleton clips (Mixamo, Quaternius) retarget via `SkeletonProfileHumanoid`. Verification target: animated character playing looping idle from a separate anim file.
 
 ## Requirements
 

@@ -1,9 +1,9 @@
 # How to Make an Assault Rifle in Godot — transcript digest
 
 **Source** — `godot-bullets.md` (the raw, now in `transcripts/archive/godot-bullets.md`). A short FPS "assault rifle" tutorial — builds a gun mesh on the camera, an animated fire loop, **raycast/hitscan** damage, and camera shake. Assumes its own FPS-controller and crosshair videos.
-**Why harvested** — we are about to build phase **A3** of `docs/roadmap/fps_poc.md`: projectile spawn → move → despawn + fire-rate cooldown.
+**Why harvested** — we are about to build: projectile spawn → move → despawn + fire-rate cooldown.
 
-**Heads-up on the source's fit** — this video teaches a **hitscan** (raycast) weapon, _not_ a travelling-projectile weapon. A3's gate is explicitly "projectiles travel and despawn", so the video's core mechanic is a different design than what we're building. It is still useful for the _firing scaffolding_ (input, muzzle placement, fire-rate, hit reaction, feel). Its hitscan-vs-projectile mismatch is the headline finding, not an oversight.
+**Heads-up on the source's fit** — this video teaches a **hitscan** (raycast) weapon, _not_ a travelling-projectile weapon. This gate is explicitly "projectiles travel and despawn", so the video's core mechanic is a different design than what we're building. It is still useful for the _firing scaffolding_ (input, muzzle placement, fire-rate, hit reaction, feel). Its hitscan-vs-projectile mismatch is the headline finding, not an oversight.
 
 **Points**
 

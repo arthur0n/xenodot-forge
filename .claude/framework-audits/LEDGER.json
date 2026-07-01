@@ -21,22 +21,6 @@
   "verdicts": { "fix-now": "buckets 3/4", "later": "bucket 5", "skip": "bucket 6" },
   "findings": [
     {
-      "id": "D2-blockout",
-      "dim": "D2",
-      "bucket": 4,
-      "verdict": "fix-now",
-      "status": "open",
-      "finding": "pixel-lighting:21,30,43,61 asserts blockout_01.tscn 'already carries the rig' as an existing fact — teach the rig values directly instead."
-    },
-    {
-      "id": "D2-roadmap",
-      "dim": "D2",
-      "bucket": 4,
-      "verdict": "fix-now",
-      "status": "open",
-      "finding": "pixel-lighting:25,79,86 cites docs/roadmap/first_game.md / a Phase-5 gate as scope authority — give an agnostic technical (pixel-readability) rationale instead."
-    },
-    {
       "id": "D2-library-records",
       "dim": "D2",
       "bucket": 4,

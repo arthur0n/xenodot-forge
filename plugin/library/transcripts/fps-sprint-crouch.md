@@ -114,5 +114,5 @@ reload, equip_weapon, melee). Adding them is part of the build slice.
 
 ## Scope note
 
-Sprint/crouch are NET-NEW scope — `docs/roadmap/fps_poc.md` does not list them.
-Roadmap addition is a game-designer call before build.
+Sprint/crouch are NET-NEW scope, not part of prior planning.
+Scope addition is a game-designer call before build.
