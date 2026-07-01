@@ -1,7 +1,7 @@
 {
   "_source_of_truth": "EDIT THIS FILE. `LEDGER.md` and `ledger.html` are GENERATED views — never hand-edit them; run `npm run ledger` (pre-commit also regenerates). Schema + workflow: README.md in this folder.",
   "ledgerPhilosophy": "EPHEMERAL working state, not history. Applied findings are DELETED (git + the commit message are the fix record), never stamped done. Keep only open/later rows + skip-tombstones.",
-  "lastAudit": "2026-07-01 — fix-now backlog cleared; last applied: D8-enemy-smoke-orphan-naming (renamed enemy nav/health smoke examples to smoke_* so they auto-join the live gate glob). Only later/skip findings parked; next cold scan pending.",
+  "lastAudit": "2026-07-01 — fix-now backlog cleared; last applied: D7-loop-index (added docs/process/self-improvement.md mapping the self-improvement command loop + the shared ledger, indexed from the ledger README). Only later/skip findings parked; next cold scan pending.",
   "parking": [
     "skill-content-gap dimension — a skill missing a known technique/caveat maps to no clean D1–D9",
     "D10 'seam integrity' dimension — do the framework's own gates (promote/materialize/validate) enforce the conventions its docs state?"
@@ -51,14 +51,6 @@
       "verdict": "later",
       "status": "open",
       "finding": "framework-audit-fix.md has no self-critique/process-note step (framework-audit + token-audit do)."
-    },
-    {
-      "id": "D7-loop-index",
-      "dim": "D7",
-      "bucket": 5,
-      "verdict": "later",
-      "status": "open",
-      "finding": "forge-local self-improvement COMMAND loop (framework-audit → framework-feedback → framework-audit-fix → token-audit) is indexed nowhere; README.md:15 names only the AGENT loop. Fix: add docs/process/self-improvement.md mapping the commands + the LEDGER as shared state."
     },
     {
       "id": "D9-gdscript-shadow-lint",

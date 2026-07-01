@@ -2,9 +2,9 @@
 
 # Framework audit ledger
 
-**open (fix-now): 0 · later: 11 · skip: 1**
+**open (fix-now): 0 · later: 10 · skip: 1**
 
-_Last audit:_ 2026-07-01 — fix-now backlog cleared; last applied: D8-enemy-smoke-orphan-naming (renamed enemy nav/health smoke examples to smoke\_\* so they auto-join the live gate glob). Only later/skip findings parked; next cold scan pending.
+_Last audit:_ 2026-07-01 — fix-now backlog cleared; last applied: D7-loop-index (added docs/process/self-improvement.md mapping the self-improvement command loop + the shared ledger, indexed from the ledger README). Only later/skip findings parked; next cold scan pending.
 
 > Source of truth is **`LEDGER.json`** — edit that, then `npm run ledger` (pre-commit also regenerates). This file + `ledger.html` are generated views. Applied findings are DELETED (git is the fix record), never stamped.
 
@@ -16,13 +16,12 @@ _none_
 
 _none_
 
-## Bucket 5 — later (11) · system / parked
+## Bucket 5 — later (10) · system / parked
 
 - **D5-agent-restatement** · `D5` · _open_ — 3x-restatement pattern in transcript-researcher (archive policy, 'no spawn'), level-designer (handoff), bug-triage (no game code), skill-researcher (config gating) — state each constraint once.
 - **D2-engine-version** · `D2` · _open_ — engine version drift across skills: 'Godot 4.6' (greybox, enemy-ai, godot-assets) vs '4.3+' (pixel-lighting) — framework-wide consistency pass.
 - **D6-directive-verbose** · `D6` · _open_ — orchestrator data-driven directive (lines 3-10, 8 lines of prose) above routing — condense to ~4 bullets.
 - **D7-fix-no-selfcritique** · `D7` · _open_ — framework-audit-fix.md has no self-critique/process-note step (framework-audit + token-audit do).
-- **D7-loop-index** · `D7` · _open_ — forge-local self-improvement COMMAND loop (framework-audit → framework-feedback → framework-audit-fix → token-audit) is indexed nowhere; README.md:15 names only the AGENT loop. Fix: add docs/process/self-improvement.md mapping the commands + the LEDGER as shared state.
 - **D9-gdscript-shadow-lint** · `D9` · _open_ — recurring runtime GDScript::reload warnings the gate never caught: SHADOWED*GLOBAL_IDENTIFIER (range, sign — ability_data.gd, directional_force_effect.gd, aim_line_resolver.gd) + CONFUSABLE_LOCAL_DECLARATION (next_pos — guard.gd). Harden: add a deterministic lint check (gdstyle rule / check*\* in tools/lib/checks.sh). Verify first whether gdstyle already covers it.
 - **D7-display-clobber** · `D7` · _open_ — INVESTIGATE: human repeatedly reports the game's display/window settings reverting ('back to super small, mode !=2'). Determine whether a framework step (materialize/doctor/setup, or the screenshot/verify GD scripts) rewrites project.godot display settings instead of preserving the game's; if game-local config, drop.
 - **D3-verify-subviewport-lock** · `D3` · _open_ — godot-verify Layer 3/4 capture 'the SubViewport (the pixel-art rig)' (:79,:95,:116-119); the framework also spans HD (godot-mesh-import-hd/-hd-material-import) where a non-pixel game renders 3D to the root viewport → the capture silently assumes a pixelation rig. Scope: SubViewport when the game uses a pixelation rig, else root. Park for the HD-vs-pixel branch.

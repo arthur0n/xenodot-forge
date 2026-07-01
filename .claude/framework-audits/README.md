@@ -52,3 +52,6 @@ Meta keys: `lastAudit`, `parking[]`, `dimensions`, `buckets`, `verdicts`.
 `/framework-audit`, `/framework-feedback`, `/harvest-sessions` **append** findings;
 `/framework-audit-fix` and the `framework-nobrainer-fixer` agent **remove** them.
 All operate on `LEDGER.json`, then regenerate the views.
+
+The full command loop these fit into (append → this ledger → apply, all human-gated) is mapped in
+[`docs/process/self-improvement.md`](../../docs/process/self-improvement.md).
