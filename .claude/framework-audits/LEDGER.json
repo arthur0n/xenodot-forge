@@ -37,14 +37,6 @@
       "finding": "godot-enemy-ai-headless-smoke names its examples check_nav_bake.gd/test_enemy_health.gd (:35,:58,:138), but the gate glob only runs smoke_*/play_* (checks.sh:285) — so check_*/test_* NEVER join the gate, contradicting the skill's own ':128 smoke_*.gd auto-joins'. Rename examples to smoke_nav_bake.gd/smoke_enemy_health.gd."
     },
     {
-      "id": "D8-smoke-bloat",
-      "dim": "D8",
-      "bucket": 5,
-      "verdict": "later",
-      "status": "open",
-      "finding": "godot-runtime-smoke ~425L = 3-4 capabilities (smoke-author + input-bot playthrough + log-capture + navigability) — split input-bot to its own skill, demote machine-verified empirics to library/findings/; sweep its firing_yard/cycle_level contamination during the split."
-    },
-    {
       "id": "D5-agent-restatement",
       "dim": "D5",
       "bucket": 5,

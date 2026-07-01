@@ -21,6 +21,11 @@ recommendations are GdUnit4-free hand-rolled patterns; the home is the EXISTING
 
 ## Recommendation 1 — INPUT BOT: ADOPT (extend godot-runtime-smoke)
 
+> SUPERSEDED 2026-07-01 — the input-bot was later split into its own skill
+> `godot-playthrough-bot` (D8-smoke-bloat: runtime-smoke had grown to ~425L / 3–4
+> capabilities). The "NOT a new skill" call below no longer holds; the rest (the headless
+> input facts, the build slice) still stands.
+
 Fits the POC: hand-rolled `extends SceneTree`, no GdUnit4, strict-typed, same
 `smoke_*.gd` family + same validate.sh glob. Extend the EXISTING skill with an
 input-driven playthrough section — NOT a new skill (same L2 family).

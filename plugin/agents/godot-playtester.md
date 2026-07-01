@@ -8,6 +8,7 @@ skills:
   - godot-enemy-ai-headless-smoke
   - godot-playgrade
   - godot-runtime-smoke
+  - godot-playthrough-bot
   - godot-verify
   - godot-code-rules
   - agent-report
@@ -47,7 +48,7 @@ Never assert a PASS the script didn't produce; never overrule a deterministic FA
 1. **Read the design.** `design/<slug>.md` — its **Acceptance** section is your rubric. Map each
    Acceptance check to a playgrade criterion. If Acceptance is too vague to bind to a state-delta /
    signal / threshold, that is itself a finding (the design needs sharpening) — report it.
-2. **Author the play bots.** Per the `godot-runtime-smoke` pattern, write `tools/play_<slug>.gd`
+2. **Author the play bots.** Per the `godot-playthrough-bot` pattern, write `tools/play_<slug>.gd`
    (SceneTree bot: `Input.action_press` / `viewport.push_input`, `await physics_frame`, assert state
    deltas + signals via await-with-timeout, exit 0/1). For **each** Acceptance check: the
    straight-line assertion **plus ≥1 adversarial edge case** the builder's own `smoke_*.gd` didn't
