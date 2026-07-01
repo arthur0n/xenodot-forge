@@ -77,4 +77,4 @@ NEVER edit `tools/validate.sh`, other `tools/` scripts, `project.godot [debug]` 
 
 ## Handoff
 
-When the task asks you to hand off a report, load the `agent-report` skill and follow it: write your full report (gate first) to the handoff file, relay only `<path> — gate PASS|FAIL`.
+For handoffs, follow the preloaded `agent-report` skill.

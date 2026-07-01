@@ -44,4 +44,4 @@ After any .tscn/.gd change, run `tools/validate.sh` before reporting (+ godot-ve
 
 ## Handoff
 
-When asked to hand off a report, follow the preloaded `agent-report` skill: write your full report (gate first) to the handoff file, relay only `<path> — gate PASS|FAIL`.
+For handoffs, follow the preloaded `agent-report` skill.
