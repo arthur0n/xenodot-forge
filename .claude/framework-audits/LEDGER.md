@@ -2,9 +2,9 @@
 
 # Framework audit ledger
 
-**open (fix-now): 1 · later: 11 · skip: 1**
+**open (fix-now): 0 · later: 11 · skip: 1**
 
-_Last audit:_ 2026-07-01 — weekly cold scan (D1,D4 clean) + human-steered promotion/authoring-seam deep-dive. Applied+removed this cycle: D2-enemy-ai-codenames, D7-scope-stale-four, D7-fix-targets-plugin-only, D7-fix-prunes-on-done, D7-tool-domains-doc, D7-agnostic-authoring-convention, D7-promote-board-vapor, D7-lesson-record-template, D9-contamination-check, D8-smoke-misassigned, D8-verify-gate-gap, D6-symptom-route-triplication, D8-runtime-smoke-wiring-stale, D8-capabilities-registry-drift, D7-harvest-grep-contradiction (record → git).
+_Last audit:_ 2026-07-01 — fix-now backlog cleared; last applied: D8-enemy-smoke-orphan-naming (renamed enemy nav/health smoke examples to smoke\_\* so they auto-join the live gate glob). Only later/skip findings parked; next cold scan pending.
 
 > Source of truth is **`LEDGER.json`** — edit that, then `npm run ledger` (pre-commit also regenerates). This file + `ledger.html` are generated views. Applied findings are DELETED (git is the fix record), never stamped.
 
@@ -12,9 +12,9 @@ _Last audit:_ 2026-07-01 — weekly cold scan (D1,D4 clean) + human-steered prom
 
 _none_
 
-## Bucket 4 — improvements (1) · fix-now · needs judgment (/framework-audit-fix)
+## Bucket 4 — improvements (0) · fix-now · needs judgment (/framework-audit-fix)
 
-- **D8-enemy-smoke-orphan-naming** · `D8` · _open_ — godot-enemy-ai-headless-smoke names its examples check*nav_bake.gd/test_enemy_health.gd (:35,:58,:138), but the gate glob only runs smoke*_/play\__ (checks.sh:285) — so check*\*/test*_ NEVER join the gate, contradicting the skill's own ':128 smoke\__.gd auto-joins'. Rename examples to smoke_nav_bake.gd/smoke_enemy_health.gd.
+_none_
 
 ## Bucket 5 — later (11) · system / parked
 

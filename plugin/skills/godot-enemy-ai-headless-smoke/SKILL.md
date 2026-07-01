@@ -14,7 +14,7 @@ description: >-
   `_current_health` decrement → `died` + `queue_free` — all pure logic/data. Leave
   real path / see / hear to an in-editor / windowed F5 AFTER a human (or runtime)
   navmesh bake: a hard gate, not a CI assert. The pattern is
-  `tools/smoke_enemy_ai.gd` + `tools/test_enemy_health.gd`. Use when "my enemy AI
+  `tools/smoke_enemy_ai.gd` + `tools/smoke_enemy_health.gd`. Use when "my enemy AI
   test is failing / hangs", "test the enemy FSM", "headless smoke for enemy AI",
   "assert patrol→aggro→search transitions", "can I test pathing headless", "navmesh
   won't bake in the test", "vision cone test never detects", or "what can I actually
@@ -33,7 +33,7 @@ SPLIT: assert the FSM **logic** headless (it's pure state math), assert the navm
 polygons** headless (the explicit-source bake DOES run under the dummy renderer — the one nav fact
 you get, and the one whose absence let a 0-polygon bake hide a day-long bug), and leave actual
 path/see/hear to a human F5. The pattern uses `tools/smoke_enemy_ai.gd`,
-`tools/test_enemy_health.gd`, and `tools/check_nav_bake.gd`, consistent with the
+`tools/smoke_enemy_health.gd`, and `tools/smoke_nav_bake.gd`, consistent with the
 `godot-runtime-smoke` headless caveat.
 
 ## Requirements
@@ -55,7 +55,7 @@ path/see/hear to a human F5. The pattern uses `tools/smoke_enemy_ai.gd`,
   - Load the real level `.tscn`, `add_child` it (runs `_ready()`, which runtime-bakes), then read
     `nav_region.navigation_mesh.get_polygon_count() > 0`. The explicit-source bake
     (`godot-navmesh-pathing-4-6` step 1) parses static colliders and runs fine under the dummy
-    renderer. This is the `tools/check_nav_bake.gd` pattern (assert a known-good poly count > 0,
+    renderer. This is the `tools/smoke_nav_bake.gd` pattern (assert a known-good poly count > 0,
     not 0).
   - This catches the **nested-host 0-polygon trap**: `bake_navigation_mesh()` scans only the
     region's own children when the level loads under `Main/LevelHost`, silently baking 0 polys.
@@ -94,16 +94,16 @@ path/see/hear to a human F5. The pattern uses `tools/smoke_enemy_ai.gd`,
 2. **Test archetype data round-trips.** `load()` the `.tres`, assert each field (FOV, ranges,
    speeds, timers) equals the authored value. Catches a renamed or silently-dropped field.
 
-3. **Test health / damage** (the `test_enemy_health.gd` pattern): `take_damage()` reduces
+3. **Test health / damage** (the `smoke_enemy_health.gd` pattern): `take_damage()` reduces
    `_current_health`; reaching 0 emits `died` and calls `queue_free()`; multiple hits accumulate.
 
 4. **DO assert the navmesh BAKED (`polygon_count > 0`); do NOT assert pathing / detection.** Load
    the real level `.tscn`, `add_child` it so its `_ready()` runtime-bake runs, then assert
-   `nav_region.navigation_mesh.get_polygon_count() > 0` — the `tools/check_nav_bake.gd` pattern.
+   `nav_region.navigation_mesh.get_polygon_count() > 0` — the `tools/smoke_nav_bake.gd` pattern.
    This is the ONE nav signal you get headless, and it catches the nested-host 0-polygon trap:
 
    ```gdscript
-   # tools/check_nav_bake.gd — headless: the level _ready() must bake a non-empty navmesh.
+   # tools/smoke_nav_bake.gd — headless: the level _ready() must bake a non-empty navmesh.
    func _check() -> bool:
    	var inst: Node = (load("res://levels/<level>.tscn") as PackedScene).instantiate()
    	get_root().add_child(inst)   # runs _ready() → the explicit-source bake
@@ -136,7 +136,7 @@ path/see/hear to a human F5. The pattern uses `tools/smoke_enemy_ai.gd`,
       proves nothing.)
 - [ ] The FSM smoke drives the FULL sequence (patrol→aggro→alert→search→patrol + re-acquire), not
       a single hop.
-- [ ] A `check_nav_bake.gd`-style smoke asserts `get_polygon_count() > 0` after the level `_ready()`
+- [ ] A `smoke_nav_bake.gd`-style smoke asserts `get_polygon_count() > 0` after the level `_ready()`
       bake (catches the nested-host 0-polygon trap); break the bake → it exits 1.
 - [ ] No `body_sighted` / `get_overlapping_bodies` / "enemy reached the player" assert lives in any
       enemy `smoke_*.gd` (the bake-polygon assert is the ONLY nav assert that belongs headless).
@@ -152,7 +152,7 @@ path/see/hear to a human F5. The pattern uses `tools/smoke_enemy_ai.gd`,
 | Test asserts "enemy reached the player" and always fails                                                     | ARRIVAL is a human-F5 gate (path query + physics need a window). Assert instead: the bake produced polygons (`get_polygon_count() > 0`), the FSM state, and that `set_nav_destination` was called — not arrival.                                                                                                                                                                                                     |
 | `body_sighted` / `noise_heard` never fires in the test                                                       | `VisionCone3D` and `HearingArea` need render/physics + settled overlap; not headless-testable. Move detection to F5.                                                                                                                                                                                                                                                                                                 |
 | FSM smoke is green but the real enemy does nothing in game                                                   | The LOGIC is fine; the failure is bake/perception — navmesh didn't bake (`godot-navmesh-pathing-4-6`), player not in group `"player"`, or `emit_noise` un-wired (`godot-stealth-perception`). FSM/perception failures are F5 — but a 0-polygon BAKE is catchable headless (next row).                                                                                                                                |
-| Every nav wiring fix "passes" the gate but the enemy is still frozen at F5 (`target (0,0,0)`, `path_size 0`) | The gate never asserted the bake produced polygons. The level's `bake_navigation_mesh()` scans only the region's children when nested under `LevelHost` → 0 polys; the naive headless bake ALSO yields 0, so the gate was structurally blind. Add a `polygon_count > 0` smoke that loads the `.tscn`, `add_child`s it (runs the `_ready()` explicit-source bake), and asserts polys > 0 (`tools/check_nav_bake.gd`). |
+| Every nav wiring fix "passes" the gate but the enemy is still frozen at F5 (`target (0,0,0)`, `path_size 0`) | The gate never asserted the bake produced polygons. The level's `bake_navigation_mesh()` scans only the region's children when nested under `LevelHost` → 0 polys; the naive headless bake ALSO yields 0, so the gate was structurally blind. Add a `polygon_count > 0` smoke that loads the `.tscn`, `add_child`s it (runs the `_ready()` explicit-source bake), and asserts polys > 0 (`tools/smoke_nav_bake.gd`). |
 | FSM can't be built without a full scene                                                                      | A state reaches into scene-only nodes in `enter()`. Keep state logic driven by `trigger_*` + timer state so the FSM is unit-constructible (the test seam).                                                                                                                                                                                                                                                           |
 
 ## Parked (intentionally not built)

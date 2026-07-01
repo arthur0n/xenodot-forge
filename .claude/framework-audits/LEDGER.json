@@ -1,7 +1,7 @@
 {
   "_source_of_truth": "EDIT THIS FILE. `LEDGER.md` and `ledger.html` are GENERATED views — never hand-edit them; run `npm run ledger` (pre-commit also regenerates). Schema + workflow: README.md in this folder.",
   "ledgerPhilosophy": "EPHEMERAL working state, not history. Applied findings are DELETED (git + the commit message are the fix record), never stamped done. Keep only open/later rows + skip-tombstones.",
-  "lastAudit": "2026-07-01 — weekly cold scan (D1,D4 clean) + human-steered promotion/authoring-seam deep-dive. Applied+removed this cycle: D2-enemy-ai-codenames, D7-scope-stale-four, D7-fix-targets-plugin-only, D7-fix-prunes-on-done, D7-tool-domains-doc, D7-agnostic-authoring-convention, D7-promote-board-vapor, D7-lesson-record-template, D9-contamination-check, D8-smoke-misassigned, D8-verify-gate-gap, D6-symptom-route-triplication, D8-runtime-smoke-wiring-stale, D8-capabilities-registry-drift, D7-harvest-grep-contradiction (record → git).",
+  "lastAudit": "2026-07-01 — fix-now backlog cleared; last applied: D8-enemy-smoke-orphan-naming (renamed enemy nav/health smoke examples to smoke_* so they auto-join the live gate glob). Only later/skip findings parked; next cold scan pending.",
   "parking": [
     "skill-content-gap dimension — a skill missing a known technique/caveat maps to no clean D1–D9",
     "D10 'seam integrity' dimension — do the framework's own gates (promote/materialize/validate) enforce the conventions its docs state?"
@@ -20,14 +20,6 @@
   "buckets": { "3": "no-brainer", "4": "improvement", "5": "system/later", "6": "skip" },
   "verdicts": { "fix-now": "buckets 3/4", "later": "bucket 5", "skip": "bucket 6" },
   "findings": [
-    {
-      "id": "D8-enemy-smoke-orphan-naming",
-      "dim": "D8",
-      "bucket": 4,
-      "verdict": "fix-now",
-      "status": "open",
-      "finding": "godot-enemy-ai-headless-smoke names its examples check_nav_bake.gd/test_enemy_health.gd (:35,:58,:138), but the gate glob only runs smoke_*/play_* (checks.sh:285) — so check_*/test_* NEVER join the gate, contradicting the skill's own ':128 smoke_*.gd auto-joins'. Rename examples to smoke_nav_bake.gd/smoke_enemy_health.gd."
-    },
     {
       "id": "D5-agent-restatement",
       "dim": "D5",
