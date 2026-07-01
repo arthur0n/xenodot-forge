@@ -1,7 +1,7 @@
 ---
 name: godot-runtime-arena
 agents: [game-designer, level-designer]
-description: Resource-driven arena assembled at RUNTIME in Godot — author an `ArenaLayout` `.tres` (footprint, cover pieces with class, verticality, lanes, landmarks, spawn markers, fall zones) that ONE builder node instantiates in `_ready()`, plus a headless layout self-audit that REPORTS spatial metrics. OPT-IN — use ONLY when the user EXPLICITLY wants a Resource/data-driven, runtime-built, or many-variant arena (a designer iterates the `.tres` without touching scenes). For a normal prototype blockout use `godot-greybox` (static, hand-authored, editable in the editor) — that is the DEFAULT; this is the opt-in runtime path. Builds on `godot-greybox`'s nine spatial principles. NOT GridMap tile-fill (`godot-gridmap-level`).
+description: Resource-driven arena assembled at RUNTIME in Godot — author an `ArenaLayout` `.tres` (footprint, cover pieces with class, verticality, lanes, landmarks, spawn markers, fall zones) that ONE builder node instantiates in `_ready()`, plus a headless layout self-audit that REPORTS spatial metrics. OPT-IN — use ONLY when the user EXPLICITLY wants a Resource/data-driven, runtime-built, or many-variant arena (a designer iterates the `.tres` without touching scenes). For a normal prototype blockout use `godot-greybox` (static, hand-authored, editable in the editor) — that is the DEFAULT; this is the opt-in runtime path. Builds on `godot-arena-spatial-design`'s nine spatial principles. NOT GridMap tile-fill (`godot-gridmap-level`).
 ---
 
 # godot-runtime-arena — Resource-driven arena, built at runtime
@@ -10,8 +10,8 @@ description: Resource-driven arena assembled at RUNTIME in Godot — author an `
 edits an `ArenaLayout` `.tres` and one builder node constructs the geometry at play-time, so a new
 arena variant is a new `.tres` with no scene editing. **For a one-off prototype you open and move in
 the editor, use `godot-greybox` (static) instead — that is the default.** The arena's spatial quality
-is judged by the nine principles in `godot-greybox`; this skill is only the MECHANISM (the Resource +
-the builder + the headless audit), not the design craft.
+is judged by the nine principles in `godot-arena-spatial-design`; this skill is only the MECHANISM
+(the Resource + the builder + the headless audit), not the design craft.
 
 **Know the tradeoff before choosing this:** a runtime build means the geometry is NOT in the saved
 scene — the level is empty in the editor and only appears on Play. Accept that ONLY because you want
@@ -19,8 +19,8 @@ data-driven variants / generation. If you'll hand-tweak the layout visually, you
 
 ## Requirements
 
-- `godot-greybox` — the nine spatial principles (what makes a good arena) apply here; this skill only
-  changes HOW the arena is assembled (runtime, from data).
+- `godot-arena-spatial-design` — the nine spatial principles (what makes a good arena) apply here;
+  this skill only changes HOW the arena is assembled (runtime, from data).
 - `godot-code-rules` — strict typed GDScript: the `ArenaLayout` Resource + builder are typed.
 - `godot-composition` — the builder is a component node under the level root; signals up / calls down.
 - `godot-runtime-smoke` — the audit is a headless `SceneTree` tool wired as a `validate.sh` step.
@@ -40,8 +40,8 @@ data-driven variants / generation. If you'll hand-tweak the layout visually, you
 ## Steps
 
 1. Author / edit `levels/<name>_layout.tres` (an `ArenaLayout`) for the nine principles
-   (`godot-greybox`): interior cover per region (P2), mixed classes (P4), 2–3 levels (P5), ≥3
-   landmarks (P6), loop lanes (P1). Emit `pos` + `rot_y` only.
+   (`godot-arena-spatial-design`): interior cover per region (P2), mixed classes (P4), 2–3 levels
+   (P5), ≥3 landmarks (P6), loop lanes (P1). Emit `pos` + `rot_y` only.
 2. Wire `spawn_markers` + `fall_zones` to reuse the existing SpawnMarker3D / FallZone pattern — do not
    invent a new hazard or spawn system.
 3. Let the `ArenaBuilder` node instantiate the layout in `_ready()` (BoxMesh StaticBody3D per piece,

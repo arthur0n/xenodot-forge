@@ -77,14 +77,6 @@
       "finding": "engine version drift across skills: 'Godot 4.6' (greybox, enemy-ai, godot-assets) vs '4.3+' (pixel-lighting) — framework-wide consistency pass."
     },
     {
-      "id": "D3-greybox-fps",
-      "dim": "D3",
-      "bucket": 5,
-      "verdict": "later",
-      "status": "open",
-      "finding": "godot-greybox framed entirely as 'Godot 4.6 FPS arena' — discloses the lock but is genre-locked; product call whether the framework is FPS-maker or genre-general."
-    },
-    {
       "id": "D6-directive-verbose",
       "dim": "D6",
       "bucket": 5,

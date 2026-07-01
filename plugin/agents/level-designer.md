@@ -5,6 +5,7 @@ model: sonnet
 tools: Read, Glob, Grep, Write, Skill, mcp__ui__form, mcp__ui__tasks
 skills:
   - caveman
+  - godot-arena-spatial-design
   - godot-greybox
   - godot-navmesh-pathing-4-6
   - godot-runtime-arena

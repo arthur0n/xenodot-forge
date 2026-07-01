@@ -37,9 +37,11 @@ does not re-implement importing — it orchestrates the skills that already do.
     via `StandardMaterial3D` + `uv1_scale` + Texture Repeat — `godot-texture-import-pixel-art`. Keep the
     box; re-skin it. Do NOT replace a wall with a wall-shaped model.
 - **Preserve the spatial contract.** A swap keeps the greybox node's PascalCase name, `position`,
-  `rotation`, and a collider of equivalent footprint. The nine spatial principles godot-greybox authored
-  (topology/cover/sightlines/verticality/landmarks) must read IDENTICALLY after migration — migration is
-  re-skinning, not re-shaping. If an asset is a different size, scale it to the cell, do not move the cell.
+  `rotation`, and a collider of equivalent footprint. The level's spatial read — elevation, zoning,
+  and (if it's a combat/arena encounter) the `godot-arena-spatial-design` principles
+  (topology/cover/sightlines/verticality/landmarks) — must read IDENTICALLY after migration;
+  migration is re-skinning, not re-shaping. If an asset is a different size, scale it to the cell, do
+  not move the cell.
 - **Shared-material building set.** Source wall/floor/structural pieces as a coherent set sharing ONE
   material/texture family so the arena reads as one place, not a kitbash — pick the set in the asset
   request, not piecemeal per node.

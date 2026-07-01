@@ -5,6 +5,7 @@ model: opus
 tools: Read, Glob, Grep, Write, Edit, Skill, mcp__ui__form, mcp__ui__tasks
 skills:
   - caveman
+  - godot-arena-spatial-design
   - godot-greybox
   - godot-runtime-arena
   - tasks-mcp
@@ -40,7 +41,7 @@ When the user brings a request that doesn't already meet the bar:
 
 When the brief is a level-design doc from **level-designer**, you are the one who decides **how** to build it:
 
-- **Build method — default STATIC greybox.** Unless the user explicitly asks otherwise, the level is built as a hand-authored **static** blockout (`godot-greybox`): real nodes written into `levels/<name>.tscn`, editable in the editor — NOT generated at runtime, NOT a build script. Use GridMap + MeshLibrary (`godot-gridmap-level`) or a runtime Resource builder (`godot-runtime-arena`) ONLY when the user requests that method. Whichever: never hand-typed `Transform3D` walls (they drift off colliders and clip) — author via `position` + `rotation`. State the chosen method in the doc; don't re-derive it.
+- **Build method — default STATIC greybox.** Unless the user explicitly asks otherwise, the level is built as a hand-authored **static** blockout (`godot-greybox`): real nodes written into `levels/<name>.tscn`, editable in the editor — NOT generated at runtime, NOT a build script. Use GridMap + MeshLibrary (`godot-gridmap-level`) or a runtime Resource builder (`godot-runtime-arena`) ONLY when the user requests that method. Whichever: never hand-typed `Transform3D` walls (they drift off colliders and clip) — author via `position` + `rotation`. State the chosen method in the doc; don't re-derive it. **If the level is a combat/arena space** (enemy encounters, waves), also apply `godot-arena-spatial-design`'s nine spatial principles alongside whichever build method is chosen — it augments `godot-greybox`/`godot-runtime-arena`/`godot-gridmap-level`, it doesn't replace them. A non-combat level (market square, dungeon hallway) skips it.
 - **Decompose if large:** a big level becomes several small slices each buildable and verifiable on its own — e.g. one room cluster / wing per slice, or structure → props → per-room colours. Sequence them and state each slice's scope + the domain it touches; the orchestrator routes each slice to its builder — you don't name the builder.
 - **Carry the level design through to the build:** scale → GridMap `cell_size`, room ids → per-zone wall tile variants, item ids → instanced prop scenes **with collision by default** (props are `StaticBody3D` + a per-prop box collider so the player can't walk through furniture — never park collision as a "Later"), spawn + theme as briefed. Register the scene in `main.gd`; gate each slice with `godot-verify`. Express a prop that spans several cells as **one grouped prop at the group centre**, never a per-cell `×N` count (ambiguous between N units and one N-cell piece — see `godot-gridmap-level`).
 
