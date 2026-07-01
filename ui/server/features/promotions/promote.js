@@ -6,8 +6,9 @@
 // (Agnostic tools are then copied back into the game as a working copy by materialize.)
 //
 // Two modes:
-//   • Explicit:        npm run promote -- <skills|agents|tools> <name> [/path/to/game]
+//   • Explicit:        npm run promote -- <skills|agents|tools> <name> [/path/to/game] [--force]
 //                        e.g. npm run promote -- tools profile_frame.gd
+//                        --force overrides the game-contamination hard-block (see promote-run.js).
 //   • Manifest-driven: npm run promote -- --pending [/path/to/game]
 //                        promotes every APPROVED entry in .xenodot/promotions.json (filed
 //                        via mcp__ui__promote, approved in the UI) and marks it `promoted`.
@@ -18,6 +19,7 @@ import { PROMOTE_KINDS as KINDS, promoteOne } from "./promote-run.js";
 
 const argv = process.argv.slice(2);
 const pending = argv.includes("--pending");
+const force = argv.includes("--force");
 const positional = argv.filter((a) => !a.startsWith("--"));
 
 if (pending) {
@@ -47,13 +49,13 @@ if (pending) {
 const [kind, name, gameArg] = positional;
 const game = gameArg ? path.resolve(gameArg) : PROJECT_DIR;
 if (!kind || !KINDS.has(kind) || !name) {
-  console.error("usage: npm run promote -- <skills|agents|tools> <name> [/path/to/game]");
+  console.error("usage: npm run promote -- <skills|agents|tools> <name> [/path/to/game] [--force]");
   console.error(
     "   or: npm run promote -- --pending [/path/to/game]   (promote approved requests)",
   );
   process.exit(1);
 }
-const result = promoteOne(kind, name, game);
+const result = promoteOne(kind, name, game, { force });
 if (!result.ok) {
   console.error(`promote: ${result.msg}`);
   if (result.msg.includes("not found")) {
