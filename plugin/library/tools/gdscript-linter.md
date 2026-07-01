@@ -18,7 +18,7 @@ per-rule severity, and its rule set is fixed/non-extensible. gdstyle provides a 
 54 named rules across `syntax/ naming/ format/ order/ quality/`, a Godot **editor plugin**
 (native GDExtension on 4.6+, CLI fallback elsewhere), `--fix`, `fmt`, and `--format json`.
 
-## What was verified empirically (v0.1.7, on this codebase)
+## What was verified empirically (v0.1.7)
 
 WORKS:
 
@@ -28,9 +28,8 @@ WORKS:
   `max_class_variables`, `max_branches`, `max_nesting_depth`, `max_local_variables`,
   `max_inner_classes`, `exclude`.
 - `gdstyle fmt --check` correctly **exits 1** on unformatted files (usable as a format gate).
-- `quality/max-class-variables` (default 15) flags the exact god-classes found in DiceOfFate
-  (enemy.gd 24, wave_manager.gd 22, weapon.gd 18, player.gd 17) — a mechanical
-  "too-many-responsibilities" proxy gdlint never gave us.
+- `quality/max-class-variables` (default 15) flags god-classes (a script whose member-variable
+  count exceeds the cap) — a mechanical "too-many-responsibilities" proxy gdlint never gave us.
 
 BROKEN / SHARP EDGES (why it is advisory-only, not the gate):
 
@@ -39,8 +38,8 @@ BROKEN / SHARP EDGES (why it is advisory-only, not the gate):
   violations. Only `"off"` changes behavior. → `check` cannot fail a build.
 - **Unknown config keys are silently ignored** (a typo'd cap just doesn't apply — no error).
 - **False positive `quality/duplicate-dict-key`:** misreads `Namespace.MEMBER` used as a dict
-  _value_ as a duplicate _key_ — fired 22× on `tools/gen_textures_specs.gd` (ArtStyle.\* colors).
-  → turned `off` in the shipped config.
+  _value_ as a duplicate _key_ — fires repeatedly on any file that uses namespaced enum/constant
+  members as dict values. → turned `off` in the shipped config.
 - **`naming/function-name-snake-case`** flags the `_on_<Node>_<signal>` handler pattern that
   gdlint's `function-name` regex explicitly allows → turned `off` (gdlint owns naming).
 - **`order/class-member-order`** uses a different canonical order than gdlint's

@@ -10,14 +10,14 @@
 
 ### Candidates
 
-| Component | Addon | Source | License | Godot | Language | Last activity | Notes |
-|---|---|---|---|---|---|---|---|
-| Vision / FOV | VisionCone3D | https://github.com/Tattomoosa/VisionCone3D | MIT | 4.3+ (dedicated branch), 4.4 main | GDScript 100% | Apr 2025 (v0.3.0) | 3D only; exports `range`, `angle`, `collision_mask`, `collision_environment_mask`; signals `body_sighted` / `body_hidden` |
-| Vision / FOV | godot-vision-cone (d-bucur) | https://github.com/d-bucur/godot-vision-cone | MIT/Apache-2.0 | 4.x all | GDScript 100% | 2025 | **2D only** — disqualified |
-| Hearing / Stimulus | godot-perception (kylecorry31) | https://github.com/kylecorry31/godot-perception | MIT | Unknown | GDScript | Archived Mar 2026 | WIP, 1 star, 0 docs, archived — disqualified |
-| Hearing / Stimulus | (none found) | — | — | — | — | — | No viable GDScript Godot-4 hearing/stimulus addon exists |
-| FSM | HexagonNico/FiniteStateMachine | https://codeberg.org/HexagonNico/FiniteStateMachine | MIT | 4.5 (Sep 2025) | GDScript 100% | Sep 2025 | Thin: `StateMachine` node + abstract `StateMachineState`; uses `process_mode` toggle for state activation |
-| FSM | godot-addons/godot-finite-state-machine | https://github.com/godot-addons/godot-finite-state-machine | MIT | 4.x | GDScript | 2023 | Less maintained; similar thin approach |
+| Component          | Addon                                   | Source                                                     | License        | Godot                             | Language      | Last activity     | Notes                                                                                                                     |
+| ------------------ | --------------------------------------- | ---------------------------------------------------------- | -------------- | --------------------------------- | ------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Vision / FOV       | VisionCone3D                            | https://github.com/Tattomoosa/VisionCone3D                 | MIT            | 4.3+ (dedicated branch), 4.4 main | GDScript 100% | Apr 2025 (v0.3.0) | 3D only; exports `range`, `angle`, `collision_mask`, `collision_environment_mask`; signals `body_sighted` / `body_hidden` |
+| Vision / FOV       | godot-vision-cone (d-bucur)             | https://github.com/d-bucur/godot-vision-cone               | MIT/Apache-2.0 | 4.x all                           | GDScript 100% | 2025              | **2D only** — disqualified                                                                                                |
+| Hearing / Stimulus | godot-perception (kylecorry31)          | https://github.com/kylecorry31/godot-perception            | MIT            | Unknown                           | GDScript      | Archived Mar 2026 | WIP, 1 star, 0 docs, archived — disqualified                                                                              |
+| Hearing / Stimulus | (none found)                            | —                                                          | —              | —                                 | —             | —                 | No viable GDScript Godot-4 hearing/stimulus addon exists                                                                  |
+| FSM                | HexagonNico/FiniteStateMachine          | https://codeberg.org/HexagonNico/FiniteStateMachine        | MIT            | 4.5 (Sep 2025)                    | GDScript 100% | Sep 2025          | Thin: `StateMachine` node + abstract `StateMachineState`; uses `process_mode` toggle for state activation                 |
+| FSM                | godot-addons/godot-finite-state-machine | https://github.com/godot-addons/godot-finite-state-machine | MIT            | 4.x                               | GDScript      | 2023              | Less maintained; similar thin approach                                                                                    |
 
 ---
 
@@ -49,12 +49,12 @@ States needed: `PatrolState`, `AlertState`, `AggroState`, `SearchState`. Each is
 
 ### Comparison
 
-| Approach | Solo-dev cost | Determinism | Stealth tuning | Godot 4 fit | Verdict |
-|---|---|---|---|---|---|
-| **Node-FSM** | Low (1–2 days) | Full | Explicit, step-debuggable | Native pattern, framework mandate | RECOMMENDED |
-| Utility AI | Medium (3–5 days) | Full | Good; scores tunable in .tres | No maintained GDScript-only addon | Park |
-| GOAP | High (1–2 weeks) | Full | Hard to trace why action chosen | No Godot-4 GDScript addon; build from scratch | Skip |
-| Neural / ML (godot_rl_agents) | Very high (weeks of training) | None by default | Opaque; can't step bug | Requires Python at train time; ONNX export experimental | Skip |
+| Approach                      | Solo-dev cost                 | Determinism     | Stealth tuning                  | Godot 4 fit                                             | Verdict     |
+| ----------------------------- | ----------------------------- | --------------- | ------------------------------- | ------------------------------------------------------- | ----------- |
+| **Node-FSM**                  | Low (1–2 days)                | Full            | Explicit, step-debuggable       | Native pattern, framework mandate                       | RECOMMENDED |
+| Utility AI                    | Medium (3–5 days)             | Full            | Good; scores tunable in .tres   | No maintained GDScript-only addon                       | Park        |
+| GOAP                          | High (1–2 weeks)              | Full            | Hard to trace why action chosen | No Godot-4 GDScript addon; build from scratch           | Skip        |
+| Neural / ML (godot_rl_agents) | Very high (weeks of training) | None by default | Opaque; can't step bug          | Requires Python at train time; ONNX export experimental | Skip        |
 
 ### Neural option honest assessment
 
@@ -69,7 +69,7 @@ States needed: `PatrolState`, `AlertState`, `AggroState`, `SearchState`. Each is
 ### Recommended approach: Node-FSM + VisionCone3D + built-in hearing Area3D
 
 ```
-pushable_enemy.gd (CharacterBody3D)
+enemy.gd (CharacterBody3D)
   EnemyArchetype.tres          ← all tuning: fov_angle, fov_range, hearing_radius,
                                   patrol_speed, aggro_speed, alert_timer, deaggro_timer
   VisionCone3D                 ← adopt; exports read/set from archetype in _ready

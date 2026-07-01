@@ -17,13 +17,13 @@ Cyclops solves the real pain (drag-to-place blocks, auto collision, snapping) an
 
 **Godot 4.3 load failure.** Issue #196 (open, September 2024) and issue #232 (open, 2025) both report that enabling the plugin in Godot 4.3 fails with "Unable to load addon script … cyclops_level_builder.gd". The maintainer is active (commits 8 days ago) but these issues are unresolved. Combined with the runtime coupling, adoption now would require keeping the plugin permanently AND absorbing an unconfirmed 4.3 breakage risk.
 
-**Scope clarification (on the record).** This evaluation covers only the **hand-built** level path (`levels/blockout_01.tscn` and other hand-typed level scenes). The draw-grid pipeline (`levels/drawn/current.json` → godot-dev authors a baked `.tscn`) is a separate path, evaluated under GridMap separately.
+**Scope clarification (on the record).** This evaluation covers only the **hand-built** level path (hand-typed level scenes). The draw-grid pipeline (a JSON grid → godot-dev authors a baked `.tscn`) is a separate path, evaluated under GridMap separately.
 
 **What would change the verdict.** If the maintainer ships a "bake to standard nodes" command (the way CSG has "Bake Mesh" and "Bake Collision"), the runtime coupling disappears, the addon becomes editor-only, and the 4.3 loading issue becomes the only remaining blocker. Park and revisit then.
 
 **Collision shape.** Where it does generate collision, it uses `ConvexPolygonShape3D` (convex hull per block). For simple box-primitive blockout rooms this is fine. Non-convex geometry (L-shapes, stairs) requires explicit boolean-subtract workflows in Cyclops or produces inaccurate hulls — not a blocker on its own but worth noting.
 
-**Forward+ / pixel-art rig.** No conflict: Cyclops applies `StandardMaterial3D` (its grid.tres default) and does not touch the SubViewport, the orthographic camera, or any post-process chain. Switching materials to flat pixel-art StandardMaterial3D after blocking would be trivial. This is not a concern.
+**Render rig.** No conflict: Cyclops applies `StandardMaterial3D` (its `grid.tres` default) and does not touch a game's render pipeline — SubViewport, custom camera, or post-process chain. Swapping materials (e.g. to a flat pixel-art `StandardMaterial3D`) after blocking is trivial. This is not a concern.
 
 **Code-rules.** Cyclops GDScript does not use strict typing uniformly (untyped `var global_scene = get_node(...)` calls appear throughout). Our `tools/validate.sh` would flag these on any file inside `addons/cyclops_level_builder/` if we ever linted it — but the convention is that third-party addon scripts are excluded from our lint gate. Not a blocker, but documents the gap.
 
@@ -33,6 +33,6 @@ Not applicable — verdict is parked.
 
 ## Later
 
-- **GridMap** — Godot's built-in voxel-tile tool for the draw-grid pipeline (`levels/drawn/current.json`); evaluate separately.
+- **GridMap** — Godot's built-in voxel-tile tool for the draw-grid pipeline; evaluate separately.
 - **Qodot** — BSP/Quake-map import pipeline; heavier toolchain dependency (TrenchBroom), no runtime coupling. Consider if Cyclops never bakes.
-- **Hand-tooling improvement** — the immediate fix for the transform-drift bug (the affected hand-built level scene) is a godot-dev task: re-author the level as hand-typed nodes using the `level-design-principles` skill and the boxed-room pattern from blockout_01.tscn, with each `StaticBody3D` anchored at the mesh origin so scale can never drift from the collider.
+- **Hand-tooling improvement** — the immediate fix for the transform-drift bug (the affected hand-built level scene) is a godot-dev task: re-author the level as hand-typed nodes using the `level-design-principles` skill and the boxed-room pattern, with each `StaticBody3D` anchored at the mesh origin so scale can never drift from the collider.

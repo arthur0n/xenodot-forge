@@ -21,14 +21,6 @@
   "verdicts": { "fix-now": "buckets 3/4", "later": "bucket 5", "skip": "bucket 6" },
   "findings": [
     {
-      "id": "D2-library-records",
-      "dim": "D2",
-      "bucket": 4,
-      "verdict": "fix-now",
-      "status": "open",
-      "finding": "shipped library/addons + tools/*.md digests are game-COUPLED throughout (scene names, Main/SubViewportContainer/SubViewport, 640x360, pixel-art rig; 'DiceOfFate' in sprint-view-model-feel.md; pushable_enemy.gd in library/addons/enemy-ai.md) yet plugin/library/ is AGNOSTIC-only. ~10 files. DECIDE: (a) genericize keeping the reusable verdict/caveat, or (b) move game-local."
-    },
-    {
       "id": "D5-asset-advisor-bloat",
       "dim": "D5",
       "bucket": 4,

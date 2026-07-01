@@ -1,6 +1,6 @@
 # FPS Weapon System
 
-**Request** — Evaluate Jeh3no "Godot Simple FPS Weapon System" as adopt/fix-in-place vs reject/build-custom for DiceOfFate (Godot 4.6 FPS POC). Verdict revisited after integration experiment on branch `experiment/jeh3no-weapons`.
+**Request** — Evaluate Jeh3no "Godot Simple FPS Weapon System" as adopt/fix-in-place vs reject/build-custom for an FPS POC (Godot 4.6). Verdict revisited after an integration experiment on a throwaway branch.
 
 **Verdict** — rejected — build it ourselves
 
@@ -11,11 +11,11 @@
 
 **Why** — Three compounding problems make fix-in-place more expensive than build:
 
-1. **Legacy viewmodel arch.** Addon uses SubViewport + layer-20 cull mask for weapon-clip prevention. Godot 4.6 `BaseMaterial3D.use_z_clip_scale` is the native solution (~0 LOC). The SubViewport rig was never fully wired in this project and required a hack (`viewport_camera_script.gd` reduced to a transform-proxy). Adopting means carrying dead architecture indefinitely.
+1. **Legacy viewmodel arch.** Addon uses SubViewport + layer-20 cull mask for weapon-clip prevention. Godot 4.6 `BaseMaterial3D.use_z_clip_scale` is the native solution (~0 LOC). Adopting the addon's SubViewport viewmodel rig means carrying that dead architecture indefinitely — and in a game that already runs its own SubViewport pixelation rig, wiring the addon's second viewport is a hack (`viewport_camera_script.gd` collapses to a transform-proxy).
 
-2. **Unbridged projectile seam.** Hitscan path bridges to `on_hit()` via `hitscan_hit()` on `enemy.gd` (working). Projectile path calls `body.projectile_hit()` — no bridge exists, not compatible with the project's `on_hit()`/`died` enemy contract (`godot-fps-enemy-combat`). Fixing requires either modifying addon internals or polluting `enemy.gd` with a second hit method.
+2. **Unbridged projectile seam.** Hitscan path bridges to `on_hit()` via `hitscan_hit()` on the enemy body (working). Projectile path calls `body.projectile_hit()` — no bridge exists, not compatible with the framework's `on_hit()`/`died` enemy contract (`godot-fps-enemy-combat`). Fixing requires either modifying addon internals or polluting the enemy script with a second hit method.
 
-3. **Bundled player SM conflicts with conventions.** Addon ships `player_character_script.gd` + `InputManagementComponent` (full state machine, 14 input actions). Project uses `godot-first-person-controller` skill. Stripping the player layer from the addon is effectively a rewrite.
+3. **Bundled player SM conflicts with conventions.** Addon ships `player_character_script.gd` + `InputManagementComponent` (full state machine, 14 input actions). The framework's `godot-first-person-controller` skill owns the player controller. Stripping the player layer from the addon is effectively a rewrite.
 
 Build cost is low: hitscan ~40–80 LOC (`PhysicsDirectSpaceState3D.intersect_ray`), recoil/bob/sway ~50 LOC, `WeaponResource` + `WeaponManager` ammo/reload/fire-gate ~100 LOC. Existing skills `godot-travelling-projectile-3d` and `godot-fps-enemy-combat` cover projectile strategy and hit contract. `use_z_clip_scale` eliminates the viewmodel-clip problem entirely.
 

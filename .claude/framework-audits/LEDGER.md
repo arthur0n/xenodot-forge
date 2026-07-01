@@ -2,7 +2,7 @@
 
 # Framework audit ledger
 
-**open (fix-now): 5 · later: 14 · skip: 1**
+**open (fix-now): 4 · later: 14 · skip: 1**
 
 _Last audit:_ 2026-07-01 — weekly cold scan (D1,D4 clean) + human-steered promotion/authoring-seam deep-dive. Applied+removed this cycle: D2-enemy-ai-codenames, D7-scope-stale-four, D7-fix-targets-plugin-only, D7-fix-prunes-on-done, D7-tool-domains-doc, D7-agnostic-authoring-convention, D7-promote-board-vapor, D7-lesson-record-template, D9-contamination-check, D8-smoke-misassigned, D8-verify-gate-gap, D6-symptom-route-triplication, D8-runtime-smoke-wiring-stale, D8-capabilities-registry-drift, D7-harvest-grep-contradiction (record → git).
 
@@ -12,9 +12,8 @@ _Last audit:_ 2026-07-01 — weekly cold scan (D1,D4 clean) + human-steered prom
 
 _none_
 
-## Bucket 4 — improvements (5) · fix-now · needs judgment (/framework-audit-fix)
+## Bucket 4 — improvements (4) · fix-now · needs judgment (/framework-audit-fix)
 
-- **D2-library-records** · `D2` · _open_ — shipped library/addons + tools/\*.md digests are game-COUPLED throughout (scene names, Main/SubViewportContainer/SubViewport, 640x360, pixel-art rig; 'DiceOfFate' in sprint-view-model-feel.md; pushable_enemy.gd in library/addons/enemy-ai.md) yet plugin/library/ is AGNOSTIC-only. ~10 files. DECIDE: (a) genericize keeping the reusable verdict/caveat, or (b) move game-local.
 - **D5-asset-advisor-bloat** · `D5` · _open_ — asset-advisor (largest agent) restates per-medium facts 4x — collapse Classification+Checklist into one table, trim 2 worked examples (~25-30%).
 - **D8-render-tools-missing** · `D8` · _open_ — godot-verify frames render-health as a 'godot-dev build / contract' (:71) yet names tools/verify_arena_render.gd 'mandatory' (:79) + gives a copy-paste Layer-4 tools/verify_render_action.gd command (:85); NEITHER ships (only spread-only verify_render.gd). A builder running Layer 4 hits file-not-found. Fix: ship both OR mark 'build per contract (not shipped)' + stop presenting the Layer-4 command as runnable.
 - **D8-enemy-smoke-orphan-naming** · `D8` · _open_ — godot-enemy-ai-headless-smoke names its examples check*nav_bake.gd/test_enemy_health.gd (:35,:58,:138), but the gate glob only runs smoke*_/play\__ (checks.sh:285) — so check*\*/test*_ NEVER join the gate, contradicting the skill's own ':128 smoke\__.gd auto-joins'. Rename examples to smoke_nav_bake.gd/smoke_enemy_health.gd.
