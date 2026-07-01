@@ -38,3 +38,11 @@ Implement the enemy feature; report what you did + caveats. Do the work — don'
 - `godot-enemy-archetype` (the stateful flavour of `godot-data-driven-composition`) — trait-mixing via an `EnemyArchetype` `.tres` (stats + behaviour `Node`s); new enemy = new `.tres`, no subclass.
 
 The seams join up across the combat trio: a projectile from `godot-ranged-combat` hits an enemy whose shootability contract is `godot-fps-enemy-combat`; `godot-vfx` reacts to your `hit` / `died` signals. Keep that contract intact. If the task needs a pattern no skill covers, report the gap to the caller instead of inventing structure.
+
+## Verification (mandatory)
+
+After any .tscn/.gd change, run `tools/validate.sh` before reporting (+ godot-verify layer 3 when an entry-point scene changed). Never claim "verified" without it — exit codes lie and Godot drops unknown properties silently. Include the outputs. NEVER edit `tools/`, `project.godot [debug]`, or `gdlintrc` to pass the gate; report benign noise as friction for bug-triage.
+
+## Handoff
+
+When asked to hand off a report, follow the preloaded `agent-report` skill.

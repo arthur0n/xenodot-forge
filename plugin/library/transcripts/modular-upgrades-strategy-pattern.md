@@ -1,0 +1,36 @@
+# Modular upgrades via the Strategy Pattern (Godot) — transcript digest
+
+**Source** — `godot-modular-upgrades.md` (raw now in `transcripts/archive/godot-modular-upgrades.md`). YouTube tutorial: modular shot/weapon upgrades via the Strategy Pattern — `BaseBulletStrategy extends Resource` with an `apply_upgrade(bullet)` method; player holds an `Array[BaseBulletStrategy]`, loops it over each spawned bullet (damage / pierce / speed / particle pickups). Plus a transcript-appended comment thread on STACKING (identifier + level + priority + duplicate-merge + wrapper/mediator).
+
+**Why harvested** — about to build sprint+dash (`design/sprint_and_dash.md`, slice 3 of player-stats) and more broadly a "skill three strategy" pass on modular upgrades. Mapped against our data-driven ability/effect system (`design/ability_system.md`) + player-stats system (`design/player_stats_system.md`).
+
+**Points**
+
+| # | Point (technique/claim) | Valid for our stack? | Already learned? | Where / gap | Verdict |
+|---|---|---|---|---|---|
+| 1 | Model an upgrade as a `Resource` subclass with one virtual method (`apply_upgrade(subject)`), base = no-op, each upgrade overrides — the Strategy Pattern | holds | covered | This IS our `Effect.apply(target, ctx)` base + `DirectionalForceEffect` override (`ability_system.md`); `godot-effect-composition` / `godot-data-driven-composition` are the named skills | match (we already do this) |
+| 2 | Hold an ordered `Array[<strategy>]` on the owner; loop it over the subject; new upgrade = new `.tres`, no code | holds | covered | Our player runs `for eff in ability.effects: eff.apply(t, ctx)` — same ordered apply loop, authored as `.tres`, zero new code per ability | match |
+| 3 | Author upgrades as saved `.tres` Resources (not inline Inspector), pickup `Area` adds its stored strategy to the owner's list on collision | holds | covered | `.tres` authoring is our hard convention; pickup-Area-adds-to-list is the runtime collection mechanism — trivially our pattern, just not built (no pickups exist) | match (pattern), gap (no pickup entity) |
+| 4 | "GDScript has no interfaces → use a base `class_name` + extend"; C# would use interfaces | holds w/ caveat | covered | Exactly why our Effect/TargetResolver are base classes; strict-typed GDScript (`godot-code-rules`). C# half is out of scope (GDScript-only) | match |
+| 5 | Store an upgrade's effect/strategy ON the spawned subject (e.g. bullet) so an on-hit fires per hit, not in the owner | holds | covered | `godot-spell-system` digest #5 already captured "spawned-projectile effects live in the projectile"; matches our `projectile.gd` hit seam | match |
+| 6 | **Stacking via identifier + level:** give each strategy an `@export identifier` + `level`; on add, find an existing strategy with that id and INCREMENT its level instead of appending a duplicate; level drives the effect (cap, exponential curve, custom formula) | holds | **gap** | No leveling/stacking anywhere. Player stats are FLAT `PlayerStatsConfig` reads; abilities have no on-player upgrade list. This is the real new content — a stack/level model atop our Effect list | gap |
+| 7 | **Priority sort:** add an `@export priority`, sort the strategy list on insert so e.g. additive modifiers apply AFTER multipliers (control stack math order) | holds | **gap** | Same gap as #6. Mirrors the add-bucket-vs-mult-bucket ORDER problem already flagged in `godot-stat-system` digest #10 — order of modifier application | gap (relates to existing stat-modifier gap) |
+| 8 | Prefer `Callable`s over directly mutating the value in more complex games | holds w/ caveat | partial | `5-invaluable-patterns` digest #1 (Callable-as-command) already flags this as rubric/Later. Caveat: a bare `Callable` field skirts strict typing — guard it | partial |
+| 9 | Resources are SHARED instances — `duplicate()` / unique-instance per owner if multiple subjects can hold the same upgrade | holds | covered | `godot-stat-system` digest #12 + `local_to_scene` discipline; we sidestep by reading read-only `.tres` data, never mutating shared. A MUTABLE leveled upgrade (#6) re-introduces this trap → must `duplicate()` per owner | match (with caveat for #6) |
+| 10 | **Wrapper + mediator** for duration/source-tracked stacks (Ring+Sword of Vengeance, stack-3-refresh): wrapper holds stack/duration data, strategy updates it, mediator de-dups source + removes a specific source's effect on expiry | holds w/ caveat | partial | Our `StatusReceiver` already owns timed status (refresh-not-stack, per `godot-stat-system` digest #11). The mediator/source-tracking is heavier than we need now; duration belongs in StatusReceiver, not a new mediator | partial (overkill now) |
+
+**Coverage tally** — covered 6 (#1-#5,#9), partial 3 (#8,#10, and #3's pickup half), gap 2 (#6,#7). **No hard CLAUDE.md conflict.** Soft caveats: bare `Callable` (#8) and a raw `set()`-style stack would skirt strict-typed GDScript (`godot-code-rules` UNSAFE_*) — engineer typed.
+
+**Verdict (on top of the buckets)** — DO NOT adopt; the CORE pattern (Strategy = Resource + apply loop, #1-#5) is already ours via `godot-effect-composition`. Take ONLY the stacking half (#6,#7) as a future design seed. Nothing here is needed to build sprint+dash — that slice is flat config reads, no upgrade stacking.
+
+**Recommended next** — gaps to act on now, one line each:
+
+- **Nothing to dispatch for the sprint+dash build.** Slice 3 is flat `PlayerStatsConfig` reads (`design/sprint_and_dash.md`); the upgrade-strategy pattern does not touch it. Build it per its own skill notes.
+- (Bucket 3, no-brainer) The core Strategy Pattern (#1-#5) is ALREADY covered — when modular upgrades ARE built, reuse `godot-effect-composition` + `AbilityData`'s `effects: Array[Effect]` loop. No new skill, no dispatch.
+
+**Later** — valid points parked (not needed for the current build):
+
+- **Upgrade STACKING + leveling model (#6,#7)** — `identifier`+`level` merge-on-pickup and `priority`-sorted apply order, layered on our `Effect[]` loop. This is the genuine reusable gap and the heart of the "skill three strategy" pass. When that pass becomes a real build: it overlaps the EXISTING `godot-stat-system` digest gaps (#5 base/current split, #10 add-bucket/mult-bucket modifier ORDER) → fold the two together and route to **game-designer** first (decide WHERE leveled upgrades live: an on-player `Effect[]`/modifier component vs the flat `PlayerStatsConfig`; which stats are upgradeable), then **skill-researcher** for a typed Godot upgrade/modifier-stacking skill (no current `godot-*` skill covers leveled/priority-stacked modifiers; this video + `godot-stat-system` are the seeds). Bucket 5 / system-level park.
+- Pickup ENTITY (#3 runtime half) — an `Area`-based upgrade-pickup that adds a strategy to the player. No pickup entity exists; only build when an upgrade-collection loop is actually scoped. → **game-designer** when scoped.
+- `Callable`-as-command over direct value mutation (#8) — already parked in `5-invaluable-patterns` Later; revisit if a delayed/composed upgrade effect recurs.
+- Wrapper+mediator duration/source-tracking (#10) — overkill now; duration routes through existing `StatusReceiver`. Revisit only for source-tracked timed stacks (Ring+Sword of Vengeance shape).

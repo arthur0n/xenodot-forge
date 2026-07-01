@@ -78,6 +78,13 @@ composition decentralized.
 - Headless smoke (`godot-runtime-smoke`): load the `.tres`, run the real iteration loop against a
   stub/real host, assert the observable — and it FAILS if you break the loop (a test that can't
   fail proves nothing).
+- **The carrier `.tres` is assigned non-null on the live node in the shipped scene** — not only
+  loadable. Authored + read is TWO halves; the third is WIRED. Load the entity scene, instantiate,
+  and assert `node.get(prop) != null` (the deterministic `check_scene_export_assigned(scene, node,
+  prop)` check). An `@export` that is authored and read but never assigned in the `.tscn` is a dead
+  feature behind a green gate — and a smoke that INJECTS the resource itself proves the seam, not
+  that production wires it, so it must be a SEPARATE check that reads the real scene without
+  injecting.
 
 ## Error → Fix
 
@@ -89,6 +96,7 @@ composition decentralized.
 | State bleeds across instances / all share a counter or material | A `.tres` shares sub-resources across loaders. Stateless part → fine; stateful → use a Node (enemy flavour) or `duplicate()` the resource/material before mutating.             |
 | A central manager grew and owns everything                      | Move iteration back into the owning entity; a manager only validates prereqs / builds context for instigator-side or multi-stage cases.                                         |
 | Adding a part forces call-site edits                            | The host must only iterate the part list + duck-check the role method; a new part is a new scene/`.tres`, never a call-site change. Widen the seam contract once, not per part. |
+| Smoke/gate passes but the feature is dead in the shipped scene  | A smoke bot INJECTED the `.tres`/dependency programmatically — it proves the seam, not that production wires it. Assert the live-node assignment with a SEPARATE `check_scene_export_assigned` / `smoke_*_wire_check.gd` that loads the real `.tscn` and reads `node.get(prop) != null` WITHOUT injecting. A bot that injects what production must wire manufactures a false green. |
 
 ---
 

@@ -47,7 +47,7 @@ applied by the SAME `/framework-audit-fix`.
 - **Coverage sidecar:** `.claude/framework-audits/harvested-sessions.txt` — one session-tag per line,
   the sessions already harvested. Read first so you never re-scan; append after. Create it if absent.
 
-**Search with `rtk grep` + `jq` to pull only the lines you need — NEVER read a whole multi-MB log.**
+**Filter with `jq select(...)` directly (grep only on jq's text output) to pull only the lines you need — NEVER read a whole multi-MB log.**
 (For a literal contamination sweep you'd use full-path `rg`, but here you're extracting a few typed
 lines, which `rtk grep`/`jq` handle.)
 
@@ -108,7 +108,7 @@ lines, which `rtk grep`/`jq` handle.)
 
 ## Never
 
-- Read a whole multi-MB log into context — always filter to the typed slices with `rtk grep`/`jq`.
+- Read a whole multi-MB log into context — always filter to the typed slices with `jq select(...)` directly (grep only on jq's text output).
 - Re-scan a session whose tag is in `harvested-sessions.txt`.
 - Auto-apply a fix, or write under `plugin/` — this command records; `/framework-audit-fix` applies
   the agreed ids; the human decides. (Step 9's tweak to this command / ledger is the one exception.)

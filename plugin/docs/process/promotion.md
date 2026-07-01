@@ -8,7 +8,14 @@ so the framework stays scoped to game-dev and doesn't bloat.
 ## Rubric — promote only if all four hold
 
 1. **General** — useful to _any_ game the framework builds; no coupling to one game's genre,
-   content, or names.
+   content, or names. When a capability must reference a game concept to make its point, use the
+   **placeholder standard**: generic stand-ins, never this project's proper nouns. Write
+   `<enemy>.gd` (not the game's real script name), `res://levels/<level>.tscn` (not a real scene
+   path), "a real project's patrol enemy" (not its in-game codename). State provenance
+   agnostically ("proven on a real project's patrol enemy"), never by product/level codename;
+   concrete evidence — actual scene names, screenshots, measured numbers — stays **game-local**
+   (the game's own `library/`), out of the shipped artifact. This standard governs **both**
+   authoring paths: `promote` (below) and in-house lessons written straight into `plugin/`.
 2. **Proven** — succeeded in **≥1 real use** in a game, not speculative.
 3. **Non-overlapping** — doesn't duplicate an existing framework capability.
 4. **Owned** — the framework owner accepts maintaining it going forward.
@@ -24,6 +31,35 @@ If any criterion fails → it stays local (or is dropped).
    `npm run promote -- <skills|agents|tools> <name>`
    The capability moves into `plugin/<kind>/` and re-syncs to every game.
 4. **Fails the rubric** → stays local.
+
+## Tool domains — game-domain vs universal
+
+`promote` gates a `tools/` capability more tightly than a skill or agent, because `plugin/tools/`
+materializes into **every** game. A tool that hardcodes a resource only one game has (say a bot
+bound to `res://levels/test_arena.tscn`) breaks every other game's gate on the missing scene —
+this is how orphan `play_*`/`verify_*` bots once accumulated. So the gate scans each tool's source
+and classifies it:
+
+- **Universal** — the tool carries **no** hardcoded game-specific scene ref. Either it references
+  no engine resource at all, or every literal `res://…` it does carry is one **every** game
+  shares. The shared prefixes are exactly:
+  - `res://main.tscn`
+  - `res://assets/…`
+  - `res://x-shared-assets/…`
+  - `res://.godot/…`
+  - `res://addons/…`
+- **Game-domain** — the tool hardcodes any other literal `res://` resource
+  (`.tscn`/`.tres`/`.escn`/`.glb`/`.gltf`). It stays **game-local**; `promote tools/<name>`
+  rejects it and names the offending path.
+
+A path assembled from a `--scene` arg or the manifest (e.g. `res://$SCENE`) has no literal
+extension in the source, so a tool that **takes its scene as a parameter** reads as universal —
+which is exactly what makes it promotable. To lift a game-domain tool to universal, **parameterize
+the scene** (read it from `--scene` / the manifest) until no literal `res://` path remains, then
+re-promote.
+
+> This is the `gameDomainRef` scan in `promote-run.js`; the shared-prefix allowlist is its
+> `UNIVERSAL_RES`. Keep this section and that code in sync.
 
 ## Updating an existing core file (NOT a promote)
 

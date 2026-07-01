@@ -4,7 +4,7 @@ agents: [godot-enemy, bug-triage, godot-playtester]
 description: >-
   How to TEST a Godot enemy AI when `--headless` has no RenderingDevice and doesn't
   sync `Area3D` overlaps — so you CANNOT assert real pathing, vision-cone detection,
-  or hearing headless, and a "does the guard chase?" headless test can NEVER pass. The
+  or hearing headless, and a "does the enemy chase?" headless test can NEVER pass. The
   one nav fact you CAN assert headless: the runtime navmesh BAKE produced polygons
   (`get_polygon_count() > 0`) — catching the nested-host 0-polygon trap that silently
   passes every gate. The split: assert the FSM transition LOGIC in isolation (build
@@ -13,9 +13,9 @@ description: >-
   archetype `.tres` load + field round-trip, and assert `take_damage` →
   `_current_health` decrement → `died` + `queue_free` — all pure logic/data. Leave
   real path / see / hear to an in-editor / windowed F5 AFTER a human (or runtime)
-  navmesh bake: a hard gate, not a CI assert. The pattern is mercenary's
-  `tools/smoke_guard_ai.gd` + `tools/test_enemy_health.gd`. Use when "my enemy AI
-  test is failing / hangs", "test the guard FSM", "headless smoke for enemy AI",
+  navmesh bake: a hard gate, not a CI assert. The pattern is
+  `tools/smoke_enemy_ai.gd` + `tools/test_enemy_health.gd`. Use when "my enemy AI
+  test is failing / hangs", "test the enemy FSM", "headless smoke for enemy AI",
   "assert patrol→aggro→search transitions", "can I test pathing headless", "navmesh
   won't bake in the test", "vision cone test never detects", or "what can I actually
   test without a window". NOT the general headless-smoke template (that is
@@ -28,12 +28,12 @@ description: >-
 Enemy AI is the worst case for headless testing: three load-bearing systems — actual navmesh
 PATHING, `VisionCone3D` detection, `HearingArea` overlap — are exactly the ones `--headless`
 can't run (no `RenderingDevice`, no synchronous `Area3D` overlap). The trap is writing a "does the
-guard chase the player?" headless test that can never go green, then fighting it. The fix is to
+enemy chase the player?" headless test that can never go green, then fighting it. The fix is to
 SPLIT: assert the FSM **logic** headless (it's pure state math), assert the navmesh **bake produced
 polygons** headless (the explicit-source bake DOES run under the dummy renderer — the one nav fact
 you get, and the one whose absence let a 0-polygon bake hide a day-long bug), and leave actual
-path/see/hear to a human F5. Proven on mercenary's `tools/smoke_guard_ai.gd` +
-`tools/test_enemy_health.gd` + `tools/check_nav_bake.gd`, and consistent with the
+path/see/hear to a human F5. The pattern uses `tools/smoke_enemy_ai.gd`,
+`tools/test_enemy_health.gd`, and `tools/check_nav_bake.gd`, consistent with the
 `godot-runtime-smoke` headless caveat.
 
 ## Requirements
@@ -55,13 +55,14 @@ path/see/hear to a human F5. Proven on mercenary's `tools/smoke_guard_ai.gd` +
   - Load the real level `.tscn`, `add_child` it (runs `_ready()`, which runtime-bakes), then read
     `nav_region.navigation_mesh.get_polygon_count() > 0`. The explicit-source bake
     (`godot-navmesh-pathing-4-6` step 1) parses static colliders and runs fine under the dummy
-    renderer. This is `tools/check_nav_bake.gd` (mercenary: asserts polys==359, not 0).
+    renderer. This is the `tools/check_nav_bake.gd` pattern (assert a known-good poly count > 0,
+    not 0).
   - This catches the **nested-host 0-polygon trap**: `bake_navigation_mesh()` scans only the
     region's own children when the level loads under `Main/LevelHost`, silently baking 0 polys.
     The NAIVE bake ALSO bakes 0 polys headless — so without this assert every wiring fix falsely
-    "passes" and the guard is still frozen at F5. Assert on the EXPLICIT-source bake.
+    "passes" and the enemy is still frozen at F5. Assert on the EXPLICIT-source bake.
 - **CANNOT assert headless** (needs a window / settled overlap):
-  - A guard actually PATHING to the player — the baked mesh exists, but the agent's path query +
+  - An enemy actually PATHING to the player — the baked mesh exists, but the agent's path query +
     `move_and_slide` arrival need physics + a settled map; that's still F5.
   - `VisionCone3D.body_sighted` firing — needs the addon's render/physics.
   - `HearingArea` overlap — headless doesn't sync `Area3D` overlap in a handful of frames.
@@ -70,11 +71,11 @@ path/see/hear to a human F5. Proven on mercenary's `tools/smoke_guard_ai.gd` +
 
 ## Steps
 
-1. **Test the FSM in isolation — build it by hand, no scene tree** (the `smoke_guard_ai.gd`
+1. **Test the FSM in isolation — build it by hand, no scene tree** (the `smoke_enemy_ai.gd`
    pattern):
 
    ```gdscript
-   # tools/smoke_guard_ai.gd — headless FSM-logic smoke. extends SceneTree.
+   # tools/smoke_enemy_ai.gd — headless FSM-logic smoke. extends SceneTree.
    func _check_fsm_transitions() -> void:
    	var fsm := EnemyFSM.new()
    	var patrol := PatrolState.new()
@@ -113,7 +114,7 @@ path/see/hear to a human F5. Proven on mercenary's `tools/smoke_guard_ai.gd` +
    ```
 
    Then STOP at the bake: no `body_sighted` assert, no `get_overlapping_bodies` assert, no
-   "guard reached the player" assert — those read empty/zero and either FALSELY pass or hang. If you
+   "enemy reached the player" assert — those read empty/zero and either FALSELY pass or hang. If you
    must drive a destination, assert the CODE PATH (`set_nav_destination` snapped the point), not
    "did it arrive". (The naive `bake_navigation_mesh()` also bakes 0 polys headless — so assert on
    the explicit-source bake from `godot-navmesh-pathing-4-6`, or the gate is blind to the very trap
@@ -130,17 +131,17 @@ path/see/hear to a human F5. Proven on mercenary's `tools/smoke_guard_ai.gd` +
 
 ## Verification checklist
 
-- [ ] `godot --headless --path . --script tools/smoke_guard_ai.gd` prints pass/fail and exits 0;
+- [ ] `godot --headless --path . --script tools/smoke_enemy_ai.gd` prints pass/fail and exits 0;
       deliberately break one transition → it prints `FAIL` and exits 1. (A smoke that can't fail
       proves nothing.)
 - [ ] The FSM smoke drives the FULL sequence (patrol→aggro→alert→search→patrol + re-acquire), not
       a single hop.
 - [ ] A `check_nav_bake.gd`-style smoke asserts `get_polygon_count() > 0` after the level `_ready()`
       bake (catches the nested-host 0-polygon trap); break the bake → it exits 1.
-- [ ] No `body_sighted` / `get_overlapping_bodies` / "guard reached the player" assert lives in any
+- [ ] No `body_sighted` / `get_overlapping_bodies` / "enemy reached the player" assert lives in any
       enemy `smoke_*.gd` (the bake-polygon assert is the ONLY nav assert that belongs headless).
 - [ ] The archetype smoke fails if you rename a field; the health smoke fails if `died` never emits.
-- [ ] "Guard chases / sees / hears" is documented as a human-F5-after-bake gate, NOT a headless
+- [ ] "Enemy chases / sees / hears" is documented as a human-F5-after-bake gate, NOT a headless
       assert.
 
 ## Error → Fix
@@ -148,10 +149,10 @@ path/see/hear to a human F5. Proven on mercenary's `tools/smoke_guard_ai.gd` +
 | Symptom                                                                                                      | Fix                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Enemy-AI test hangs forever / runs away with no output                                                       | An unbounded `await` on `bake_finished` or a never-firing overlap. Don't `await` the bake — run the SYNCHRONOUS explicit-source bake in the level `_ready()` and read `get_polygon_count()` after `add_child`, or bound any awaited engine signal with a frame timeout (`godot-runtime-smoke`).                                                                                                                      |
-| Test asserts "guard reached the player" and always fails                                                     | ARRIVAL is a human-F5 gate (path query + physics need a window). Assert instead: the bake produced polygons (`get_polygon_count() > 0`), the FSM state, and that `set_nav_destination` was called — not arrival.                                                                                                                                                                                                     |
+| Test asserts "enemy reached the player" and always fails                                                     | ARRIVAL is a human-F5 gate (path query + physics need a window). Assert instead: the bake produced polygons (`get_polygon_count() > 0`), the FSM state, and that `set_nav_destination` was called — not arrival.                                                                                                                                                                                                     |
 | `body_sighted` / `noise_heard` never fires in the test                                                       | `VisionCone3D` and `HearingArea` need render/physics + settled overlap; not headless-testable. Move detection to F5.                                                                                                                                                                                                                                                                                                 |
-| FSM smoke is green but the real guard does nothing in game                                                   | The LOGIC is fine; the failure is bake/perception — navmesh didn't bake (`godot-navmesh-pathing-4-6`), player not in group `"player"`, or `emit_noise` un-wired (`godot-stealth-perception`). FSM/perception failures are F5 — but a 0-polygon BAKE is catchable headless (next row).                                                                                                                                |
-| Every nav wiring fix "passes" the gate but the guard is still frozen at F5 (`target (0,0,0)`, `path_size 0`) | The gate never asserted the bake produced polygons. The level's `bake_navigation_mesh()` scans only the region's children when nested under `LevelHost` → 0 polys; the naive headless bake ALSO yields 0, so the gate was structurally blind. Add a `polygon_count > 0` smoke that loads the `.tscn`, `add_child`s it (runs the `_ready()` explicit-source bake), and asserts polys > 0 (`tools/check_nav_bake.gd`). |
+| FSM smoke is green but the real enemy does nothing in game                                                   | The LOGIC is fine; the failure is bake/perception — navmesh didn't bake (`godot-navmesh-pathing-4-6`), player not in group `"player"`, or `emit_noise` un-wired (`godot-stealth-perception`). FSM/perception failures are F5 — but a 0-polygon BAKE is catchable headless (next row).                                                                                                                                |
+| Every nav wiring fix "passes" the gate but the enemy is still frozen at F5 (`target (0,0,0)`, `path_size 0`) | The gate never asserted the bake produced polygons. The level's `bake_navigation_mesh()` scans only the region's children when nested under `LevelHost` → 0 polys; the naive headless bake ALSO yields 0, so the gate was structurally blind. Add a `polygon_count > 0` smoke that loads the `.tscn`, `add_child`s it (runs the `_ready()` explicit-source bake), and asserts polys > 0 (`tools/check_nav_bake.gd`). |
 | FSM can't be built without a full scene                                                                      | A state reaches into scene-only nodes in `enter()`. Keep state logic driven by `trigger_*` + timer state so the FSM is unit-constructible (the test seam).                                                                                                                                                                                                                                                           |
 
 ## Parked (intentionally not built)
@@ -163,5 +164,4 @@ path/see/hear to a human F5. Proven on mercenary's `tools/smoke_guard_ai.gd` +
 
 The enemy-AI companion to `godot-runtime-smoke`; pairs with `godot-enemy-ai`,
 `godot-navmesh-pathing-4-6`, and `godot-stealth-perception` (the systems whose logic this tests
-and whose physics/render it deliberately can't). Verified on mercenary's `smoke_guard_ai.gd` /
-`test_enemy_health.gd` on Godot 4.6.
+and whose physics/render it deliberately can't). Verified on Godot 4.6.

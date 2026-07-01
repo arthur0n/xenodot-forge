@@ -1,5 +1,5 @@
 ---
-description: Apply agreed framework-audit fixes by finding-id. Reads the audit ledger, applies ONLY the ids you pass, verifies, marks them done. Manual, human-run. Forge-local (not shipped).
+description: Apply agreed framework-audit fixes by finding-id. Reads the audit ledger, applies ONLY the ids you pass, verifies, removes their ledger rows (git + the commit message hold the fix record). Manual, human-run. Forge-local (not shipped).
 argument-hint: "<id[,id...]> | all-agreed"
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Agent, Skill, mcp__ui__ask
 model: opus
@@ -35,8 +35,9 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
 
 ## Steps
 
-1. **Resolve ids.** Read the ledger. For each requested id find its row. If an id is missing,
-   already `done`, or is `later`/`skip` (not `fix-now`), **skip it and say so** — do not apply.
+1. **Resolve ids.** Read the ledger. For each requested id find its row. If an id is missing
+   (already resolved — applied rows are REMOVED, not kept), or is `later`/`skip` (not `fix-now`),
+   **skip it and say so** — do not apply.
 2. **Itemize before acting.** List each id → the exact files it will change and the operation.
    For destructive or wide-blast ops (a rename touching many refs, a file move/delete, an agent
    split), confirm with `mcp__ui__ask` first if available; otherwise state it plainly and
@@ -85,17 +86,21 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
    warnings — this also runs the skill-scope check, catching D1/D3/D5 wiring mistakes) and
    `rtk npx prettier --write` on the touched files. Report the result honestly; if validate
    fails, fix or revert that id and say so — never leave the gate red.
-5. **Record.** Mark each applied id `done <YYYY-MM-DD>` in the ledger; leave untouched ids as-is.
-   If applying these clears the LAST `open`/`fix-now` row (the pass is fully resolved), PRUNE the
-   ledger back to its single "Last audit" line — it's ephemeral working state, not a history log
-   (the fixes live in the files + git).
-6. **Report — terse.** Per id: applied / skipped (+why), files changed, validate result. End
-   with anything still `open` the human may want next.
+5. **Record — REMOVE, don't stamp.** DELETE each applied id's row from the ledger table — do NOT
+   mark it `done <YYYY-MM-DD>` (git + this run's commit message are the "what was fixed" record, so
+   the ledger stays lean — no `done` rows accumulate as distraction). If removing rows leaves an
+   audit entry with no rows left, delete that entry's heading + table too. If it clears the LAST
+   `open`/`fix-now` row anywhere in the ledger (the whole backlog is resolved), prune back to the
+   single "Last audit" line and refresh it. Leave `later`/`skip` and un-applied rows untouched.
+6. **Report — terse.** Per id: applied / skipped (+why), files changed, validate result. This
+   per-id summary IS the fix record now that rows are removed — carry it into the commit message
+   (git, not the ledger, is the changelog; no separate changelog needed). End with anything still
+   `open` the human may want next.
 
 ## Never
 
 - Fix an id the human didn't pass, or invent findings not in the ledger.
-- Apply a `later`/`skip` finding, or one already `done`.
+- Apply a `later`/`skip` finding, or one already resolved (its row was removed / isn't in the ledger).
 - Leave `npm run validate` failing — green gate or revert.
 - Put game-specific content into a skill — strip it; the game holds its facts game-local
   (`plugin/library/` is for AGNOSTIC records, NOT game facts).

@@ -70,6 +70,8 @@ Follow the "## Project conventions" section in CLAUDE.md — it is the single so
 
 After any change to .tscn or .gd files, run `tools/validate.sh` (format + lint + parse + godot-verify layers 1–2) before reporting; additionally run godot-verify layer 3 (render check) when an entry-point scene changed. Never claim "runs clean" or "verified" without it — exit codes lie and Godot drops unknown properties silently. Include the outputs in your report.
 
+For any change with **interactive or on-screen** acceptance (a UI screen, HUD, toggle/menu, overlay), self-verify it — simulate the real input path through the SceneTree (`godot-runtime-smoke`) AND capture + INSPECT the frame (`godot-verify` layer 3/4/5; `root.get_texture().get_image()` for CanvasLayer UI). "human F5" is a last resort for the genuinely uncapturable, not the default; never wave off a visible anomaly in a capture as "expected" without a stated reason.
+
 NEVER edit `tools/validate.sh`, other `tools/` scripts, `project.godot [debug]` warnings, or `gdlintrc` to make the gate pass — `tools/` is the plugin-materialized gate (gitignored; the xenodot plugin is the single source of truth), so a local edit does not commit and is overwritten on re-materialization. If the gate fails on noise you believe is genuinely benign (e.g. a new headless-cleanup WARNING not on the layer-2 smoke-grep exclusion list), do NOT add it to that list yourself: report it as friction with the exact line, and let bug-triage promote the exclusion upstream in the plugin.
 
 ## Handoff

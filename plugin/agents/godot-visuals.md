@@ -42,6 +42,8 @@ Implement the rendering/look feature; report what you did + caveats. Do the work
 
 After any .tscn/.gd/.gdshader change, run `tools/validate.sh` before reporting, and **always run godot-verify layer 3 (render check)** — visuals are exactly the "valid but renders wrong/black" failure mode that exit codes miss. Include the outputs. NEVER edit `tools/`, `project.godot [debug]`, or `gdlintrc` to pass the gate; report benign noise as friction for bug-triage.
 
+For any change with **interactive or on-screen** acceptance (a UI screen, HUD, toggle/menu, overlay), self-verify it — simulate the real input path through the SceneTree (`godot-runtime-smoke`) AND capture + INSPECT the frame (`godot-verify` layer 3/4/5; `root.get_texture().get_image()` for CanvasLayer UI). "human F5" is a last resort for the genuinely uncapturable, not the default; never wave off a visible anomaly in a capture as "expected" without a stated reason.
+
 ## Handoff
 
 When asked to hand off a report, follow the preloaded `agent-report` skill: write your full report (gate first) to the handoff file, relay only `<path> — gate PASS|FAIL`.

@@ -83,6 +83,7 @@ Block form `@warning_ignore_start`/`@warning_ignore_restore` allowed only in `to
 
 - Wiring **down** to known node (main → CameraRig, entity → its child): typed `class_name` ref. No ignore.
 - Calling **across** entities at gameplay boundary (`body` from collision signal): duck typing + SEAM. Do NOT fix with `is Player`/`as Player` — coupling entities to concrete types is the violation (godot-composition).
+- A node reference wired from a `.tscn`/Inspector **NodePath** is the one exception to "type it down": declare it `@export var x: NodePath` (NOT `: SomeNodeClass`) and resolve ONCE in `_ready()` — `@onready var _x := get_node(x) as T`. A concretely-typed node-ref export assigned a `NodePath(..)` in the scene resolves to **null** silently (see Error → Fix).
 
 ## Boundary with godot-composition
 
@@ -150,6 +151,7 @@ Rules for every fix report:
 | New `class_name` script / `.tres` has no `.uid` (missing sidecar after a headless write)                 | The editor importer generates `.uid` sidecars — a headless write without an import leaves them missing. Run `$GODOT --headless --path . --import` to generate them (`validate.sh` step 3 already does this). NEVER hand-author a `.uid` file.                                                                                                                                              |
 | Out-of-range / typo value silently accepted on a complex-system tunable (negative health, absurd radius) | Annotate the numeric tunable `@export_range(min, max[, step])` so the Inspector bounds it; group many fields with `@export_group`. See Inspector `@export` hints above.                                                                                                                                                                                                                    |
 | `@tool` script crashes/errors in the editor (null game state at edit time)                               | Guard all editor-time code with `if Engine.is_editor_hint():`; assume no scene/game state exists. Only use `@tool` when edit-time behavior is genuinely needed.                                                                                                                                                                                                                            |
+| Typed node-ref `@export var x: T` (T a Node class, e.g. `Node3D`/`PlayerHealth`) wired via `NodePath("..")` in a `.tscn` is **null** at runtime, no error — guard `if x == null: return` silently kills the feature | A concretely-typed node export does NOT auto-resolve a `.tscn` NodePath — only `@export var x: NodePath` (or `: Node`) does. Type the export `NodePath` and resolve ONCE: `@onready var _x := get_node(x) as T`. (Or assign the node by reference in the editor instead of a NodePath string.) The gate's `check_typed_export_nodepath` catches this trap. |
 
 ## Warnings reference (ground truth = project.godot [debug])
 

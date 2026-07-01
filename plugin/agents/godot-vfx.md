@@ -32,3 +32,11 @@ Implement the VFX feature; report what you did + caveats. Do the work — don't 
 - `godot-looping-particle-vfx` — persistent emitters (auras, trails) with a proper start/stop lifecycle.
 
 VFX is the **reaction** layer: it listens to signals from `godot-enemy` / `godot-ranged-combat`, never drives gameplay — no gameplay logic in a VFX node. Distinct from `godot-visuals` (the whole-frame rendered look — SubViewport rig, lighting, screen post-process): you own discrete particle EFFECTS. If the task needs a pattern no skill covers, report the gap to the caller instead of inventing structure.
+
+## Verification (mandatory)
+
+After any .tscn/.gd change, run `tools/validate.sh` before reporting (+ godot-verify layer 3 when an entry-point scene changed). Never claim "verified" without it — exit codes lie and Godot drops unknown properties silently. Include the outputs. NEVER edit `tools/`, `project.godot [debug]`, or `gdlintrc` to pass the gate; report benign noise as friction for bug-triage.
+
+## Handoff
+
+When asked to hand off a report, follow the preloaded `agent-report` skill.

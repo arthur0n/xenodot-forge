@@ -279,20 +279,28 @@ check_smoke() {
 #   smoke_*.gd — the builder's own seam tests (run in the floor gate)
 #   play_*.gd  — the evaluator's adversarial playthroughs (run by playgrade)
 run_gd_bots() {
-	local prefix="$1" label="${2:-$1}" bot count=0
+	local prefix="$1" label="${2:-$1}" bot count=0 fail_count=0 status
 	# No nullglob/shopt: with no match the loop runs once with the literal glob, which `-e`
 	# rejects — so a game with zero bots SKIPs (works under any bash, no shell-option state).
+	# Run EVERY bot: one failure records a fail but must not abort the rest (a single failing
+	# bot used to mask every later bot). Guard the invocation so its non-zero exit can't kill
+	# the loop under `set -e`.
 	for bot in tools/"${prefix}"_*.gd; do
 		[ -e "$bot" ] || continue
 		count=$((count + 1))
-		if ! "$GODOT" --headless --path . --script "$bot"; then
+		"$GODOT" --headless --path . --script "$bot"
+		status=$?
+		if [ "$status" -ne 0 ]; then
 			_xeno_fail "${label}-bots — $bot"
-			return 1
+			fail_count=$((fail_count + 1))
 		fi
 	done
 	if [ "$count" -eq 0 ]; then
 		echo "$XENO_GATE: SKIP ${label}-bots — none present"
 		return 0
+	fi
+	if [ "$fail_count" -gt 0 ]; then
+		return 1
 	fi
 	_xeno_pass "${label}-bots ($count)"
 }
