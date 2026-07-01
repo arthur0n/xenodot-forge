@@ -2,7 +2,7 @@
 
 # Framework audit ledger
 
-**open (fix-now): 0 · later: 10 · skip: 1**
+**open (fix-now): 0 · later: 9 · skip: 1**
 
 _Last audit:_ 2026-07-01 — fix-now backlog cleared; last applied: D7-loop-index (added docs/process/self-improvement.md mapping the self-improvement command loop + the shared ledger, indexed from the ledger README). Only later/skip findings parked; next cold scan pending.
 
@@ -16,7 +16,7 @@ _none_
 
 _none_
 
-## Bucket 5 — later (10) · system / parked
+## Bucket 5 — later (9) · system / parked
 
 - **D5-agent-restatement** · `D5` · _open_ — 3x-restatement pattern in transcript-researcher (archive policy, 'no spawn'), level-designer (handoff), bug-triage (no game code), skill-researcher (config gating) — state each constraint once.
 - **D2-engine-version** · `D2` · _open_ — engine version drift across skills: 'Godot 4.6' (greybox, enemy-ai, godot-assets) vs '4.3+' (pixel-lighting) — framework-wide consistency pass.
@@ -24,7 +24,6 @@ _none_
 - **D7-fix-no-selfcritique** · `D7` · _open_ — framework-audit-fix.md has no self-critique/process-note step (framework-audit + token-audit do).
 - **D9-gdscript-shadow-lint** · `D9` · _open_ — recurring runtime GDScript::reload warnings the gate never caught: SHADOWED*GLOBAL_IDENTIFIER (range, sign — ability_data.gd, directional_force_effect.gd, aim_line_resolver.gd) + CONFUSABLE_LOCAL_DECLARATION (next_pos — guard.gd). Harden: add a deterministic lint check (gdstyle rule / check*\* in tools/lib/checks.sh). Verify first whether gdstyle already covers it.
 - **D7-display-clobber** · `D7` · _open_ — INVESTIGATE: human repeatedly reports the game's display/window settings reverting ('back to super small, mode !=2'). Determine whether a framework step (materialize/doctor/setup, or the screenshot/verify GD scripts) rewrites project.godot display settings instead of preserving the game's; if game-local config, drop.
-- **D3-verify-subviewport-lock** · `D3` · _open_ — godot-verify Layer 3/4 capture 'the SubViewport (the pixel-art rig)' (:79,:95,:116-119); the framework also spans HD (godot-mesh-import-hd/-hd-material-import) where a non-pixel game renders 3D to the root viewport → the capture silently assumes a pixelation rig. Scope: SubViewport when the game uses a pixelation rig, else root. Park for the HD-vs-pixel branch.
 - **D5-builder-restates-verify** · `D5` · _open_ — builder agents restate preloaded godot-verify content — the interactive-acceptance paragraph (godot-dev:73, godot-visuals:45 ≈ godot-verify:143-154) + tscn/Transform3D rules (godot-dev:61-63 ≈ godot-verify:160-163). COLLIDES with 'verify gates stay inline (reliability>DRY)' → the gate one-liner stays inline regardless; human decides if the LONG paragraph + technical-rule copies are redundant.
 - **D9-audit-fanout** · `D9` · _open_ — STRIP (hypothesised, NEEDS measurement): framework-audit.md:61 'one sub-agent per dimension (parallel)' is context-anxiety scaffolding; under 1M-context Opus the plugin/ spine fits one context. Run /framework-audit all single-agent vs fan-out once, compare findings+tokens, keep fan-out only if it still wins.
 - **D9-greybox-eye-harden** · `D9` · _open_ — HARDEN (partial): godot-greybox:47 ships a 'self-audit BY EYE' gate; a subset is deterministic (nav-graph reachability, dead-end count, missing NavigationRegion3D, cover-node count) — sibling godot-gridmap-level already hardened its by-eye out. Draft check_greybox_reachability; visual principles (sightline, mystery) stay by-eye.

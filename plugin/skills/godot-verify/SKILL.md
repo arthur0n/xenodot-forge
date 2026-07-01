@@ -112,12 +112,20 @@ Contract notes:
 
 ## Layer 5 — CanvasLayer / overlay UI capture (root viewport)
 
-Layers 3 and 4 capture the **SubViewport** (the pixel-art rig — the 3D scene). A
-`CanvasLayer` UI screen — a HUD, a pause/menu/choice overlay — is a child of Main
-**outside** the SubViewport and renders straight to the **root window** viewport. So
-the SubViewport texture does NOT contain it: a UI screen is invisible to Layers 3/4.
-Capture the composited **root** viewport instead. Windowed only (the `--headless`
-dummy renderer returns a blank image).
+**What Layers 3/4 sample depends on the render paradigm — the SubViewport is NOT
+universal.** A _pixelation-rig_ game (skill: `godot-3d-pixelation`) renders its 3D scene
+into a **SubViewport**, so Layers 3/4 sample that SubViewport texture. An **HD** game
+(skill: `godot-mesh-import-hd`) has no such rig — the 3D renders straight to the **root**
+viewport, so Layers 3/4 already sample root. Never assume a pixelation rig exists; scope
+the capture target to the game's paradigm.
+
+The gap this layer closes is a **pixel-rig** one: a `CanvasLayer` UI screen — a HUD, a
+pause/menu/choice overlay — is a child of Main **outside** the SubViewport and renders
+straight to the **root window** viewport, so the SubViewport texture does NOT contain it —
+a UI screen is invisible to a SubViewport-scoped Layer 3/4 capture. (An HD game has no
+SubViewport, so its root capture already holds both the 3D and the overlays.) Either way,
+to inspect composited overlays, **capture the root viewport**. Windowed only (the
+`--headless` dummy renderer returns a blank image).
 
 ```gdscript
 # extends SceneTree — boot main.tscn, open the screen via the REAL path (see below),
@@ -190,7 +198,7 @@ If Godot binary unavailable: say so explicitly — do not claim verification.
 | View-model / post-interaction artifact (weapon on top of HUD, solid square after an action) passed Layer 3                                           | Expected — Layer 3 is a startup snapshot, no input. Use Layer 4 (build per contract, not shipped — see `plugin/library/tools/verify-render-action.md`): trigger the action, settle, flood-check the render target. If it reports `FAIL … floods X%`, the artifact is confirmed; investigate near-plane clip (camera near plane too large) or view-model visibility logic.                                                                                                                                       |
 | Headless `VERIFY: OK` but editor errors on open ("node name clashes") or runtime uses default/stale exports                                          | Editor-only scene-structure trap headless can't see: `script=` re-set on an instanced node, or `type=`/`instance=` override on an inherited/packed node. Remove the redundant override; fix at the source (entity `.tscn` / builder), then open in editor to confirm.                                                                                                                                                                                                                                           |
 | `Leaked instance` / `RID allocations leaked at exit` / `ObjectDB instances leaked` / `resources still in use at exit` / `Pages in use exist at exit` | Benign Godot 4 headless cleanup noise — NOT an error. Ignore. `resources still in use at exit` fires when actively-playing **looping audio** holds its stream as `--quit-after` terminates before scene-tree teardown; the Layer 2 smoke grep excludes these. If you hit a benign-noise line NOT yet excluded, do NOT edit `validate.sh` yourself (plugin-owned, gitignored gate) — report it as friction so the exclusion is promoted upstream.                                                                |
-| UI overlay / CanvasLayer screen renders blank or is missing from a capture                                                                           | The SubViewport texture (Layer 3/4) excludes CanvasLayer overlays. Capture the composited ROOT viewport instead: `await RenderingServer.frame_post_draw` then `root.get_texture().get_image()`, windowed (no `--headless`) — see Layer 5.                                                                                                                                                                                                                                                                       |
+| UI overlay / CanvasLayer screen renders blank or is missing from a capture                                                                           | In a pixelation-rig game the SubViewport texture (what Layer 3/4 sample) excludes CanvasLayer overlays; an HD game renders 3D to root with no rig. Either way, capture the composited ROOT viewport: `await RenderingServer.frame_post_draw` then `root.get_texture().get_image()`, windowed (no `--headless`) — see Layer 5.                                                                                                                                                                                   |
 | Reported a UI / visual / toggle feature "verified" (or "human F5 needed") without a capture                                                          | If it is on-screen and capturable, capture + INSPECT it yourself (Layer 3/4/5) and drive the real input path (`godot-playthrough-bot`). "human F5" is only for the genuinely uncapturable. Never wave off a visible anomaly in a capture as "expected" without a stated reason.                                                                                                                                                                                                                                 |
 
 ## RTK note

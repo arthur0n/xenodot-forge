@@ -69,14 +69,6 @@
       "finding": "INVESTIGATE: human repeatedly reports the game's display/window settings reverting ('back to super small, mode !=2'). Determine whether a framework step (materialize/doctor/setup, or the screenshot/verify GD scripts) rewrites project.godot display settings instead of preserving the game's; if game-local config, drop."
     },
     {
-      "id": "D3-verify-subviewport-lock",
-      "dim": "D3",
-      "bucket": 5,
-      "verdict": "later",
-      "status": "open",
-      "finding": "godot-verify Layer 3/4 capture 'the SubViewport (the pixel-art rig)' (:79,:95,:116-119); the framework also spans HD (godot-mesh-import-hd/-hd-material-import) where a non-pixel game renders 3D to the root viewport → the capture silently assumes a pixelation rig. Scope: SubViewport when the game uses a pixelation rig, else root. Park for the HD-vs-pixel branch."
-    },
-    {
       "id": "D5-builder-restates-verify",
       "dim": "D5",
       "bucket": 5,
