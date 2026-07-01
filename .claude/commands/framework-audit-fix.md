@@ -21,7 +21,8 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
 
 - **Ledger:** `.claude/framework-audits/LEDGER.md` — the source of truth for ids, fixes, status.
 - **Targets:** `plugin/skills/*/SKILL.md`, `plugin/agents/*.md`, `ui/orchestrator.md`,
-  `plugin/commands/*.md`, `plugin/library/{transcripts,verdicts}/`.
+  `plugin/commands/*.md`, the forge-local `.claude/commands/*.md` (the self-improvement commands —
+  when a D7 finding targets an audit command itself), `plugin/library/{transcripts,verdicts}/`.
 - Editing a plugin file directly **is** the sanctioned path for a general improvement
   (`plugin/docs/process/promotion.md`: "General improvement → edit the file directly in the
   plugin"). A skill stays game-agnostic; the game's own FACTS live GAME-LOCAL (the game repo), NOT
@@ -69,7 +70,8 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
      duplicated prose from each agent body.
    - **D6 (orchestrator):** apply the recorded edit to `ui/orchestrator.md` (centralize a
      duplicated directive, move dense prose into a skill, or trim).
-   - **D7 (command):** edit the target `plugin/commands/*.md` per the finding.
+   - **D7 (command):** edit the target command per the finding — a shipped `plugin/commands/*.md`
+     or a forge-local `.claude/commands/*.md` (the self-improvement commands audited under D7).
    - **D8 (verification-flow gap):** apply the recorded edit at the named layer — add the missing
      `## Verification (mandatory)` block to the builder, wire the claimed step into
      `tools/lib/checks.sh` / `tools/validate.sh` (or correct the skill's claim), or replace a

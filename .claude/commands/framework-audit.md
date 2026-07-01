@@ -10,8 +10,8 @@ model: opus
 A deliberate habit, not a one-shot. Xenodot is a **self-improvement framework**: each run
 inspects the framework's own spine — agents, skills, orchestrator, and **its own commands** —
 finds quality drift, proposes concrete fixes, records what it found so the next run skips it,
-and critiques itself. Run it caveman + high effort (type `ultrathink`, or invoke on a
-high-effort turn). You won't catch everything in one pass — that's expected.
+and critiques itself. It loads caveman itself (step 0) and runs best high-effort (type
+`ultrathink`, or invoke on a high-effort turn). You won't catch everything in one pass — that's expected.
 
 This command is **forge-local and human-run**. It **reports + proposes only** — it does not
 auto-fix, auto-file, schedule itself, or write under `plugin/`. Each finding gets a stable id;
@@ -30,8 +30,9 @@ properties the promotion rubric (`plugin/docs/process/promotion.md`) demands.
 - **Agents:** `plugin/agents/*.md` — frontmatter `skills:` list + the prompt body.
 - **Skills:** `plugin/skills/*/SKILL.md` — frontmatter `name`/`description`/`agents` + body.
 - **Orchestrator:** `ui/orchestrator.md`.
-- **Commands:** `plugin/commands/*.md` and BOTH forge-local audit commands — this file +
-  its companion `framework-audit-fix.md`.
+- **Commands:** `plugin/commands/*.md` and ALL forge-local self-improvement commands
+  (`.claude/commands/*.md`: this file, `framework-audit-fix.md`, `harvest-sessions.md`,
+  `framework-feedback.md`).
 - **Library (where game-specifics belong):** `plugin/library/{transcripts,verdicts,findings}/`.
 - **Ledger:** `.claude/framework-audits/LEDGER.md` — read FIRST, append AFTER.
 
@@ -51,12 +52,17 @@ misses one ref leaves contamination behind. Completeness → `rg`; concepts → 
 
 ## Steps
 
+0. **Load caveman first.** Before anything else, invoke the `caveman` skill — this command
+   reports in caveman mode (terse; all technical substance kept, only fluff dropped).
+
 1. **Read the ledger.** Open `LEDGER.md` — pruned after each pass, so it holds the last-audit date
    plus any rows still `open`/`later`. Don't re-surface a finding already listed open/later (or one
    the last-audit line says was resolved); otherwise audit fresh against the current files.
 
-2. **Pick scope.** Default `all`. `$ARGUMENTS` overrides: a dimension id (`D3`) audits just
-   that one. Skip any dimension audited recently unless its area changed since (check git).
+2. **Pick scope.** Default `all`. `$ARGUMENTS` overrides: a **dimension id** (`D3`) audits just
+   that one; a **finding id** (`D7-scope-stale-four`) re-verifies that single open ledger finding
+   against current files — refine/confirm it for the human to apply, not a fresh scan. Skip any
+   dimension audited recently unless its area changed since (check git).
 
 3. **Audit each dimension.** Prefer one sub-agent per dimension (parallel) for the gather;
    you judge. Signals:
@@ -113,10 +119,13 @@ misses one ref leaves contamination behind. Completeness → `rg`; concepts → 
      agents that should be centralized; dense step-by-step prose that belongs in a reusable
      skill; philosophy/tone that dilutes routing. Propose the move/trim.
 
-   - **D7 — The framework's own commands.** Audit `plugin/commands/*.md` AND both forge-local
-     audit commands (this file + its companion `framework-audit-fix.md`) for stale references
+   - **D7 — The framework's own commands.** Audit `plugin/commands/*.md` AND all forge-local
+     self-improvement commands (`.claude/commands/*.md`: this file, `framework-audit-fix.md`,
+     `harvest-sessions.md`, `framework-feedback.md`) for stale references
      (paths/files that moved), scope creep, dead steps, and whether each command still
-     self-critiques. Apply D2/D3/D5 lenses to commands too.
+     self-critiques. Apply D2/D3/D5 lenses to commands too. **Enumeration drift:** flag any command
+     that hardcodes a list of sibling files where a glob (`.claude/commands/*.md`) would stay
+     current — such lists silently go stale as files are added.
 
    - **D8 — Verification flow completeness.** Does the verify/grade story hold end-to-end across
      builders, skills, and tools? Trace it (graphify D8): design **Acceptance** → builder gate
