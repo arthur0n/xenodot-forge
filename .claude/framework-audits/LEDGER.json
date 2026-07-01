@@ -37,14 +37,6 @@
       "finding": "engine version drift across skills: 'Godot 4.6' (greybox, enemy-ai, godot-assets) vs '4.3+' (pixel-lighting) — framework-wide consistency pass."
     },
     {
-      "id": "D6-directive-verbose",
-      "dim": "D6",
-      "bucket": 5,
-      "verdict": "later",
-      "status": "open",
-      "finding": "orchestrator data-driven directive (lines 3-10, 8 lines of prose) above routing — condense to ~4 bullets."
-    },
-    {
       "id": "D7-fix-no-selfcritique",
       "dim": "D7",
       "bucket": 5,
