@@ -1,6 +1,6 @@
 ---
 name: godot-runtime-smoke
-agents: [bug-triage, godot-playtester]
+agents: [godot-dev, godot-enemy, godot-ranged-combat, godot-player, godot-playtester]
 description: >-
   The L2 runtime-smoke layer for a Godot-family game (4.x) WITHOUT
   GdUnit4 — a headless SceneTree tool script (`tools/smoke_*.gd`, run via
@@ -14,8 +14,8 @@ description: >-
   signal arity", "recoil never applies", "enemy takes damage but never emits
   died", "assert a signal fired", "headless integration test", "smoke test the
   combat contract" — or when a regression slips past lint+parse+render because
-  the logic is wrong, not the syntax. Reuses the proven
-  `tools/test_combat_integration.gd` pattern. NOT the render/draw/pipeline-count
+  the logic is wrong, not the syntax. Reuses a project's own proven
+  integration-test pattern. NOT the render/draw/pipeline-count
   checks (those need a real window — godot-verify layer 3 /
   `verify_render_action.gd`), NOT the load-and-renders gate (godot-verify), and
   NOT a feel/polish sweep (not yet a skill).
@@ -28,9 +28,8 @@ smoke run that flags ERROR/WARNING). It does NOT prove the game **runs correctly
 a weapon that emits the wrong signal arity, recoil that never applies, an enemy that
 takes damage but never emits `died`, a regressed feel value — all pass L0 and only
 surface at human F5. The L2 layer closes that gap by booting a real scene headless,
-driving ONE gameplay seam from code, and **asserting observable state**. The pattern
-is already proven on this repo by `tools/test_combat_integration.gd` /
-`tools/verify_enemy_ai.gd` — this skill un-ad-hocs it into a re-runnable template +
+driving ONE gameplay seam from code, and **asserting observable state**. This skill
+un-ad-hocs the common one-off integration test into a re-runnable template +
 a checklist of which seams to cover, and wires it as a gate step. No GdUnit4, no
 addon: a plain `SceneTree` script gives the same logic-assert capability with zero
 new dependency.
@@ -71,8 +70,8 @@ F5 territory).
 Headless physics also does **not** process overlap detection synchronously between
 two separately-added nodes within a few frames. If your seam depends on
 `get_overlapping_bodies()` / `body_entered`, assert the method it _would_ call
-(`_apply_hit(enemy)`) directly via the duck-typed seam — exactly as
-`test_combat_integration.gd`'s stationary-overlap test does — and prove the code path
+(`_apply_hit(enemy)`) directly via the duck-typed seam — exactly as a
+stationary-overlap integration test does — and prove the code path
 exists/is callable, leaving the real overlap to F5.
 
 ## Project conventions
@@ -95,7 +94,7 @@ exists/is callable, leaving the real overlap to F5.
   server first tick; frame 3 = overlaps/state populated. Use a `_frame` counter in
   `_process` and a `_done` guard so the body runs once.
 - Scenes under test live in their domain folder (`res://entities/...`,
-  `res://levels/firing_yard.tscn`). Load with `load(path) as PackedScene`,
+  `res://levels/<level>.tscn`). Load with `load(path) as PackedScene`,
   `instantiate()`, `root.add_child(...)`; `queue_free()` every spawn at the end so the
   smoke leaves no leak (validate.sh's leak greps still apply).
 - Private-field reads (`_health`, `_swing_active`) are a **test SEAM**: read via
@@ -136,7 +135,7 @@ jump, cycle_level`. Fire/recoil/hit are driven by calling the entity's own metho
    # Exit 0 = all pass, 1 = any failure.
    extends SceneTree
 
-   const FIRING_YARD := "res://levels/firing_yard.tscn"
+   const LEVEL_SCENE := "res://levels/<level>.tscn"
 
    var _pass_count: int = 0
    var _fail_count: int = 0
@@ -420,6 +419,5 @@ THE HEADLESS / WINDOWED SPLIT (critical — do NOT assume headless catches every
 | Spatial-seam smoke passes but the transform reference (local vs global) is wrong                                            | Every case used an identity / yaw=0 origin, where local==global. Drive >=1 case with a NON-identity origin (rotated yaw AND translated) so a `rotation.y` vs `global_rotation.y` (or local-vs-world basis) bug is forced to diverge; assert a discriminating OFF-AXIS target. (Per-domain coverage rule, Project conventions.)                                                                                                                                      |
 | Gate-step diagnostic (`await nav_region.bake_finished`, any awaited engine signal) hangs forever / runs away with no output | A bare `await signal` in a gate has no escape — an empty/failing headless bake never emits. Race the signal against a frame budget: await the signal OR an N-frame timeout, and on timeout print a FAIL line + `quit(1)`. Never let a gate step await unbounded — reuse the `_await_signal` timeout helper above.                                                                                                                                                   |
 
-Authored from a project's own proven integration-test pattern (e.g.
-`tools/test_combat_integration.gd` / `tools/verify_enemy_ai.gd`); no external
+Authored from a project's own proven integration-test pattern; no external
 library source.

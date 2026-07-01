@@ -12,6 +12,7 @@ skills:
   - godot-docs
   - godot-effect-composition
   - godot-travelling-projectile-3d
+  - godot-runtime-smoke
   - godot-verify
   - tasks-mcp
 effort: medium

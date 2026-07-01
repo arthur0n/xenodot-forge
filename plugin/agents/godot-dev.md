@@ -15,6 +15,7 @@ skills:
   - godot-main-scene
   - godot-gridmap-level
   - godot-export-builds
+  - godot-runtime-smoke
 effort: medium
 ---
 

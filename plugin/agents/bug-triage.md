@@ -6,7 +6,6 @@ tools: Read, Glob, Grep, Bash, Write, Edit, Skill, mcp__ui__form, mcp__ui__tasks
 skills:
   - caveman
   - godot-enemy-ai-headless-smoke
-  - godot-runtime-smoke
   - graphify
   - tasks-mcp
 effort: high

@@ -12,6 +12,7 @@ skills:
   - godot-docs
   - godot-enemy-ai
   - godot-enemy-ai-headless-smoke
+  - godot-runtime-smoke
   - godot-enemy-archetype
   - godot-fps-enemy-combat
   - godot-navmesh-pathing-4-6

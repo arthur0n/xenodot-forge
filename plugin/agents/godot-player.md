@@ -14,6 +14,7 @@ skills:
   - godot-first-person-controller
   - godot-orthographic-follow-camera
   - godot-animation-libraries
+  - godot-runtime-smoke
 effort: medium
 ---
 
