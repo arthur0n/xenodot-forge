@@ -18,6 +18,11 @@
 //
 // Run when ready (workflows need explicit opt-in). Optional `args`: an explicit id array to apply
 // instead of auto-scanning (e.g. args: ["D8-verify-crossref","D6-symptom-route-triplication"]).
+//
+// eslint doesn't lint this file: Workflow DSL scripts use module-level `export` + top-level
+// `return` + runtime-injected globals (agent/phase/log/args), which no standard parser accepts,
+// so eslint.config.js ignores `.claude/workflows/` and pre-commit skips eslint for exactly this
+// dir (prettier still runs). See lint-staged.config.mjs.
 
 export const meta = {
   name: "apply-nobrainers",

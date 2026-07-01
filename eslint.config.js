@@ -72,7 +72,9 @@ const viewLimits = {
 export default [
   // vendor/ holds gitignored third-party plugins (e.g. codex-plugin-cc, cloned by
   // `npm run codex:setup`) — not our code, never linted to our rules.
-  { ignores: ["node_modules/", "logs/", "vendor/", ".claude/"] },
+  // .claude/workflows/ holds Workflow DSL scripts (module-level `export` + top-level `return`
+  // + runtime-injected globals) that no standard parser can lint; the rest of .claude/ IS linted.
+  { ignores: ["node_modules/", "logs/", "vendor/", ".claude/workflows/"] },
   js.configs.recommended,
 
   // Node side — server, shared lib, smoke test, and *.check.js scripts run with
