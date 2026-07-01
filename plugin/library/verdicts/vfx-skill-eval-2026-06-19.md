@@ -84,10 +84,10 @@ Scope of the skill = **the rig + the routing pattern only**:
 ### 4. Smallest first adoption (RECOMMENDED)
 
 1. Author ONE skill `godot-oneshot-vfx` (rig + router pattern + 4.6 facts + perf budget).
-2. Then a Phase-1 BUILD task: muzzle-flash particles on `fired` + ONE generic impact burst on
+2. Then a BUILD task: muzzle-flash particles on `fired` + ONE generic impact burst on
    projectile `hit`. Cheapest, highest-visibility, needs only a minimal palette from art-director.
 3. DEFER: vignette (needs health_changed), decals (design "Later"), trails (small projectile-skill
-   addition, do after Phase 1), rescue halo, per-surface tags, layered subemitters.
+   addition, do after that task), rescue halo, per-surface tags, layered subemitters.
 
 Parked-for-later (available in library if needed): subemitters, attractors, GPUParticlesCollision3D,
 flipbook, dynamic amount_ratio quality scaling, GPUTrail3D plugin.

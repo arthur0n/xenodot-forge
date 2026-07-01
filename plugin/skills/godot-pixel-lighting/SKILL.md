@@ -18,16 +18,16 @@ These must already be applied before this skill makes sense:
 ## Project conventions
 
 - **Renderer**: Forward+, reversed-Z, Godot 4.3+ (see CLAUDE.md). GDScript-only — no C#.
-- **Where lighting lives**: inside `levels/<name>.tscn`. The reference level is `levels/blockout_01.tscn`, which already carries the rig this skill tunes:
+- **Where lighting lives**: inside the level scene, `levels/<name>.tscn`. The rig this skill tunes is three nodes:
   - `DirectionalLight3D` at `rotation_degrees = Vector3(-45, -30, 0)`, `shadow_enabled = true` — the sun, fixed angle for a long readable shadow.
   - `WorldEnvironment` holding an `Environment` with `background_mode = 2` (Sky), a `ProceduralSkyMaterial` Sky, and `ambient_light_source = 3` (Sky). That `ambient_light_source = 3` is the Sky-ambient fill this skill explains.
 - **Shadows are HARD by deliberate choice.** Do not enable `shadow_blur` / soft-shadow filtering — penumbra smears across the nearest-neighbor pixel grid and the crisp look is lost. Tune readability with bias, not blur.
-- **Tonemap is Filmic with a fixed exposure.** ACES, AgX, auto-exposure, and SSAO are **out of scope** per the roadmap (`docs/roadmap/first_game.md`); AgX is also 4.6-only while we target 4.3+. Filmic is the deliberate choice for "no blown highlights" without the out-of-scope machinery.
+- **Tonemap is Filmic with a fixed exposure.** ACES, AgX, auto-exposure, and SSAO are **out of scope for pixel readability**: auto-exposure makes the same surface change brightness frame to frame (fighting the fixed pixel grid), and ACES/AgX are photoreal tonemappers whose extra machinery buys nothing at low resolution — AgX is also 4.6-only while we target 4.3+. Filmic is the deliberate choice for "no blown highlights" without that machinery.
 - **You (this skill) do not edit the scene.** Adopting this skill produces guidance; the actual `.tscn`/property edits are godot-dev's job, verified by godot-verify.
 
 ## Steps
 
-One canonical path. All values can be authored as `.tscn` properties on the SubViewport's Environment / the DirectionalLight3D, or set from GDScript in the level's `_ready()`. The `.tscn` form is preferred (it is what `blockout_01.tscn` already uses); the GDScript form is shown for clarity and for runtime day/night swaps.
+One canonical path. All values can be authored as `.tscn` properties on the SubViewport's Environment / the DirectionalLight3D, or set from GDScript in the level's `_ready()`. The `.tscn` form is preferred (author the rig once into the level scene); the GDScript form is shown for clarity and for runtime day/night swaps.
 
 ### 1. The sun — one DirectionalLight3D
 
@@ -40,7 +40,7 @@ sun.light_energy = 1.0
 sun.shadow_enabled = true
 ```
 
-`.tscn` equivalent on the `DirectionalLight3D` node: `rotation_degrees = Vector3(-45, -30, 0)`, `shadow_enabled = true` (already present in `blockout_01.tscn`).
+`.tscn` equivalent on the `DirectionalLight3D` node: `rotation_degrees = Vector3(-45, -30, 0)`, `shadow_enabled = true`.
 
 ### 2. Hard, readable shadow — tune bias, never blur
 
@@ -58,7 +58,7 @@ Tuning order: start at `shadow_normal_bias = 1.0`. Stripes (acne) on lit surface
 
 ### 3. Ambient fill — Sky (or Color) as the depth cue
 
-Ambient light fills the shadowed side so it stays readable, without washing the scene flat. `ambient_light_source = Sky` reuses the procedural sky as cheap real-time fill (this is `blockout_01.tscn`'s existing `ambient_light_source = 3`). Balance it: enough fill to read the dark side of a box, not so much that the sun's shadow disappears.
+Ambient light fills the shadowed side so it stays readable, without washing the scene flat. `ambient_light_source = Sky` (`= 3`) reuses the procedural sky as cheap real-time fill. Balance it: enough fill to read the dark side of a box, not so much that the sun's shadow disappears.
 
 ```gdscript
 var env: Environment = world_environment.environment
@@ -76,14 +76,14 @@ On the **same** SubViewport Environment, set a Filmic tonemap and pin the exposu
 ```gdscript
 env.tonemap_mode = Environment.TONE_MAPPER_FILMIC  # = 3
 env.tonemap_exposure = 1.0   # fixed; lower (~0.8) if highlights still blow out
-# Out of scope (roadmap): TONE_MAPPER_ACES, TONE_MAPPER_AGX, auto-exposure, SSAO.
+# Out of scope for pixel readability: TONE_MAPPER_ACES, TONE_MAPPER_AGX, auto-exposure, SSAO.
 ```
 
 `.tscn` equivalent on the `Environment` sub-resource: `tonemap_mode = 3` (Filmic), `tonemap_exposure = 1.0`. Note: AgX is 4.6-only; we target 4.3+, so Filmic is the deliberate choice, not a fallback we are forced into.
 
 ## Verification checklist
 
-Run via F5 (full game through `main.tscn`) or F6 (the level scene directly), and through godot-verify's `tools/verify_render.gd` (the scene's own camera/lights — the editor viewport is NOT verification). Tied to the Phase-5 gate in `docs/roadmap/first_game.md`:
+Run via F5 (full game through `main.tscn`) or F6 (the level scene directly), and through godot-verify's `tools/verify_render.gd` (the scene's own camera/lights — the editor viewport is NOT verification):
 
 - The scene renders (not black): sky visible, geometry lit.
 - A **sun shadow is visible under the player capsule** — a distinct dark patch on the floor, cast by the capsule.
