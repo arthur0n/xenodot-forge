@@ -1,6 +1,6 @@
 # Token-audit ledger
 
-Running record for `/xenodot:token-audit`. The hive's session logs are mined a couple at a
+Running record for `/token-audit`. The hive's session logs are mined a couple at a
 time for turns we could make deterministic (a script/tool/hook instead of an agent/LLM call).
 
 **How to use:** read this file first. Skip any session already in `Covered sessions`. After a

@@ -21,14 +21,6 @@
   "verdicts": { "fix-now": "buckets 3/4", "later": "bucket 5", "skip": "bucket 6" },
   "findings": [
     {
-      "id": "D7-token-audit-ships",
-      "dim": "D7",
-      "bucket": 4,
-      "verdict": "fix-now",
-      "status": "open",
-      "finding": "token-audit.md ships via plugin to every game but mines forge logs/ + cites forge ui/ internals — move to .claude/commands/ or strip the forge premise."
-    },
-    {
       "id": "D2-blockout",
       "dim": "D2",
       "bucket": 4,
