@@ -1,0 +1,24 @@
+name: gitleaks
+
+# Secret scanning. Runs on every PR and push to main, scanning the FULL git
+# history (fetch-depth: 0) so a secret introduced in any past commit is caught,
+# not just the diff. Config + allowlist: .gitleaks.toml.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history for a complete scan
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITLEAKS_LICENSE is only required for GitHub *organization* accounts.
+          # Personal and public repositories are free and need no license key.

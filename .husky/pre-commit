@@ -1,3 +1,10 @@
+# Secret scan (defense-in-depth). Skips gracefully when gitleaks isn't installed
+# locally so it never blocks a contributor who lacks the binary — CI
+# (.github/workflows/gitleaks.yml) is the authoritative, always-on gate.
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --staged --redact --no-banner
+fi
+
 # Interactive release prompt — terminal commits only (skipped for non-TTY such
 # as CI or agent commits). Choosing a type bumps package.json and stages a tag
 # that post-commit creates. feat → sub-version (v0.1.X); fix|chore|refactor →

@@ -1,0 +1,22 @@
+# Gitleaks config for xenodot-forge.
+#
+# Extends the built-in ruleset (useDefault = true) and allowlists only
+# values that are intentionally committed and safe to be public (placeholder
+# `*.example` templates). This keeps a full-history scan green without weakening
+# detection of real secrets.
+#
+# Used by the pre-commit hook (.husky/pre-commit → `gitleaks git --staged`) and
+# CI (.github/workflows/gitleaks.yml → full-history scan).
+
+title = "xenodot-forge gitleaks config"
+
+[extend]
+useDefault = true
+
+# Public-by-design values. Matched against the detected secret (default target).
+[[allowlists]]
+description = "Intentionally-committed, public-by-design values"
+paths = [
+  '''.*\.example$''',
+  '''.*\.example\.[a-z]+$''',
+]
