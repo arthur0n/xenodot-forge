@@ -4,8 +4,9 @@ What Xenodot Forge actually does, as a capability catalog. For the philosophy,
 positioning, and setup, see the [README](README.md); for the wire protocol, see
 [`ui/PROTOCOL.md`](ui/PROTOCOL.md).
 
-Counts below are badge-tracked (`npm run badges` auto-counts them). The live
-source of truth is the **Agents** tab in the UI and the plugin dirs
+Counts below are badge-tracked (`npm run badges` rewrites them and cross-checks
+the agent list against `plugin/agents/`; wired into pre-commit). The live source
+of truth is the **Agents** tab in the UI and the plugin dirs
 (`plugin/agents/`, `plugin/skills/`) — this file groups them so it doesn't drift.
 
 ## The pipeline
@@ -37,16 +38,18 @@ product: nothing is reported "done" without passing real engine checks.
   partitions scope to disjoint file sets, re-verifies a transient gate fail
   during a concurrent build, and accepts the residual race rather than chase it.
 
-## Agents (17)
+## Agents (20)
 
 Framework agents, namespaced `xenodot:<name>`. Grouped by role:
 
 - **Design & scope** — `game-designer` (the entry point: interviews, locks a
   design doc), `level-designer` (reads a drawn grid, briefs a level concept-first).
 - **Builders** — `godot-dev` (core build/glue/export), `godot-player`
-  (first-person + follow camera + animation), `godot-combat` (enemy
-  health/death, projectiles), `godot-assets` (import/generate models &
-  textures), `godot-visuals` (3D-pixel-art rig, lighting, post-process),
+  (first-person + follow camera + animation), `godot-enemy` (enemy entities, AI,
+  data-driven archetypes), `godot-weapons-abilities` (weapons, projectiles, the
+  data-driven ability/effect layer), `godot-vfx` (one-shot + looping combat
+  particles), `godot-assets` (import/generate models & textures),
+  `godot-visuals` (3D-pixel-art rig, lighting, post-process),
   `godot-refactor` (mechanical modularization into components).
 - **Art direction & assets** — `art-director` (visual-style direction),
   `asset-advisor` (art-asset sourcing specs + post-upload verification).
@@ -55,24 +58,34 @@ Framework agents, namespaced `xenodot:<name>`. Grouped by role:
   `godot-*` one fits), `cli-researcher` (new agent/tooling capabilities),
   `transcript-researcher` (harvest video knowledge into the library),
   `godot-docs-evangelist` (authoritative API verification; needs the docs MCP).
-- **Support** — `bug-triage` (root-cause + what the framework should learn),
+- **Evaluation & support** — `godot-playtester` (the embodied evaluator: plays
+  the build via adversarial bots + the playgrade grader, never fixes it),
+  `bug-triage` (root-cause + what the framework should learn),
   `handoff-summarizer` (the ≤5-line builder-report digest).
 
-## Skills (29)
+## Skills (47)
 
 Procedures (one canonical path, observable outcome), not references. Loaded by
 the implementers that own them, not invoked directly. Across these domains:
 
 - **Meta / procedural** — `agent-report`, `autonomous-main-goal`, `caveman`,
-  `quick`, `tasks-mcp`.
+  `graphify`, `research-presenting`, `tasks-mcp`.
 - **Godot core** — project conventions, typed-GDScript code rules, composition
-  (SOLID via component nodes), main-scene shell, `godot-verify`, export builds.
+  (SOLID via component nodes), data-driven + effect composition, main-scene
+  shell, docs lookup, export builds.
+- **Verification & playtesting** — `godot-verify`, runtime smoke, runtime
+  arena, the playgrade grader, the playthrough input-bot, enemy-AI headless smoke.
 - **Rendering & visuals** — 3D pixelation (SubViewport), pixel-readability
-  lighting, screen-space effects, orthographic follow camera, foliage, one-shot VFX.
-- **3D mechanics** — first-person controller, travelling projectiles, enemy AI
-  (NavigationAgent3D + state machine), shooter enemy combat contract, GridMap levels.
-- **Art & assets** — animation libraries, mesh/texture pixel-art import,
-  procedural model & texture generation, level-design principles.
+  lighting, screen-space effects, orthographic follow camera, foliage,
+  one-shot + looping particle VFX, art style.
+- **3D mechanics & AI** — first-person controller, travelling projectiles,
+  enemy AI (NavigationAgent3D + state machine) + enemy archetypes, shooter
+  enemy combat contract, stealth perception, the 4.6 navmesh landmines,
+  GridMap levels.
+- **Level & spatial design** — greybox authoring, greybox-to-asset, arena
+  spatial design, level-design principles.
+- **Art & assets** — animation libraries, mesh/texture pixel-art + HD import,
+  HD materials, procedural model & texture generation.
 
 ## Web UI
 

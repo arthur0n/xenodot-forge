@@ -17,8 +17,11 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
-      # Enforce the by-domain folder layout (no loose modules at the top of ui/server|client).
-      - run: npm run check:structure
+      # The full local gate (tsc + eslint + structure + skills + contamination) plus the
+      # check-script tests — otherwise both live only in the bypassable husky hook.
+      # validate includes check:structure.
+      - run: npm run validate
+      - run: npm test
       # Exports the repo as a forker receives it (git archive of tracked files),
       # installs into a fixture game, and asserts agents/skills/hook-merge.
       # Tier 2 self-skips here — no Godot on this runner.

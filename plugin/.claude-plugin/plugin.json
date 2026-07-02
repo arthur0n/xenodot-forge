@@ -1,6 +1,6 @@
 {
   "name": "xenodot",
   "description": "Xenodot Forge — agents, skills, tools and hooks for AI-assisted Godot-family (Godot / Redot / Blazium) game development with Claude Code",
-  "version": "0.1.7",
+  "version": "0.2.1",
   "author": { "name": "Xenodot Forge" }
 }

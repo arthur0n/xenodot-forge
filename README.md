@@ -26,17 +26,19 @@ The tools are here. The shape of the framework is yours to decide.
 
 > **Disclaimer:** I don't have much time, so progress is slower than I'd like — but I'll keep the updates coming.
 
-**Latest: `v0.2.0`** — graphify knowledge-graph integration (opt-in), agents that author
-their own tools/skills, `./start_server` / `./stop_server` detached launchers, embodied
-playgrade evaluator + determinism spine, and agent-liveness fixes (subagents survive browser
-disconnects). Full history in [Releases](https://github.com/arthur0n/xenodot-forge/releases);
+**Latest: `v0.2.1`** — the self-improvement loop: `/framework-feedback` (conversation) +
+`/harvest-sessions` (logs) feed the human-gated audit ledger; promote handles
+already-in-plugin capabilities; token-audit fixes; modular settings. Full history in
+[Releases](https://github.com/arthur0n/xenodot-forge/releases);
 the reference game is on [Itch](https://arthur0n.itch.io).
 
-**Since `v0.2.0`** — background sub-agents can reach the async UI tools (task board, ask,
+**Since `v0.2.1`** — background sub-agents can reach the async UI tools (task board, ask,
 promote, asset) instead of auto-denying; `mcp__ui__form` is now foreground-only with
 `mcp__ui__ask` as the background → task-panel channel; a tool-domain guard keeps
 game-specific bots out of the shared plugin; a typed-export NodePath gate catches a silent
-Godot null trap; and Codex/Hermes can be set up from the Settings panel (one button, then restart).
+Godot null trap; Codex/Hermes can be set up from the Settings panel (one button, then
+restart); and CI now runs the full `validate` + `test` gate, with the plugin manifest
+riding the same release train as `package.json`.
 
 ## Why this exists
 
