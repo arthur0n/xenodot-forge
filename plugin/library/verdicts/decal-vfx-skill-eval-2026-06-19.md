@@ -103,7 +103,7 @@ the projectile/collision-normal plumbing is godot-dev (t253), not the skill.
 
 **Proposed name:** `godot-decal-vfx`
 **Target path (foreground author after approval):**
-`/Users/arthurnunes/Library/MRHEWBUC-LOCAL/diceofate/game/.claude/skills/godot-decal-vfx/SKILL.md`
+`<game>/.claude/skills/godot-decal-vfx/SKILL.md`
 
 ### SKILL.md outline (template order)
 
