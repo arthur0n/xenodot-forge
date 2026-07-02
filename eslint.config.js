@@ -95,6 +95,13 @@ export default [
     rules: { ...sharedRules, ...nodeLimits, "no-console": "off" },
   },
 
+  // node:test files — `test(...)` returns a promise the runner owns; awaiting or
+  // void-ing every call is pure noise, so relax the floating-promise rule here only.
+  {
+    files: ["ui/**/*.test.js"],
+    rules: { "@typescript-eslint/no-floating-promises": "off" },
+  },
+
   // Browser side — the client view modules (loaded as ES modules).
   {
     files: ["ui/client/**/*.js"],

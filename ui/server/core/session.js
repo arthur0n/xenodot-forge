@@ -78,8 +78,9 @@ import {
 /** One-channel guard for inline asks: if any question in an `AskUserQuestion` call
  * matches an already-open board question (filed via `mcp__ui__ask`), return a deny
  * result pointing at it; else null. Stops a second, divergent record (t224/t140).
+ * Exported for tests (session.test.js), like makeCanUseTool/trackMessage below.
  * @param {unknown} input @returns {{ behavior: "deny", message: string } | null} */
-function denyIfQuestionOpen(input) {
+export function denyIfQuestionOpen(input) {
   if (!input || typeof input !== "object") return null;
   const raw = /** @type {{ questions?: unknown }} */ (input).questions;
   const questions = /** @type {Array<{ question?: unknown }>} */ (Array.isArray(raw) ? raw : []);
@@ -114,7 +115,14 @@ async function handleAskQuestion(input, agent, waitFor) {
  * @param {{ session: SessionState, sessionAllowed: Set<string>, waitFor: WaitFor, log: (dir: string, obj: OutMsg) => void, agentByTool: Map<string, string>, formAgentQueue: string[] }} deps
  * @returns {import("@anthropic-ai/claude-agent-sdk").CanUseTool}
  */
-function makeCanUseTool({ session, sessionAllowed, waitFor, log, agentByTool, formAgentQueue }) {
+export function makeCanUseTool({
+  session,
+  sessionAllowed,
+  waitFor,
+  log,
+  agentByTool,
+  formAgentQueue,
+}) {
   return async (toolName, input, opts) => {
     // Which agent raised this call (main loop or a sub-agent), so the UI can
     // label concurrent approvals. opts.toolUseID is set by the SDK.
@@ -198,7 +206,10 @@ function surfaceDenial(message, { agentByTool, send }) {
  * @param {import("@anthropic-ai/claude-agent-sdk").SDKMessage} message
  * @param {{ agentByTool: Map<string, string>, bgSpawns: Set<string>, bgBoard: Map<string, string>, runningByTask: Map<string, RunningChip>, lastSeen: Map<string, number>, send: (obj: OutMsg) => void }} deps
  */
-function trackMessage(message, { agentByTool, bgSpawns, bgBoard, runningByTask, lastSeen, send }) {
+export function trackMessage(
+  message,
+  { agentByTool, bgSpawns, bgBoard, runningByTask, lastSeen, send },
+) {
   if (message.type === "assistant") {
     trackToolUses(message, { agentByTool, bgSpawns });
   } else if (message.type === "system" && message.subtype === "task_started") {
