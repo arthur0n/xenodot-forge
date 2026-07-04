@@ -13,7 +13,7 @@
 #
 # Criteria (v1 coverage in parens; the skill documents how the deferred ones graduate):
 #   1 runs-clean           headless  check_scene_errors + check_smoke            (GRADED)
-#   2 renders-healthy       windowed  render-health metric set, needs a display   (SKIP → godot-verify L3)
+#   2 renders-healthy       windowed  check_render flat-color floor (godot-verify L3)   (GRADED with a display; SKIP headless)
 #   3 core-loop-functional  headless  check_play_bots (the authored adversarial bots)  (GRADED)
 #   4 data-driven-adherence static    codex-criteria lens, delegated to Codex/agent     (SKIP)
 #   5 feel-responsive       headless  latency/continuity asserts inside the play bots   (SKIP → REPORT)
@@ -89,15 +89,17 @@ _crit_runs_clean() { check_scene_errors && check_smoke "$SCENE_RES"; }
 echo "playgrade: grading '$SLUG'…"
 S_RUNS=$(grade "$LOG_DIR/runs-clean.log" _crit_runs_clean)
 S_LOOP=$(grade "$LOG_DIR/core-loop.log" check_play_bots)
+# Flat-color floor gates when a display exists; SKIPs headless (never a fake windowed PASS).
+S_RENDER=$(grade "$LOG_DIR/render.log" check_render "$SCENE_RES")
 # v1-deferred criteria (the skill documents how each graduates to GRADED):
-S_RENDER=SKIP # windowed metric set → godot-verify L3 / verify_arena_render.gd (needs a display)
-S_DATA=SKIP   # static data-driven lens → delegated to Codex / the agent's read pass
-S_FEEL=SKIP   # latency/continuity → folded into the play_*.gd bots (REPORT in v1)
+S_DATA=SKIP # static data-driven lens → delegated to Codex / the agent's read pass
+S_FEEL=SKIP # latency/continuity → folded into the play_*.gd bots (REPORT in v1)
 
 # Aggregate: FAIL if any GRADED criterion failed; SKIPs never fail.
 OVERALL=PASS
 [ "$S_RUNS" = FAIL ] && OVERALL=FAIL
 [ "$S_LOOP" = FAIL ] && OVERALL=FAIL
+[ "$S_RENDER" = FAIL ] && OVERALL=FAIL
 
 first_fail() { grep -E ": FAIL |FAIL —|^ERROR|^SCRIPT ERROR" "$1" 2>/dev/null | head -1; }
 
@@ -116,6 +118,7 @@ add_finding() {
     { \"criterion\": \"$1\", \"file\": \"\", \"line\": 0, \"root_cause\": \"\", \"repro\": \"\", \"evidence_log\": \"$(json_escape "$2")\" }"
 }
 [ "$S_RUNS" = FAIL ] && add_finding runs-clean "$LOG_DIR/runs-clean.log"
+[ "$S_RENDER" = FAIL ] && add_finding renders-healthy "$LOG_DIR/render.log"
 [ "$S_LOOP" = FAIL ] && add_finding core-loop-functional "$LOG_DIR/core-loop.log"
 
 {
@@ -139,6 +142,6 @@ add_finding() {
 	printf '}\n'
 } >"$OUT"
 
-echo "playgrade: $OVERALL — $SLUG (runs-clean=$S_RUNS core-loop=$S_LOOP; render/data/feel=SKIP in v1)"
+echo "playgrade: $OVERALL — $SLUG (runs-clean=$S_RUNS render=$S_RENDER core-loop=$S_LOOP; data/feel=SKIP in v1)"
 echo "playgrade: report → $OUT"
 [ "$OVERALL" = PASS ]

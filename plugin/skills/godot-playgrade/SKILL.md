@@ -34,22 +34,23 @@ tools/playgrade.sh --slug <slug> --design design/<slug>.md [--scene <entry.tscn>
 
 ## The rubric (5 criteria, hard thresholds)
 
-| #   | criterion             | check fn                                    | regime                         | FAIL when                                                                    | v1                     |
-| --- | --------------------- | ------------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------- | ---------------------- |
-| 1   | runs-clean            | `check_scene_errors` + `check_smoke`        | headless                       | any non-benign `ERROR`/`SCRIPT ERROR`                                        | GRADED                 |
-| 2   | renders-healthy       | render-health metric set                    | windowed (**SKIP** no display) | a metric out of its calibrated band                                          | SKIP → godot-verify L3 |
-| 3   | core-loop-functional  | `check_play_bots`                           | headless                       | any Acceptance-derived assertion fails                                       | GRADED                 |
-| 4   | data-driven-adherence | codex-criteria lens                         | static                         | orphan-data / magic-number-in-logic / parallel-system                        | SKIP → Codex/agent     |
-| 5   | feel-responsive       | latency/continuity asserts in the play bots | headless                       | input→response latency > K, or per-frame displacement out of `[floor, ceil]` | SKIP → REPORT          |
+| #   | criterion             | check fn                                    | regime                         | FAIL when                                                                    | v1                    |
+| --- | --------------------- | ------------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------- | --------------------- |
+| 1   | runs-clean            | `check_scene_errors` + `check_smoke`        | headless                       | any non-benign `ERROR`/`SCRIPT ERROR`                                        | GRADED                |
+| 2   | renders-healthy       | `check_render` (flat-color floor)           | windowed (**SKIP** no display) | output is a flat color (valid scene, renders nothing)                        | GRADED with a display |
+| 3   | core-loop-functional  | `check_play_bots`                           | headless                       | any Acceptance-derived assertion fails                                       | GRADED                |
+| 4   | data-driven-adherence | codex-criteria lens                         | static                         | orphan-data / magic-number-in-logic / parallel-system                        | SKIP → Codex/agent    |
+| 5   | feel-responsive       | latency/continuity asserts in the play bots | headless                       | input→response latency > K, or per-frame displacement out of `[floor, ceil]` | SKIP → REPORT         |
 
 Subjective juice/polish is **out** of the automated rubric — surface it as a `human F5 needed`
 note, never as a fake metric.
 
 ### How the SKIP criteria graduate (v1 → full)
 
-- **renders-healthy (2):** runs only with a display (Godot headless returns blank images). Drive it
-  with `tools/verify_arena_render.gd` (godot-verify L3) when a display is present; **SKIP, never
-  FAIL, headless.**
+- **renders-healthy (2):** the binary flat-color floor (`check_render` → `tools/verify_render.gd`,
+  godot-verify L3) is live: GRADED when a display is present, **SKIP, never FAIL, headless**
+  (Godot headless returns blank images — a FAIL there is a false red). The calibrated
+  render-metric bands (per-arena scripts) remain the next graduation step.
 - **data-driven (4):** credit the Codex `adversarial-review` finding (it injects `codex-criteria.md`)
   when Codex is in the team; otherwise apply the lens as a read pass. Not re-derived by the script.
 - **feel-responsive (5):** today the `play_*.gd` bots assert latency/continuity inline and it is

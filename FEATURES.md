@@ -118,10 +118,11 @@ Runs the same agents from a browser (`npm start` → `http://localhost:8338`):
   render. Godot exits 0 on parse errors, so this exists because "verified" bugs shipped.
 - **Validate gate + smoke tests** — GDScript lint/format checks and headless
   scene/playthrough smoke runs.
-- **Playgrade rubric — v1 grades 2 of 5 criteria.** The playtester's grader gates
-  on `runs-clean` and `core-loop-functional`; `renders-healthy`,
-  `data-driven-adherence`, and `feel-responsive` are declared but SKIP until they
-  graduate to deterministic checks.
+- **Playgrade rubric — 3 of 5 criteria live.** The playtester's grader gates on
+  `runs-clean`, `core-loop-functional`, and (when a display is present)
+  `renders-healthy` via the flat-color floor; `data-driven-adherence` and
+  `feel-responsive` are declared but SKIP until they graduate to deterministic
+  checks.
 - **Typed-export NodePath gate** — `check_typed_export_nodepath` catches a silent Godot
   trap: a concretely-typed node-ref `@export` (e.g. `var x: Node3D`) assigned a `NodePath`
   in a `.tscn` resolves to **null** at runtime with no error — green validate, dead feature.

@@ -316,6 +316,33 @@ check_smoke() {
 	_xeno_pass smoke
 }
 
+# Render health (godot-verify layer 3) — boots the scene WITH a display and fails when the output
+# is a flat color (valid scene, renders nothing: camera pointing away, no current camera, missing
+# sky/lights). Binary check, so it gates immediately (the thresholds discipline: binary gates now,
+# numeric bands calibrate first). Headless environments SKIP — Godot renders blank without a
+# display, and a blank-frame FAIL there would be a false red; a SKIP must never fake a windowed
+# PASS. XENO_RENDER=off forces the SKIP explicitly.
+check_render() {
+	local scene_res="${1:-}"
+	if [ "${XENO_RENDER:-}" = "off" ]; then
+		echo "$XENO_GATE: SKIP render (XENO_RENDER=off)"
+		return 0
+	fi
+	case "$(uname -s)" in
+	Linux)
+		if [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
+			echo "$XENO_GATE: SKIP render (no display)"
+			return 0
+		fi
+		;;
+	esac
+	if ! "$GODOT" --path . --resolution 640x360 -s tools/verify_render.gd ${scene_res:+-- "$scene_res"}; then
+		_xeno_fail render
+		return 1
+	fi
+	_xeno_pass render
+}
+
 # Run a fleet of game-authored runtime bots: tools/<prefix>_*.gd. Each is a SceneTree script that
 # drives logic/input and asserts via exit code (0 pass, non-0 fail). nullglob-guarded so a game
 # with NO bots SKIPs cleanly (a fresh `forge new` game has none yet).
