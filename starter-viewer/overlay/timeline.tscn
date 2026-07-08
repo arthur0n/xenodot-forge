@@ -1,0 +1,38 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://overlay/timeline.gd" id="1_timeline"]
+
+[node name="Timeline" type="Control"]
+visible = false
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = -60.0
+offset_right = -12.0
+offset_bottom = -12.0
+mouse_filter = 2
+script = ExtResource("1_timeline")
+
+[node name="Bar" type="PanelContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Row" type="HBoxContainer" parent="Bar"]
+
+[node name="PlayButton" type="Button" parent="Bar/Row"]
+unique_name_in_owner = true
+text = "Play"
+
+[node name="SpeedButton" type="Button" parent="Bar/Row"]
+unique_name_in_owner = true
+text = "1.0x"
+
+[node name="PositionSlider" type="HSlider" parent="Bar/Row"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+size_flags_vertical = 4
+
+[node name="TimeLabel" type="Label" parent="Bar/Row"]
+unique_name_in_owner = true
+text = "0:00 / 0:00"

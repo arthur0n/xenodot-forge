@@ -187,6 +187,74 @@ if [ -f "tools/smoke_binding.gd" ] && [ -n "${TWIN_MODEL:-}" ]; then
 	esac
 fi
 
+# Playback determinism — the recorded-stream player is reproducible (skill: twin-playback). Drives
+# tools/check_playback.gd headless: load a synthesized fixture, seek, play, pause, and hash the
+# emitted (tag|value|seq) sequence; two runs of the SAME fixture+seeks MUST print the SAME
+# PLAYBACK-HASH — that IS the determinism gate.
+#
+# SYNTHESIZED FIXTURES ONLY: fixture mode (node tools/sim/record.js, no network) is byte-reproducible
+# per (--seed,--seconds,--hz) — see sim/recording.js. Byte-reproducibility is the FOUNDATION here: a
+# LIVE capture carries seed:-1 and a non-zero-based seq (the source counts while the recorder is
+# away), so it is observation, not a reproducible input, and could never anchor a determinism check.
+#
+# --fixed-fps is REQUIRED: check_playback's emitted-frame hash is order-exact (reproduces at any
+# frame rate), but the flag honours playback.gd's clock contract and bounds the run — see that
+# script's header. PLAYBACK_FIXED_FPS: 60, the conventional real-time rate; any fixed value works.
+PLAYBACK_FIXED_FPS=60
+# Seconds of stream to synthesize. 3 s = 30 ticks at TWIN_SIM_HZ (10) — enough for two interior
+# seeks plus a play window, small enough to keep two headless legs fast. Seed/hz REUSE the sim pins
+# (TWIN_SIM_SEED/TWIN_SIM_HZ = sim/stream.js DEFAULT_SEED/DEFAULT_HZ set above), so the gate's
+# fixture is the exact stream a live viewer would see.
+PLAYBACK_SECONDS=3
+_pb_miss=""
+command -v node >/dev/null 2>&1 || _pb_miss="$_pb_miss node"
+[ -f tools/sim/record.js ] || _pb_miss="$_pb_miss tools/sim/record.js"
+[ -f tools/check_playback.gd ] || _pb_miss="$_pb_miss tools/check_playback.gd"
+[ -f core/playback.gd ] || _pb_miss="$_pb_miss core/playback.gd"
+if [ -n "$_pb_miss" ]; then
+	echo "$XENO_GATE: SKIP playback-determinism — missing:$_pb_miss (a SKIP is not a pass)"
+else
+	PB_FIXTURE=".xenodot/tmp/playback-fixture.ndjson"
+	mkdir -p "$(dirname "$PB_FIXTURE")"
+	# ALWAYS remove the synthesized fixture, even on an unexpected exit before the explicit rm below
+	# (mirrors the binding-smoke sim reaping — no tmp artifact survives the gate).
+	trap 'rm -f "$PB_FIXTURE" 2>/dev/null' EXIT
+	PB_SYNTH="$(node tools/sim/record.js --out "$PB_FIXTURE" --seconds "$PLAYBACK_SECONDS" \
+		--seed "$TWIN_SIM_SEED" --hz "$TWIN_SIM_HZ" 2>&1)"
+	if [ $? -ne 0 ] || [ ! -f "$PB_FIXTURE" ]; then
+		echo "$PB_SYNTH"
+		echo "$XENO_GATE: FAIL playback-determinism — fixture synthesis failed (record.js)"
+		exit 1
+	fi
+	# Two interior seeks derived from the fixture's own duration (record.js prints duration_ms).
+	PB_DUR="$(echo "$PB_SYNTH" | sed -nE 's/.*duration_ms=([0-9]+).*/\1/p')"
+	PB_SEEKS="$(awk -v d="${PB_DUR:-0}" 'BEGIN { printf "%d,%d", d/3, (2*d)/3 }')"
+	# Run the gate TWICE; the two PLAYBACK-HASH lines being IDENTICAL is the determinism assertion.
+	PB_LOG_A="$("$GODOT" --headless --fixed-fps "$PLAYBACK_FIXED_FPS" --path . \
+		--script tools/check_playback.gd -- "--recording=$PWD/$PB_FIXTURE" "--seek=$PB_SEEKS" 2>&1)"
+	PB_RC_A=$?
+	PB_LOG_B="$("$GODOT" --headless --fixed-fps "$PLAYBACK_FIXED_FPS" --path . \
+		--script tools/check_playback.gd -- "--recording=$PWD/$PB_FIXTURE" "--seek=$PB_SEEKS" 2>&1)"
+	PB_RC_B=$?
+	PB_HASH_A="$(echo "$PB_LOG_A" | grep '^PLAYBACK-HASH:')"
+	PB_HASH_B="$(echo "$PB_LOG_B" | grep '^PLAYBACK-HASH:')"
+	if [ "$PB_RC_A" -ne 0 ] || [ "$PB_RC_B" -ne 0 ]; then
+		echo "$PB_LOG_A" | grep -E '^PLAYBACK-(HASH|GATE)'
+		echo "$PB_LOG_B" | grep -E '^PLAYBACK-(HASH|GATE)'
+		echo "$XENO_GATE: FAIL playback-determinism — a leg's gate failed (see PLAYBACK-GATE above)"
+		exit 1
+	fi
+	if [ "$PB_HASH_A" != "$PB_HASH_B" ]; then
+		echo "  leg A: $PB_HASH_A"
+		echo "  leg B: $PB_HASH_B"
+		echo "$XENO_GATE: FAIL playback-determinism — same fixture+seeks produced different hashes"
+		exit 1
+	fi
+	rm -f "$PB_FIXTURE"
+	trap - EXIT
+	echo "$XENO_GATE: PASS playback-determinism ($PB_HASH_A, seeks=$PB_SEEKS, --fixed-fps $PLAYBACK_FIXED_FPS)"
+fi
+
 # Frame-budget bench — the gate never fabricates an fps number: it needs a REAL window
 # (frames-drawn methodology, see bench_scene.gd / twin-optimize). Budget source precedence:
 #   1. TWIN_FRAME_BUDGET_MS env   2. viewer.cfg  [twin]  frame_budget_ms=<ms>

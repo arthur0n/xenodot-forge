@@ -1,9 +1,17 @@
 # data_bus.gd — the "DataBus" autoload. Live tag stream over WebSocketPeer.
 #
-# Contract (consumed by overlay/, tag_label_3d.gd, and later data-binders):
+# Contract (consumed by overlay/, tag_label_3d.gd, and the data-binders):
 #   signal tag_update(tag: String, value: float, seq: int, latency_ms: float)
 #   signal connection_changed(up: bool)
 # One JSON object per packet: {"tag": String, "value": float, "seq": int, "sent_ms": float}.
+#
+# The bus is the viewer's ONE data ingress, in either of two modes (set_mode):
+#   MODE_LIVE      — frames arrive from the WebSocket (default).
+#   MODE_PLAYBACK  — the socket is closed; frames arrive ONLY via inject_frame()
+#                    (core/playback.gd replaying a recording, or a verification gate).
+# Consumers never know which mode feeds them — they see the same two signals either way
+# (the Phase-4 consumer invariant). The overlay MAY read `mode` to label the source
+# honestly (LIVE / PLAYBACK / OFFLINE); that read is part of this contract.
 #
 # Gotchas handled (learned in the s2-live spike):
 #  - WebSocketPeer.poll() MUST be called every frame or nothing happens.
@@ -22,9 +30,9 @@ signal tag_update(tag: String, value: float, seq: int, latency_ms: float)
 signal connection_changed(up: bool)
 
 # Default tag-source URL. The :8765 port is the sim's DEFAULT_PORT (plugin-twin/tools/sim/
-# server.js) — a sim started with no --port pairs with a default viewer out of the box. (The
-# verify_twin.sh gate deliberately runs its own sim on 8899 instead, to avoid colliding with a
-# dev-running sim on 8765.)
+# stream.js — the shared default the sim server and recorder both import) — a sim started with no
+# --port pairs with a default viewer out of the box. (The verify_twin.sh gate deliberately runs its
+# own sim on 8899 instead, to avoid colliding with a dev-running sim on 8765.)
 const DEFAULT_URL := "ws://localhost:8765"
 const CONFIG_PATH := "res://viewer.cfg"
 
@@ -33,14 +41,34 @@ const CONFIG_PATH := "res://viewer.cfg"
 const RECONNECT_DELAY := 1.0
 
 # Milliseconds per second — Time.get_unix_time_from_system() returns seconds; the wire carries ms.
+# core/playback.gd reuses this for its seconds→ms clock scaling (same physical constant).
 const MSEC_PER_SEC := 1000.0
+
+# Data-source modes (see set_mode). Plain strings, not an enum, so callers/logs can show
+# them verbatim and config files could carry them without a mapping table.
+const MODE_LIVE := "live"
+const MODE_PLAYBACK := "playback"
+
+# Latency reported by inject_frame(): zero, because an injected frame never crosses a
+# transport — there is nothing to measure, and a fabricated nonzero number would lie to
+# latency-aware consumers (tag_label_3d.gd's staleness tinting, the overlay readout).
+const INJECTED_LATENCY_MS := 0.0
 
 ## WebSocket URL of the tag source. Default comes from viewer.cfg ([viewer] url=...)
 ## when present, else DEFAULT_URL. Set it before the next (re)connect to redirect.
 var url: String = DEFAULT_URL
 
+## Data-source mode: MODE_LIVE or MODE_PLAYBACK. Read freely (the overlay colours its
+## status line off this); mutate ONLY via set_mode(), which owns the socket side effects.
+var mode := MODE_LIVE
+
 # --- stats counters (read by the overlay / twin-verify reports) ---
 var frames_received := 0
+
+## Frames delivered via inject_frame(). Deliberately SEPARATE from frames_received:
+## frames_received / drops / seq tracking are TRANSPORT truths (what the socket actually
+## carried), and letting playback pump them would fake liveness to the twin-verify smoke.
+var frames_injected := 0
 var drops := 0
 var reconnects := 0
 var latency_min_ms := INF
@@ -63,6 +91,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if mode == MODE_PLAYBACK:
+		return  # socket closed by set_mode(); no poll, no reconnect until MODE_LIVE returns
 	if _reconnect_cooldown > 0.0:
 		_reconnect_cooldown -= delta
 		if _reconnect_cooldown <= 0.0:
@@ -98,6 +128,42 @@ func reconnect(new_url: String = "") -> void:
 	_open_socket()
 
 
+## Playback/gate seam: deliver one frame to every DataBus consumer exactly as a live
+## packet would land, minus the transport. Emits tag_update with INJECTED_LATENCY_MS and
+## counts into frames_injected ONLY — transport stats stay untouched (see frames_injected).
+## Callers normally set_mode(MODE_PLAYBACK) first so live frames cannot interleave with
+## injected ones; the seam itself is mode-agnostic on purpose (gates may inject while live).
+func inject_frame(tag: String, value: float, seq: int) -> void:
+	frames_injected += 1
+	tag_update.emit(tag, value, seq, INJECTED_LATENCY_MS)
+
+
+## Switch the data source. Entering MODE_PLAYBACK closes the socket and STOPS reconnecting:
+## a live frame landing mid-scrub would fight the recorded timeline for the same visual
+## state, so the socket must be fully out of the picture. connection_changed(false) is
+## emitted UNCONDITIONALLY on entry (even if the socket was already down) — the transition
+## is a source change, and mode-aware HUDs re-evaluate on that edge instead of polling.
+## The deliberate close does not bump `reconnects` (that counter means outages), and seq
+## tracking resets exactly as on a disconnect (source seq continuity is broken either way).
+## Returning to MODE_LIVE reopens the socket; the reconnect loop resumes as before.
+func set_mode(new_mode: String) -> void:
+	if new_mode != MODE_LIVE and new_mode != MODE_PLAYBACK:
+		push_warning("data_bus: unknown mode '%s' — keeping '%s'" % [new_mode, mode])
+		return
+	if new_mode == mode:
+		return
+	mode = new_mode
+	if mode == MODE_PLAYBACK:
+		if _ws != null:
+			_ws.close()
+		_was_open = false
+		_reconnect_cooldown = 0.0
+		_reset_seq_tracking()
+		connection_changed.emit(false)
+	else:
+		_open_socket()
+
+
 func is_up() -> bool:
 	return _was_open
 
@@ -115,6 +181,7 @@ func stats() -> Dictionary:
 	var avg := 0.0 if frames_received == 0 else _latency_sum_ms / frames_received
 	return {
 		"frames_received": frames_received,
+		"frames_injected": frames_injected,
 		"frames_expected": frames_expected(),
 		"drops": drops,
 		"reconnects": reconnects,

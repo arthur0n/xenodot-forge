@@ -1,6 +1,7 @@
-# overlay.gd — minimal HUD (CanvasLayer): DataBus connection status, tag
-# traffic (distinct tags seen + last update), and FPS. Pure consumer of the
-# DataBus contract; extend it per twin, or replace it wholesale.
+# overlay.gd — minimal HUD (CanvasLayer): DataBus source status (LIVE / PLAYBACK /
+# OFFLINE), tag traffic (distinct tags seen + last update), and FPS. Pure consumer of
+# the DataBus contract — signals plus the public `mode` field; it never touches the
+# player. Extend it per twin, or replace it wholesale.
 extends CanvasLayer
 
 # Typed handle on the DataBus autoload. Resolved by PATH, not by the `DataBus`
@@ -8,8 +9,12 @@ extends CanvasLayer
 # (godot-code-rules), while /root/<key> + a preload-typed var stays analyzable.
 const DataBusScript := preload("res://core/data_bus.gd")
 
-const STATUS_UP_COLOR := Color(0.35, 0.85, 0.45)
-const STATUS_DOWN_COLOR := Color(0.9, 0.5, 0.35)
+# Status-line colours. LIVE green = healthy socket; PLAYBACK amber = recorded data (the
+# HUD must never let a recording impersonate live truth — amber flags "not live" without
+# screaming "broken"); OFFLINE red-ish = socket down, retrying.
+const STATUS_LIVE_COLOR := Color(0.35, 0.85, 0.45)
+const STATUS_PLAYBACK_COLOR := Color(0.95, 0.72, 0.25)
+const STATUS_OFFLINE_COLOR := Color(0.9, 0.5, 0.35)
 
 var _seen_tags := {}  # tag -> true (distinct-tag set)
 var _last_line := "waiting for data"
@@ -32,12 +37,18 @@ func _process(_delta: float) -> void:
 	_tags_label.text = "tags: %d | %s" % [_seen_tags.size(), _last_line]
 
 
+# Source truth for the status line: DataBus mode first (playback closes the socket, so
+# `up` is always false there — see data_bus.set_mode), then socket state.
 func _on_data_bus_connection_changed(up: bool) -> void:
-	if up:
-		_status_label.text = "DataBus: connected (%s)" % _data_bus.url
+	if _data_bus.mode == DataBusScript.MODE_PLAYBACK:
+		_status_label.text = "DataBus: PLAYBACK (recording)"
+		_status_label.modulate = STATUS_PLAYBACK_COLOR
+	elif up:
+		_status_label.text = "DataBus: LIVE (%s)" % _data_bus.url
+		_status_label.modulate = STATUS_LIVE_COLOR
 	else:
-		_status_label.text = "DataBus: offline — retrying %s" % _data_bus.url
-	_status_label.modulate = STATUS_UP_COLOR if up else STATUS_DOWN_COLOR
+		_status_label.text = "DataBus: OFFLINE — retrying %s" % _data_bus.url
+		_status_label.modulate = STATUS_OFFLINE_COLOR
 
 
 func _on_data_bus_tag_update(tag: String, value: float, seq: int, latency_ms: float) -> void:

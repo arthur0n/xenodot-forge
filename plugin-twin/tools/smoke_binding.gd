@@ -42,9 +42,10 @@ const CONNECT_MIN_FRAMES := 3
 ## two albedo samples reliably differ if the viewer is live. Overridden by --seconds / --frames.
 const DEFAULT_GAP_MS := 1500
 
-## Sim publish rate in Hz. MUST equal sim/server.js DEFAULT_HZ (10): the gate launches that sim, and
-## --frames=N is converted to seconds as N/STREAM_HZ — any drift makes the frame->time math wrong.
-## (Cross-ref: plugin-twin/tools/sim/server.js DEFAULT_HZ, verify_twin.sh's --hz.)
+## Sim publish rate in Hz. MUST equal sim/stream.js DEFAULT_HZ (10) — the shared default the sim
+## server AND recorder both import: the gate launches that sim, and --frames=N is converted to
+## seconds as N/STREAM_HZ, so any drift makes the frame->time math wrong.
+## (Cross-ref: plugin-twin/tools/sim/stream.js DEFAULT_HZ, verify_twin.sh's --hz.)
 const STREAM_HZ := 10
 
 ## RGBA white — the un-driven instance/albedo colour the optimizer initializes to; a driven node

@@ -148,6 +148,37 @@ JOIN-GATE: OK|FAIL (min <pct>%)
 - On FAIL, diagnose from `MISS_SAMPLE` per the `twin-import` error table — never carry a
   low-join model into binding work.
 
+## Step 5 — playback determinism (twin)
+
+After any recording/playback change, `verify_twin.sh` runs the playback-determinism gate
+`tools/check_playback.gd` (contract + recorder/player details: skill `twin-playback`). It
+synthesizes a byte-reproducible fixture (`tools/sim/record.js` fixture mode), then runs the gate
+**twice** over the same fixture + seeks and asserts the two `PLAYBACK-HASH` lines are **IDENTICAL** —
+that equality IS the determinism gate. Standalone:
+
+```bash
+node tools/sim/record.js --out /tmp/fx.ndjson --seconds 3 --seed 42 --hz 10
+$GODOT --headless --fixed-fps 60 --path . --script tools/check_playback.gd -- \
+    --recording=/tmp/fx.ndjson --seek=966,1933      # run twice; diff the PLAYBACK-HASH lines
+```
+
+The gate drives the SHIPPED runtime (real DataBus autoload + real `core/playback.gd`) through
+public seams only and asserts, each on its own line before `PLAYBACK-GATE: OK|FAIL`:
+
+- **snapshot correctness per seek** — the frames injected on `seek(T)` equal an INDEPENDENT
+  last-frame-≤T-per-tag recompute (a real cross-check of the player, not a tautology);
+- **monotonic emission during play** — seq never steps backward while draining a play window;
+- **transport honesty** — `frames_injected > 0` while `frames_received == 0` (playback drove the
+  frames; no live frame leaked in — the amber-PLAYBACK source is the ONLY source);
+- **end-of-recording pause** — play to the end auto-pauses AT the duration (no auto-loop).
+
+Details that matter: **SYNTHESIZED fixtures ONLY** (`seed >= 0` is byte-reproducible; a live capture
+is `seed:-1` with non-zero-based seq — observation, not a reproducible anchor). **`--fixed-fps` is
+required** by contract; the emitted-state hash is order-exact (reproduces at any frame rate), so the
+two-leg comparison is robust. **Loud SKIP** (a SKIP is not a pass) when `node`, `tools/sim/record.js`,
+`tools/check_playback.gd`, or `core/playback.gd` is missing. The synthesized fixture is always cleaned
+(EXIT trap), like the binding-smoke sim.
+
 ## Pass criteria
 
 1. `xenodot:godot-verify` floor: per that skill (verify_twin.sh runs its headless layers;
@@ -161,6 +192,10 @@ JOIN-GATE: OK|FAIL (min <pct>%)
    sim/smoke fixtures or a binding map are genuinely absent (a SKIP is not a pass).
 4. Join coverage: `JOIN-GATE: OK` at ~100% for any import/join/optimization change (both
    sources: named MeshInstance3D nodes + `twin_globalids` metas).
+5. Playback determinism: `verify-twin: PASS playback-determinism` for any recording/playback
+   change — two `check_playback.gd` legs over the same synthesized fixture + seeks print the SAME
+   `PLAYBACK-HASH`, each leg's `PLAYBACK-GATE: OK`. Loud SKIP only when node/the recorder/the gate
+   script/the player is genuinely absent (a SKIP is not a pass).
 
 If the engine binary or a display is unavailable: say so explicitly — never claim a layer you
 didn't run.

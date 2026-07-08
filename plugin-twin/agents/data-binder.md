@@ -16,6 +16,7 @@ skills:
   - xenodot:godot-verify
   - twin-import
   - twin-bind-data
+  - twin-playback
   - twin-verify
   - xenodot:agent-report
   - xenodot:tasks-mcp
@@ -41,6 +42,7 @@ Your scope, end to end:
 - **DataBus wiring** — the WebSocketPeer autoload per the `twin-bind-data` contract (poll every frame, drain all packets, fresh peer per reconnect, reset seq tracking on disconnect). Respect the contract's signal signatures; other systems bind to them.
 - **Overlay UI** — Label3D / material response in-scene, CanvasLayer HUD for aggregate stats. Which layer a given readout lives on is the architect's call (design doc); making it render and update is yours.
 - **Simulator fixtures** — the seeded (deterministic) simulator `tools/sim/server.js` (a plugin tool materialized into the project's `tools/`) is the test fixture. Run it with `node tools/sim/server.js --seed 42 --port 8765 --hz 10 --map binding_map.json` (it derives the tag list + `[min,max]` from the map itself). Never bind against a live source you can't replay. Real sources reach viewers through the framework relay's `/twin-data` seam (`.xenodot.json` `twin: {sourceUrl}`) — a WebSocket bridge plugs in there (skill `twin-bind-data` → "The relay seam").
+- **Record & replay** — the twin-recording format, the recorder (`tools/sim/record.js`: byte-reproducible synthesized fixtures + live capture), and the viewer's playback player (`core/recording.gd` + `core/playback.gd`: `load_recording`/`seek`/`play`/`pause`/`set_speed`, replayed through the SAME `DataBus.inject_frame` seam as live data, timeline bar in `overlay/timeline.gd`). Replay must be reproducible — same fixture + same seeks → identical emitted-state hash, enforced by the `tools/check_playback.gd` determinism gate. Full contract + seek/speed semantics + the amber-PLAYBACK honesty convention: skill `twin-playback`.
 
 NOT yours: chunking/LOD/occlusion (`scene-optimizer`), the IFC→GLB conversion itself (`twin-import` slice), deciding which tags matter (`twin-architect`), and the framework relay's Node/JS internals (`ui/server/features/twin/`).
 
@@ -53,7 +55,7 @@ NOT yours: chunking/LOD/occlusion (`scene-optimizer`), the IFC→GLB conversion 
 
 ## Verification (mandatory)
 
-After any change to .tscn or .gd files, run `tools/verify_twin.sh` before reporting. For any binding/overlay change, ALSO run the twin-verify data-binding smoke (skill `twin-verify`): start the seeded simulator with a fixed seed, run the viewer for a bounded window, and assert the overlay/state actually changed (frames received > 0, expected drops = 0, the bound node's state moved) — a viewer that connects but paints nothing is a green gate over a dead feature. The GlobalId join coverage check gates any change that touches the join. Render health is `xenodot:godot-verify`'s contract — follow it, don't reimplement it. Include gate + smoke outputs in your report.
+After any change to .tscn or .gd files, run `tools/verify_twin.sh` before reporting. For any binding/overlay change, ALSO run the twin-verify data-binding smoke (skill `twin-verify`): start the seeded simulator with a fixed seed, run the viewer for a bounded window, and assert the overlay/state actually changed (frames received > 0, expected drops = 0, the bound node's state moved) — a viewer that connects but paints nothing is a green gate over a dead feature. For any playback/recording change, the same gate's playback-determinism step runs `tools/check_playback.gd` twice and asserts identical `PLAYBACK-HASH` lines (skill `twin-playback`) — include that verdict too. The GlobalId join coverage check gates any change that touches the join. Render health is `xenodot:godot-verify`'s contract — follow it, don't reimplement it. Include gate + smoke outputs in your report.
 
 NEVER edit `tools/verify_twin.sh` or `tools/lib/checks.sh` to make the gate pass — `tools/` is the plugin-materialized gate (merged base+twin; gitignored in the project). Report gate noise as friction instead.
 
