@@ -22,10 +22,42 @@ extends SceneTree
 ## frame PRESENTATION to the display refresh (120 Hz ProMotion) even with vsync disabled, so fps
 ## saturates at the cap on fast configs; measured render time keeps differentiating below it.
 
+## Default seconds to run before measuring — lets the engine reach steady state (shader compile,
+## streaming, occlusion warm-up) so the sample isn't skewed by first-frame spikes. 2 s is enough on
+## the scenes this benches; override with --warmup.
+const DEFAULT_WARMUP_S := 2.0
+
+## Default seconds to measure. 8 s averages over enough drawn frames to be stable without dragging
+## an interactive bench; override with --measure.
+const DEFAULT_MEASURE_S := 8.0
+
+## Far plane (metres) of the injected --vantage camera. Building-scale twins can span hundreds of
+## metres; 12 km is comfortably beyond any of them so nothing clips out of an overview shot. Only
+## used when --vantage injects a camera (the scene's own camera keeps its own far otherwise).
+const CAM_FAR_M := 12000.0
+
+## |dir . UP| above this counts as "looking straight up/down", where Basis.looking_at degenerates
+## (direction parallel to the up vector). 0.999 ~= within ~2.6 deg of vertical — close enough to
+## swap in a non-parallel up before the math breaks, without triggering on ordinary tilted shots.
+const UP_PARALLEL_DOT := 0.999
+
+## Report rounding: fps to a tenth, render/frame times to a hundredth of a millisecond — enough
+## precision to compare runs, few enough digits to read. snappedf steps.
+const SNAP_FPS := 0.1
+const SNAP_MS := 0.01
+
+## Unit conversions (Godot facts): Time.get_ticks_msec/usec are ms / microseconds since start.
+const MSEC_PER_SEC := 1000.0
+const USEC_PER_SEC := 1_000_000.0
+
+## Floor for the frames-drawn divisor so a pathological 0-drawn sample can't divide by zero (the
+## run already fails loudly on 0 drawn; this just keeps the arithmetic finite).
+const MIN_DRAWN := 1.0
+
 var scene_path := ""
 var vantage := ""
-var warmup_s := 2.0
-var measure_s := 8.0
+var warmup_s := DEFAULT_WARMUP_S
+var measure_s := DEFAULT_MEASURE_S
 var out_path := ""
 
 
@@ -105,7 +137,7 @@ func _apply_vantage() -> void:
 		quit(1)
 		return
 	var cam := Camera3D.new()
-	cam.far = 12000.0
+	cam.far = CAM_FAR_M
 	root.add_child(cam)
 	cam.position = _vec3(parts[0])
 	# Node3D.look_at() needs the node "inside tree" and silently no-ops with an error
@@ -114,7 +146,7 @@ func _apply_vantage() -> void:
 	# the up vector (default UP), so swap in a non-parallel up (FORWARD) when |dir·UP| ~= 1.
 	var dir := _vec3(parts[1]) - cam.position
 	var up := Vector3.UP
-	if absf(dir.normalized().dot(Vector3.UP)) > 0.999:
+	if absf(dir.normalized().dot(Vector3.UP)) > UP_PARALLEL_DOT:
 		up = Vector3.FORWARD
 	cam.basis = Basis.looking_at(dir, up)
 	cam.make_current()
@@ -127,7 +159,7 @@ func _vec3(csv: String) -> Vector3:
 
 func _wait_s(s: float) -> void:
 	var t0 := Time.get_ticks_msec()
-	while Time.get_ticks_msec() - t0 < s * 1000.0:
+	while Time.get_ticks_msec() - t0 < s * MSEC_PER_SEC:
 		await process_frame
 
 
@@ -149,20 +181,20 @@ func _measure_window() -> Dictionary:
 		obj += Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)
 		gpu += RenderingServer.viewport_get_measured_render_time_gpu(vp_rid)
 		cpu += RenderingServer.viewport_get_measured_render_time_cpu(vp_rid)
-		if Time.get_ticks_usec() - t0 >= measure_s * 1e6:
+		if Time.get_ticks_usec() - t0 >= measure_s * USEC_PER_SEC:
 			break
-	var el := (Time.get_ticks_usec() - t0) / 1e6
+	var el := (Time.get_ticks_usec() - t0) / USEC_PER_SEC
 	var f := float(frames)
 	var drawn := float(Engine.get_frames_drawn() - drawn0)  # frames actually rendered
 	if drawn <= 0.0:
 		push_error("BENCH: FAIL — 0 frames drawn (window occluded? drawing suspended)")
 		quit(1)
 	return {
-		"fps": snappedf(drawn / el, 0.1),
-		"process_fps": snappedf(f / el, 0.1),
-		"frame_ms": snappedf(el * 1000.0 / maxf(drawn, 1.0), 0.01),
-		"gpu_ms": snappedf(gpu / maxf(drawn, 1.0), 0.01),
-		"cpu_ms": snappedf(cpu / maxf(drawn, 1.0), 0.01),
+		"fps": snappedf(drawn / el, SNAP_FPS),
+		"process_fps": snappedf(f / el, SNAP_FPS),
+		"frame_ms": snappedf(el * MSEC_PER_SEC / maxf(drawn, MIN_DRAWN), SNAP_MS),
+		"gpu_ms": snappedf(gpu / maxf(drawn, MIN_DRAWN), SNAP_MS),
+		"cpu_ms": snappedf(cpu / maxf(drawn, MIN_DRAWN), SNAP_MS),
 		"draw_calls": int(dc / f),
 		"primitives": int(prim / f),
 		"objects_rendered": int(obj / f),

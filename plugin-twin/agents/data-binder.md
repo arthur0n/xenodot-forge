@@ -28,7 +28,7 @@ You are the live-data builder for the viewer being built — part of the **Xenod
 
 ## Shell commands — ALWAYS prefix with `rtk`
 
-Every Bash call must start with `rtk`. RTK is a transparent proxy — unknown commands pass through unchanged. Exceptions (no rtk filter): the Godot binary (`$GODOT …`), project scripts (`tools/verify_twin.sh`), and the simulator (`node sim/server.js …`).
+Every Bash call must start with `rtk`. RTK is a transparent proxy — unknown commands pass through unchanged. Exceptions (no rtk filter): the Godot binary (`$GODOT …`), project scripts (`tools/verify_twin.sh`), and the simulator (`node tools/sim/server.js …`).
 
 ## Your job
 
@@ -37,11 +37,12 @@ Implement the requested binding/overlay feature and report back with what you di
 Your scope, end to end:
 
 - **GlobalId join** — resolve live tags to scene nodes via the IFC GlobalId carried in GLB node names (join contract + gotchas: skill `twin-import`). The binding map is data, never hard-coded lookups scattered through scripts.
+- **Binding map + runtime** — emit `binding_map.json` (schema in `twin-bind-data`: `{version, bindings:[{tag, globalid, min, max, response, ramp}]}` — agent-emitted JSON, never a `.tres`). The runtime `core/binding_map.gd` loads/validates it (unknown keys tolerated, bad row skipped, never crashes), builds the `GlobalId → targets` resolution index in one tree walk (node targets by name; `mmi` targets from a `MultiMeshInstance3D`'s `twin_globalids` meta, index = instance position), and drives the `albedo_ramp` / `label` response per target. `main.gd` wires it in (path from `viewer.cfg [twin] binding_map=`) and shows `bindings: N/M resolved`.
 - **DataBus wiring** — the WebSocketPeer autoload per the `twin-bind-data` contract (poll every frame, drain all packets, fresh peer per reconnect, reset seq tracking on disconnect). Respect the contract's signal signatures; other systems bind to them.
 - **Overlay UI** — Label3D / material response in-scene, CanvasLayer HUD for aggregate stats. Which layer a given readout lives on is the architect's call (design doc); making it render and update is yours.
-- **Simulator fixtures** — the seeded (deterministic) simulator is the test fixture for all of the above; extend its tag set to match the binding map, never bind against a live source you can't replay.
+- **Simulator fixtures** — the seeded (deterministic) simulator `tools/sim/server.js` (a plugin tool materialized into the project's `tools/`) is the test fixture. Run it with `node tools/sim/server.js --seed 42 --port 8765 --hz 10 --map binding_map.json` (it derives the tag list + `[min,max]` from the map itself). Never bind against a live source you can't replay. Real sources reach viewers through the framework relay's `/twin-data` seam (`.xenodot.json` `twin: {sourceUrl}`) — a WebSocket bridge plugs in there (skill `twin-bind-data` → "The relay seam").
 
-NOT yours: chunking/LOD/occlusion (`scene-optimizer`), the IFC→GLB conversion itself (`twin-import` slice), deciding which tags matter (`twin-architect`).
+NOT yours: chunking/LOD/occlusion (`scene-optimizer`), the IFC→GLB conversion itself (`twin-import` slice), deciding which tags matter (`twin-architect`), and the framework relay's Node/JS internals (`ui/server/features/twin/`).
 
 ## Rules
 

@@ -2,7 +2,7 @@
 
 # Framework audit ledger
 
-**open (fix-now): 8 · later: 16 · skip: 3**
+**open (fix-now): 3 · later: 16 · skip: 3**
 
 _Last audit:_ 2026-07-08 — full 9-dim fan-out pass (8 gather agents, ~355k subagent tokens); D1/D4 clean; filed 7 no-brainers + 7 improvements + 3 laters + 1 skip-tombstone. Self-fixed framework-audit.md in-pass: sibling list → glob (×2, was silently omitting token-audit.md), tools/ → plugin/tools/ in D8, Never-bullet no longer recommends the rtk grep it bans. Process note: fan-out gather worked but D9-audit-fanout single-agent comparison still unmeasured. Same day: integrated external review iter1 (86 extracted items → 1 no-brainer + 2 improvements + 4 laters filed after 3-agent repo-state verification; 1 existing row upgraded to MEASURED; roadmap waves parked as pointer; 2 review claims already resolved in repo).
 
@@ -12,16 +12,11 @@ _Last audit:_ 2026-07-08 — full 9-dim fan-out pass (8 gather agents, ~355k sub
 
 _none_
 
-## Bucket 4 — improvements (8) · fix-now · needs judgment (/framework-audit-fix)
+## Bucket 4 — improvements (3) · fix-now · needs judgment (/framework-audit-fix)
 
-- **D6-magic-number-dup** · `D6` · _open_ — ui/orchestrator.md:8 restates godot-code-rules' no-magic-tuning rule near-verbatim (same lerpf/score_value examples; the skill already loads into all 9 builders); trim to a one-line routing directive pointing at the rule.
 - **D6-issuekit-mechanics** · `D6` · _open_ — ui/orchestrator.md:25 embeds builder-facing issuekit CLI syntax (attempt/resolve flags) + the known-issues graduation recipe inside the routing doc; trim to the routing decision (search tracker first → spawn builder/designer) and let the issue process own the mechanics.
-- **D5-researcher-twins** · `D5` · _open_ — addon-researcher ⇄ cli-researcher share ~30-40% of body verbatim (OKF record-face :78/:77, index-append, 4-field Lesson convention :85-95/:84-94, cache-eval cleanup boilerplate); either extract a shared library-record-writing skill (load-line pattern, like research-presenting) or merge the two agents — human picks the shape.
 - **D8-navmesh-check-orphan** · `D8` · _open_ — check_navmesh_baked (checks.sh:395) is composed by no gate and documented in no skill — yet it's the deterministic nav check D9-greybox-eye-harden asks for; compose it (optional, self-gating on tools/check_nav_bake.gd) in validate.sh or document the wiring in the nav/greybox skills.
-- **D7-token-audit-never-ran** · `D7` · _open_ — /token-audit has NEVER run — .claude/token-audits/LEDGER.md:19-27 says 'none yet' (verified 2026-07-08); run it once to seed the metric backbone (review Wave-0 P0B-1) — the same run can double as the D9-audit-fanout measurement baseline. Note review #77: correct chars/4 base64-image overcounting before baselining.
-- **D3-name-qualifier-order** · `D3` · _open_ — skill name grammar inconsistent — godot-hd-material-import (qualifier-first) vs godot-mesh-import-hd / -pixel-art (qualifier-last), godot-navmesh-pathing-4-6 (version in name); adopt godot-<system>[-<qualifier>] + version-in-frontmatter for NEW skills only (skill-researcher prompt + warn-only lint in gen-skill-scope.js); existing names untouched, no bulk rename (review D-14/P2D-3).
 - **D9-critique-in-mainwindow** · `D9` · _open_ — Every self-improvement command runs its self-critique/verdict step in the MAIN window, not a subagent — framework-audit step7, framework-audit-fix step6, framework-feedback step7, harvest-sessions step9, token-audit step7 — so critique reasoning becomes orchestrator context debt. Dispatch each critique to a throwaway subagent (like framework-audit's step-3 gather fan-out) and keep only the one-line verdict: keep the verdict, not the transcript. Pairs with D9-audit-fanout.
-- **D7-token-pending-rot** · `D7` · _open_ — Token loop: forward-looking fixes land `moved:pending` in history.json and can ROT — nothing resurfaces open pendings for confirmation, so a fix's real Δ may never get recorded (godot-docs-memoize landed pending 2026-07-08 with no scheduled re-check). Fix: /token-audit step 7 (adapt) must ENUMERATE every open `pending` opportunity from history.json each run and try to confirm each (flip pending→true|false with the measured signal); add a `node ui/server/cli/token-history.js pending` list verb to surface them deterministically. Learned applying godot-docs-memoize.
 
 ## Bucket 5 — later (16) · system / parked
 

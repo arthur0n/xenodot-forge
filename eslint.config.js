@@ -80,7 +80,15 @@ export default [
   // Node side — server, shared lib, smoke test, and *.check.js scripts run with
   // bare node. stdout logging is the product.
   {
-    files: ["ui/server/**/*.js", "ui/lib/**/*.js", "ui/smoke-test.js", "ui/*.check.js"],
+    files: [
+      "ui/server/**/*.js",
+      "ui/lib/**/*.js",
+      "ui/smoke-test.js",
+      "ui/*.check.js",
+      // The twin plugin's Node tools (e.g. the seeded data sim materialized into viewer
+      // projects at tools/sim/) are held to the SAME strict node bar as framework JS.
+      "plugin-twin/tools/**/*.js",
+    ],
     languageOptions: {
       parser: tsPlugin.parser,
       parserOptions: {

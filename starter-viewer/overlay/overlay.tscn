@@ -22,3 +22,7 @@ text = "tags: 0 | waiting for data"
 [node name="FpsLabel" type="Label" parent="Readout"]
 unique_name_in_owner = true
 text = "fps: --"
+
+[node name="BindingsLabel" type="Label" parent="Readout"]
+unique_name_in_owner = true
+text = "bindings: --"

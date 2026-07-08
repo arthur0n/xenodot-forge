@@ -63,7 +63,7 @@ Framework agents, namespaced `xenodot:<name>`. Grouped by role:
   `bug-triage` (root-cause + what the framework should learn),
   `handoff-summarizer` (the ≤5-line builder-report digest).
 
-## Skills (47)
+## Skills (48)
 
 Procedures (one canonical path, observable outcome), not references. Loaded by
 the implementers that own them, not invoked directly. Across these domains:

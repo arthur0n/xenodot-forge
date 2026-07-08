@@ -29,7 +29,8 @@ runtime via GLTFDocument), deterministic, headless-safe, exit 0 = optimized scen
 ```sh
 $GODOT --headless --path . --script tools/optimize_scene.gd -- \
     --in=<model.glb|scene.tscn> --out=<optimized.tscn> --report=<report.json> \
-    [--chunks=8] [--min-instances=8] [--occluders] [--vis-ranges]
+    [--chunks=auto|<int>] [--target-per-chunk=32] [--min-instances=8] \
+    [--hints=<hints.json>] [--occluders] [--vis-ranges]
 ```
 
 Passes, in order:
@@ -37,16 +38,61 @@ Passes, in order:
 - **Instancing (always on).** Groups MeshInstance3Ds by (mesh resource, `material_override`);
   nodes with per-surface override materials are skipped — MultiMeshInstance3D cannot express
   them. Groups with ≥ `--min-instances` (default 8) collapse into region-chunked
-  MultiMeshInstance3D fields: the group's world AABB gridded `--chunks`×`--chunks` (default
-  8×8) on the XZ plane, instances bucketed by origin, one MultiMesh per non-empty cell with a
-  correct per-chunk `custom_aabb` so the frustum culler gets real units (chunk nodes sit at
-  identity; buffers follow the 12-float recipe below, `instance_count` set BEFORE `buffer`).
+  MultiMeshInstance3D fields: the group's world AABB gridded `grid`×`grid` on the XZ plane,
+  instances bucketed by origin, one MultiMesh per non-empty cell with a correct per-chunk
+  `custom_aabb` so the frustum culler gets real units (chunk nodes sit at identity;
+  `instance_count` set BEFORE `buffer`).
+- **Chunk grid is AUTO by default (`--chunks=auto`).** The grid is derived **per group** from
+  its instance count so every cell holds ~`--target-per-chunk` instances (default 32):
+  `cells = ceil(N / target); axis = clamp(ceil(sqrt(cells)), 1, 32)`. This is the fix for the
+  fixed-grid regression (below): a fixed 8×8 over 100-instance groups made ~2 instances/chunk
+  and 14,336 near-empty multimeshes. **`--chunks=<int>`** forces a fixed global grid for every
+  group (escape hatch). **Knob guidance:** lower `--target-per-chunk` (finer chunks) for a
+  **walkthrough** camera that wants aggressive frustum culling; raise it (coarser, fewer draws)
+  for an **overview/aerial** dashboard. 32–64 validated at ~100-instance groups. Report records
+  the chosen `grid` per group in `per_group` and `target_per_chunk` at top level.
+- **Colors ready for binding.** Every emitted MultiMesh sets `use_colors = true` and initializes
+  all instance colors to **white**, so the binding runtime can drive `set_instance_color(i, …)`
+  per instance later without re-emitting the field. With colors on the buffer stride is **16
+  floats/instance** (12-float transform + 4-float RGBA, color written inline as white);
+  `use_colors` MUST be set BEFORE `instance_count`/`buffer`. Getters (`get_instance_color`,
+  `get_instance_transform`) are RenderingServer-backed — they return stubs under `--headless`;
+  verify colors/transforms on a **windowed** run (empirically confirmed set/get + transforms
+  intact this way; the buffer itself serializes correctly headless).
 - **GlobalId join preserved.** Every chunk node carries `meta "twin_globalids"` — a
   PackedStringArray of the original node names ordered by instance index — and the report
   embeds the same map (`globalid_map`), so data binding can still resolve
   instance → GlobalId (`set_instance_color` per instance later). Caveat: the stored name is
   the MeshInstance3D's own; models that keep the guid on a parent grouping node need the
   node-or-parent fallback applied BEFORE optimizing.
+- **`--hints=<hints.json>` (opt-in, schema v1).** A property sidecar that overrides per-node
+  behavior by GlobalId. Keys are 22-char GlobalIds matched against node names (exact, else the
+  22-char prefix — the same dedup-suffix rule the join gate uses). A matched node is kept **out
+  of the instancing pass** (survives as an addressable MeshInstance3D) and materialized per the
+  contract table below. Report records `hints_file`, `hints_applied` (matched nodes) and
+  `hints_unmatched` (hint ids that matched no node — a data-quality signal, listed not fatal).
+
+  ```json
+  {
+    "version": 1,
+    "hints": {
+      "<22-char GlobalId>": {
+        "no_instance": true,
+        "occluder": true,
+        "lod_end": 40.0,
+        "tags": ["pump_1"]
+      }
+    }
+  }
+  ```
+
+  | hint field         | effect on the surviving node (exact names = gate contract)                                                       |
+  | ------------------ | ---------------------------------------------------------------------------------------------------------------- |
+  | `no_instance:true` | excluded from grouping; `add_to_group("twin_no_instance", persistent)`                                           |
+  | `occluder:true`    | `add_to_group("twin_occluder", persistent)` + forced occluder child (90%-shrink box, even without `--occluders`) |
+  | `lod_end:<float>`  | `visibility_range_end = <float>` + `set_meta("twin_lod_end", <float>)`                                           |
+  | `tags:[…]`         | `set_meta("twin_tags", PackedStringArray(tags))`                                                                 |
+
 - **`--occluders` (opt-in — occlusion culling can be net-negative, see below).** Any remaining
   un-instanced mesh whose world-AABB volume exceeds 10 m³ (documented default) gets a child
   OccluderInstance3D + BoxOccluder3D sized to 90% of its local AABB — the shrink avoids
@@ -56,10 +102,12 @@ Passes, in order:
   never pop out). Un-instanced meshes only — chunked fields already cull per chunk. The
   distances are documented defaults, NOT a measured recipe yet (see TODO).
 
-Report JSON: `meshes_before`, `nodes_before/after`, `groups_total/instanced`, `multimeshes`,
+Report JSON: `chunks` (`"auto"` or the fixed int as a string), `target_per_chunk`,
+`meshes_before`, `nodes_before/after`, `groups_total/instanced`, `multimeshes`,
 `instances_total`, `skipped_surface_override`, `occluders_added`, `vis_ranges_set`,
 `est_draw_items_before/after` (one item per mesh-surface / per chunk-surface),
-`globalid_map(_size)`, `per_group`.
+`globalid_map(_size)`, `hints_file`, `hints_applied`, `hints_unmatched`,
+`per_group` (each instanced group records its chosen `grid`).
 
 Gotchas baked into the tool (learned the hard way):
 
@@ -90,9 +138,9 @@ duplicated 20x20 (114,400 meshes) and optimized with `--chunks=2` (optimizer wal
   macOS 120 Hz presentation cap)**; frame 36.6 → 8.4 ms; render-thread submit 28.98 → 0.56 ms
   (−98%); draw calls 21,787 → 1,084.
 - Street level: 99.3 → 120 fps (cap-limited); render-thread 7.46 → 0.37 ms (−95%).
-- **The default `--chunks=8` REGRESSED the same scene at 10x10** (~100 instances/group → ~2
-  instances per chunk, 14,336 multimeshes): aerial 120 → 50.3 fps. Chunk count must match
-  instance density — target tens of instances per chunk, not a fixed grid.
+- **The old fixed default `--chunks=8` REGRESSED the same scene at 10x10** (~100 instances/group
+  → ~2 instances per chunk, 14,336 multimeshes): aerial 120 → 50.3 fps. Chunk count must match
+  instance density — this is why **auto per-group grid is now the default** (see below).
 - macOS caps frame presentation at the display refresh (120 Hz) even with `VSYNC_DISABLED` —
   an empty scene benches at exactly 120. At the cap, compare `cpu_ms` (viewport measured
   render time, now in `bench_scene.gd`; `gpu_ms` reads 0 on this Metal setup), not fps.
@@ -102,18 +150,38 @@ duplicated 20x20 (114,400 meshes) and optimized with `--chunks=2` (optimizer wal
   scenes (0 added). Join gate on the optimized composite: 28,600/28,600 ids (100%) via
   `twin_globalids` metas.
 
+### Auto-chunk default — measured (10x10 city, 28,600 meshes, M3 Pro Metal)
+
+`--chunks=auto --target-per-chunk=32` (now the default) picks a **per-group 2×2 grid** for the
+~100-instance groups (`ceil(100/32)=4 cells → axis 2`), emitting **1,140 multimeshes** — the
+sane band, NOT the 14,336 the old fixed 8×8 produced. It **matches the hand-picked `--chunks=2`
+optimum**:
+
+- **Aerial: 119.7 fps** at auto(t32) vs the 120-cap of hand-tuned `--chunks=2`; the old fixed
+  `--chunks=8` default had regressed the same scene to **50.3 fps**. Street 120 fps (cap).
+- Join preserved: **28,600/28,600 ids (100%)** via `twin_globalids` on the auto output.
+- `--target-per-chunk` trades walkthrough-culling vs overview-draws: t64 gives a coarser grid
+  (fewer draws, aerial pinned at the 120 cap too); **32–64 both validated at ~100-instance
+  groups** — lower for walkthrough, higher for overview.
+- Emission stays fast: the full 28,600-instance city (load → group → chunk → emit 1,140
+  MultiMeshes with 16-float color buffers → save 2.1 MB `.scn`) is **~0.5 s wall-clock**.
+
 ## Recipe — chunked MultiMesh
 
 Split the instance field into a **chunk grid** of MultiMeshInstance3D nodes (one MultiMesh per
 chunk per mesh type) instead of one giant MultiMesh. Chunks give the frustum/occlusion culler
 units it can actually reject; a single MultiMesh is all-or-nothing.
 
-- **8×8 grid proven; 64–256 chunks is the sane band.** Too few → nothing culls; too many →
-  per-object overhead eats the win.
+- **Match chunk size to instance density** (tens of instances per chunk); the optimizer's auto
+  grid does this per group (`ceil(sqrt(ceil(N / target_per_chunk)))`, target 32). Too few chunks
+  → nothing culls; too many → per-object overhead eats the win (the fixed-8×8 regression above).
 - **`instance_count` MUST be set BEFORE `buffer`** — assigning the buffer first silently fails.
-- Buffer layout (TRANSFORM_3D, no color/custom): **12 floats per instance**, the 3×4 transform
-  **row-major** — per row: basis column x/y/z components then origin. Build
-  `PackedFloat32Array`s per chunk; `buffer = buf` after `instance_count = buf.size() / 12`.
+  Same for **`use_colors` — set it BEFORE `instance_count`/`buffer`** or the stride is wrong.
+- Buffer layout is **12 floats/instance** for TRANSFORM_3D (the 3×4 transform **row-major** — per
+  row: basis column x/y/z then origin), **+4 RGBA floats when `use_colors` is on** → 16-float
+  stride, color quad written inline after the transform. The optimizer sets `use_colors=true` and
+  writes every instance white so the binding runtime can `set_instance_color` later; verify
+  colors on a **windowed** run (RenderingServer getters stub under `--headless`).
 - Shadows off on instanced field meshes unless the look needs them (isolates instancing cost).
 
 ### Measured trade-off (1M instances) — chunking is camera-dependent
@@ -169,9 +237,10 @@ The following are NOT yet proven recipes; treat them as open work, not folklore:
   proven fps win until benched here.
 - **Auto-LOD generation** (simplified proxy meshes for far ranges, procedural or via
   `ImporterMesh` LODs) — not built; `--vis-ranges` only hides, it never swaps.
-- **Automatic chunk-size selection** — `--chunks` is a fixed default (8×8); the 64–256 band is
-  empirical at 1M instances on one layout. Small groups get near-1-instance chunks today; no
-  formula for arbitrary models/instance densities yet.
+- **`--target-per-chunk` sweep across scene shapes** — auto-chunk (count-driven per group) ships
+  and matches hand-tuned chunks on the city bench, but the 32-default and the walkthrough-vs-
+  overview knob guidance are validated at ~100-instance groups on one layout; sweep other
+  densities/camera paths before promising a target for a given viewer.
 - **Calibrated frame-budget defaults per hardware tier** — budgets are per-project statements
   today.
 - **Semantic occluder authoring** (IFC walls/slabs/floorplan → fitted occluders) — the

@@ -18,11 +18,22 @@ extends SceneTree
 ##       --scene=<models/model.glb|scene.tscn> --sidecar=<models/model_props.json> [--min=0.95]
 ## .tscn paths must be project-relative (res://); .glb and sidecar may also be absolute.
 
+## IFC GlobalId length in chars (buildingSMART base64) — the join key is this 22-char prefix, the
+## same fact TwinHints.GUID_LEN and binding_map.gd GLOBALID_LEN encode.
 const GUID_LEN := 22
+
+## Default minimum matched/total ratio for the gate to PASS. 0.95 == 95 %: real BIM exports carry a
+## few unnamed helper nodes, so demanding 100 % would false-fail; 95 % still catches a broken join.
+## Mirrors verify_twin.sh's TWIN_JOIN_MIN default (0.95) — override with --min there and here.
+const DEFAULT_JOIN_MIN := 0.95
+
+## How many missing ids to print as a diagnostic sample (MISS_SAMPLE=...); enough to spot a pattern
+## without dumping thousands on a total miss.
+const MISS_SAMPLE := 5
 
 var scene_path := ""
 var sidecar_path := ""
-var min_ratio := 0.95
+var min_ratio := DEFAULT_JOIN_MIN
 
 
 func _init() -> void:
@@ -35,16 +46,16 @@ func _init() -> void:
 func _parse_args() -> bool:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--scene="):
-			scene_path = a.substr(8)
+			scene_path = a.substr("--scene=".length())
 		elif a.begins_with("--sidecar="):
-			sidecar_path = a.substr(10)
+			sidecar_path = a.substr("--sidecar=".length())
 		elif a.begins_with("--min="):
-			min_ratio = float(a.substr(6))
+			min_ratio = float(a.substr("--min=".length()))
 	if scene_path == "" or sidecar_path == "":
 		push_error(
 			(
 				"JOIN-GATE: FAIL — usage: --scene=<model.glb|scene.tscn>"
-				+ " --sidecar=<props.json> [--min=0.95]"
+				+ " --sidecar=<props.json> [--min=%.2f]" % DEFAULT_JOIN_MIN
 			)
 		)
 		return false
@@ -87,7 +98,7 @@ func _run() -> void:
 
 	print("JOIN-SOURCES: mesh_nodes=%d multimesh_ids=%d" % [mesh_nodes.size(), meta_ids.size()])
 	if not misses.is_empty():
-		print("MISS_SAMPLE=", misses.slice(0, 5))
+		print("MISS_SAMPLE=", misses.slice(0, MISS_SAMPLE))
 	var pct := 0.0
 	if total > 0:
 		pct = (100.0 * matched) / total

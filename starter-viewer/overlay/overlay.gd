@@ -18,6 +18,7 @@ var _last_line := "waiting for data"
 @onready var _status_label: Label = %StatusLabel
 @onready var _tags_label: Label = %TagsLabel
 @onready var _fps_label: Label = %FpsLabel
+@onready var _bindings_label: Label = %BindingsLabel
 
 
 func _ready() -> void:
@@ -42,3 +43,9 @@ func _on_data_bus_connection_changed(up: bool) -> void:
 func _on_data_bus_tag_update(tag: String, value: float, seq: int, latency_ms: float) -> void:
 	_seen_tags[tag] = true
 	_last_line = "%s=%.3f seq=%d lat=%.1fms" % [tag, value, seq, latency_ms]
+
+
+## Report how many of the binding map's rows resolved to model geometry (set by main.gd after
+## the resolution index is built). N/M below M signals a stale map — a GlobalId that missed.
+func set_bindings(resolved: int, total: int) -> void:
+	_bindings_label.text = "bindings: %d/%d resolved" % [resolved, total]

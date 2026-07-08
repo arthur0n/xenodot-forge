@@ -63,26 +63,55 @@ $GODOT --path . -s tools/bench_scene.gd -- <scene.tscn> --vantage <pos> --out .x
 - fps is the **frames-drawn delta** number, vsync off — the methodology contract is in
   `twin-optimize`; `bench_scene.gd` implements it (warmup, measure window, monitor averages).
 
-## Step 3 — data-binding smoke (twin)
+## Step 3 — data-binding smoke (twin) — LIVE
 
-Proves the live path end-to-end: stream → DataBus → binding → visible state. Contract (the
-fixture discipline lives in `twin-bind-data`):
+Proves the live path end-to-end, **headless**: seeded sim → DataBus → `binding_map` → visible
+state. `verify_twin.sh` runs it automatically (`tools/smoke_binding.gd`); the fixture discipline
+lives in `twin-bind-data`. The smoke drives the **REAL viewer shell** (`main.tscn`: the DataBus
+autoload + `main.gd`'s BindingMap wiring), not a reimplementation — so it exercises exactly what
+ships. Standalone:
 
-1. Start the seeded simulator with a **fixed seed**: `node sim/server.js --seed 42 &`.
-2. Run the viewer for a bounded window (~10 s is plenty at 10 Hz).
-3. Assert from `DataBus.stats()` and scene state, machine-readable:
-   - `frames_received > 0` (stream arrived),
-   - `drops == 0` (clean run — the sim is deterministic; drops mean a bus bug),
-   - each bound node's state **moved** (albedo/label changed from its initial value) — a
-     viewer that connects but paints nothing must FAIL here.
-4. Kill the sim; emit `BIND-SMOKE: OK — <n> tags, <m> frames, 0 drops` or
-   `BIND-SMOKE: FAIL — <reason>`.
+```bash
+node tools/sim/server.js --seed 42 --port 8899 --hz 10 --map binding_map.json &
+$GODOT --headless --path . --script tools/smoke_binding.gd -- \
+    --map=binding_map.json --url=ws://localhost:8899 [--scene=main|<optimized.tscn>] [--seconds=S]
+```
 
-Run it after ANY binding/overlay change. Without a display the state asserts still run
-headless; only the "visibly rendered" claim needs the windowed render layer (step 1).
+Each assertion prints its own line, then a verdict `BIND-SMOKE: OK` (exit 0) /
+`BIND-SMOKE: FAIL — <reason>` (exit 1):
 
-**Phase 3 scope**: until `tools/smoke_binding.gd` + `sim/server.js` exist (they land with the
-data-binding slice), `verify_twin.sh` SKIPs this step loudly — a SKIP is not a pass.
+- **a. Stream health** — DataBus up (`connection_changed` within timeout), `frames_received > 0`,
+  `drops == 0` (the seeded stream is deterministic; a drop is a bus bug).
+- **b. Resolution** — `resolved_count == total_count` and `total_count >= 1` (a miss is a stale
+  map — the binder `push_warning`s it, so the static smoke also catches it before this step).
+- **c. Node drive** — ≥ 1 NODE-target binding's `material_override.albedo_color` is **non-white
+  AND changes** between two samples ~1 s apart. Headless-safe: `material_override` is a
+  CPU-readable property. A viewer that connects but paints nothing FAILs here.
+- **d. MMI targets (windowed-only)** — under the **headless dummy renderer** both
+  `get_instance_color` and the `MultiMesh.buffer` colour floats read BLACK regardless of
+  `set_instance_color`, so instance-colour equality is **not assertable headlessly**. The smoke
+  instead asserts the write path is **wired** (`use_colors == true`, index in range) and prints
+  `MMI-SMOKE: WINDOWED-ONLY …` — a documented partial, **never a failure**. Confirm the actual
+  colour in a windowed render (step 1) when an MMI binding matters.
+
+**Sim conventions**: fixed **seed 42**, port **`TWIN_SIM_PORT` (default 8899)** — chosen
+deterministically; the gate FAILs loudly if the port is busy (override `TWIN_SIM_PORT`). The sim
+is **always reaped** (EXIT trap + explicit `kill` + `pkill -f tools/sim/server.js`), so no stream server
+survives the gate. Binding-map source precedence (must match the map the viewer loads): **1.**
+`TWIN_BINDING_MAP` env → **2.** `viewer.cfg [twin] binding_map=` → **3.** `binding_map.json`. No
+map found → **loud SKIP** naming the precedence (a SKIP is not a pass).
+
+Run it after ANY binding/overlay change. Without a display the state asserts still run headless;
+only the MMI "visibly rendered" claim needs the windowed render layer (step 1).
+
+### Hint-group assertion (optimizer's hint pass)
+
+When `TWIN_MODEL` is an **optimized scene** (`.tscn`/`.scn`) with a sibling `<base>_hints.json`
+(the hints file that produced it), `verify_twin.sh` also runs `smoke_binding.gd --mode=hints`: it
+asserts the optimized scene carries a node in **each group the hints' used keys materialise**
+(`no_instance → twin_no_instance`, `occluder → twin_occluder`) — the simplest honest proof the
+optimizer's hint pass landed. Verdict `HINTS-SMOKE: OK|FAIL`. Silent no-op for a raw model or when
+no sibling hints file exists (the common case).
 
 ## Step 4 — GlobalId join coverage (twin)
 
@@ -126,8 +155,10 @@ JOIN-GATE: OK|FAIL (min <pct>%)
 2. Frame-budget gate: `verify-twin: PASS frame-budget` (measured `frame_ms` ≤ budget at the
    stated vantage), or an explicit SKIP with reason (no display/`TWIN_BENCH` unset / no budget
    stated — the latter is an architect finding, not a pass).
-3. Binding smoke: `BIND-SMOKE: OK` for any binding/overlay change (Phase 3 — SKIPs loudly
-   until its fixtures exist).
+3. Binding smoke: `BIND-SMOKE: OK` (exit 0) for any binding/overlay change — stream health,
+   full resolution, and ≥ 1 node target visibly moving; MMI targets flagged
+   `MMI-SMOKE: WINDOWED-ONLY` (headless dummy renderer, not a failure). Loud SKIP only when the
+   sim/smoke fixtures or a binding map are genuinely absent (a SKIP is not a pass).
 4. Join coverage: `JOIN-GATE: OK` at ~100% for any import/join/optimization change (both
    sources: named MeshInstance3D nodes + `twin_globalids` metas).
 
@@ -137,5 +168,5 @@ didn't run.
 ## RTK note
 
 Prefix shell commands with `rtk` as usual. `tools/verify_twin.sh`, `$GODOT`, and
-`node sim/server.js` run without an rtk filter (passthrough). Do not pipe gate output into
+`node tools/sim/server.js` run without an rtk filter (passthrough). Do not pipe gate output into
 `rtk grep` — it can hide FAIL lines; use plain `grep` inside pipes.

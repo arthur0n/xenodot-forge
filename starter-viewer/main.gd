@@ -7,8 +7,11 @@
 extends Node3D
 
 const CameraRigScript := preload("res://core/camera_rig.gd")
+const BindingMapScript := preload("res://core/binding_map.gd")
+const OverlayScript := preload("res://overlay/overlay.gd")
 
 const CONFIG_PATH := "res://viewer.cfg"
+const DEFAULT_BINDING_MAP := "binding_map.json"
 const GRID_HALF_EXTENT := 10
 const GRID_COLOR := Color(0.3, 0.34, 0.42)
 const AXIS_X_COLOR := Color(0.85, 0.35, 0.35)
@@ -17,23 +20,51 @@ const SCREENSHOT_SETTLE_FRAMES := 12
 
 @onready var _model_host: Node3D = %ModelHost
 @onready var _camera_rig: CameraRigScript = %CameraRig
+@onready var _overlay: OverlayScript = $Overlay
 
 
 func _ready() -> void:
 	var model_path := _user_arg("model")
-	if model_path == "" and FileAccess.file_exists(CONFIG_PATH):
+	var binding_map_path := DEFAULT_BINDING_MAP
+	if FileAccess.file_exists(CONFIG_PATH):
 		var cfg := ConfigFile.new()
 		if cfg.load(CONFIG_PATH) == OK:
-			model_path = str(cfg.get_value("viewer", "model", ""))
+			if model_path == "":
+				model_path = str(cfg.get_value("viewer", "model", ""))
+			binding_map_path = str(cfg.get_value("twin", "binding_map", DEFAULT_BINDING_MAP))
 
 	if model_path == "":
 		_build_placeholder_grid()
 	elif _load_model(model_path):
 		_frame_model()
 
+	_load_bindings(binding_map_path)
+
 	var shot_path := _user_arg("screenshot")
 	if shot_path != "":
 		await _capture_screenshot(shot_path)
+
+
+## Load the binding map (if configured) and resolve it against the loaded model, then push the
+## "bindings resolved N/M" HUD line. The map path may be res://-relative or a bare project file.
+func _load_bindings(path: String) -> void:
+	var res_path := path
+	var rooted := (
+		res_path.begins_with("res://")
+		or res_path.begins_with("user://")
+		or res_path.is_absolute_path()
+	)
+	if not rooted:
+		res_path = "res://" + res_path
+	if not FileAccess.file_exists(res_path):
+		return  # no map for this deployment — stay a neutral viewer
+	var binder := BindingMapScript.new()
+	binder.name = "BindingMap"
+	add_child(binder)
+	binder.load_map(res_path)
+	binder.build_index(_model_host)
+	print("viewer: bindings resolved %d/%d" % [binder.resolved_count, binder.total_count])
+	_overlay.set_bindings(binder.resolved_count, binder.total_count)
 
 
 ## Value of `--<key>=<value>` among the user args (everything after `--`), or "".

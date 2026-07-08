@@ -21,9 +21,19 @@ extends Node
 signal tag_update(tag: String, value: float, seq: int, latency_ms: float)
 signal connection_changed(up: bool)
 
+# Default tag-source URL. The :8765 port is the sim's DEFAULT_PORT (plugin-twin/tools/sim/
+# server.js) — a sim started with no --port pairs with a default viewer out of the box. (The
+# verify_twin.sh gate deliberately runs its own sim on 8899 instead, to avoid colliding with a
+# dev-running sim on 8765.)
 const DEFAULT_URL := "ws://localhost:8765"
 const CONFIG_PATH := "res://viewer.cfg"
+
+# Seconds to wait before re-opening after a CLOSED peer. 1 s is long enough that a downed source
+# isn't hammered with reconnect spam, short enough that recovery feels immediate once it returns.
 const RECONNECT_DELAY := 1.0
+
+# Milliseconds per second — Time.get_unix_time_from_system() returns seconds; the wire carries ms.
+const MSEC_PER_SEC := 1000.0
 
 ## WebSocket URL of the tag source. Default comes from viewer.cfg ([viewer] url=...)
 ## when present, else DEFAULT_URL. Set it before the next (re)connect to redirect.
@@ -78,6 +88,16 @@ func _process(delta: float) -> void:
 			pass  # CONNECTING / CLOSING: just keep polling
 
 
+## Force a (re)connection, optionally redirecting the source first. This is the public test/gate
+## seam — the twin-verify binding smoke calls it to point the bus at its seeded sim headlessly.
+## Passing `new_url` sets `url` before reopening; a fresh WebSocketPeer is always allocated (a
+## CLOSED peer can't be reused). The only supported way for another script to drive a connection.
+func reconnect(new_url: String = "") -> void:
+	if new_url != "":
+		url = new_url
+	_open_socket()
+
+
 func is_up() -> bool:
 	return _was_open
 
@@ -129,7 +149,7 @@ func _handle_packet(pkt: PackedByteArray) -> void:
 	var seq_number: float = data["seq"]
 	var seq := roundi(seq_number)
 	var sent_ms: float = data["sent_ms"]
-	var recv_ms := Time.get_unix_time_from_system() * 1000.0
+	var recv_ms := Time.get_unix_time_from_system() * MSEC_PER_SEC
 	var latency_ms := recv_ms - sent_ms  # same machine, same clock
 
 	frames_received += 1
