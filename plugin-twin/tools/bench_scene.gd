@@ -11,7 +11,13 @@ extends SceneTree
 ##       [--vantage X,Y,Z:LX,LY,LZ] [--warmup 2.0] [--measure 8.0] [--out path.json]
 ##
 ## Output: one `BENCH: {json row}` line (fps, frame_ms, draw_calls, primitives,
-## objects_rendered, process_fps) and, with --out, the row appended-as-array to the file.
+## objects_rendered, process_fps, gpu_ms, cpu_ms) and, with --out, the row
+## appended-as-array to the file.
+##
+## gpu_ms/cpu_ms are the viewport's measured render times
+## (RenderingServer.viewport_set_measure_render_time) — macOS clamps frame PRESENTATION
+## to the display refresh (120 Hz ProMotion) even with vsync disabled, so fps saturates
+## at the cap on fast configs; measured render time keeps differentiating below it.
 
 var scene_path := ""
 var vantage := ""
@@ -60,6 +66,7 @@ func _run() -> void:
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true)
 	DisplayServer.window_move_to_foreground()
+	RenderingServer.viewport_set_measure_render_time(root.get_viewport_rid(), true)
 
 	if scene_path == "":
 		push_error("BENCH: FAIL — no scene given and no main scene set")
@@ -98,7 +105,9 @@ func _apply_vantage() -> void:
 	cam.far = 12000.0
 	root.add_child(cam)
 	cam.position = _vec3(parts[0])
-	cam.look_at(_vec3(parts[1]))
+	# Node3D.look_at() needs the node "inside tree" and silently no-ops with an error
+	# during SceneTree init — Basis.looking_at is pure math and always works.
+	cam.basis = Basis.looking_at(_vec3(parts[1]) - cam.position)
 	cam.make_current()
 
 
@@ -118,6 +127,9 @@ func _measure_window() -> Dictionary:
 	var dc := 0.0
 	var prim := 0.0
 	var obj := 0.0
+	var gpu := 0.0
+	var cpu := 0.0
+	var vp_rid := root.get_viewport_rid()
 	var drawn0 := Engine.get_frames_drawn()
 	var t0 := Time.get_ticks_usec()
 	while true:
@@ -126,6 +138,8 @@ func _measure_window() -> Dictionary:
 		dc += Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
 		prim += Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)
 		obj += Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)
+		gpu += RenderingServer.viewport_get_measured_render_time_gpu(vp_rid)
+		cpu += RenderingServer.viewport_get_measured_render_time_cpu(vp_rid)
 		if Time.get_ticks_usec() - t0 >= measure_s * 1e6:
 			break
 	var el := (Time.get_ticks_usec() - t0) / 1e6
@@ -138,6 +152,8 @@ func _measure_window() -> Dictionary:
 		"fps": snappedf(drawn / el, 0.1),
 		"process_fps": snappedf(f / el, 0.1),
 		"frame_ms": snappedf(el * 1000.0 / maxf(drawn, 1.0), 0.01),
+		"gpu_ms": snappedf(gpu / f, 0.01),
+		"cpu_ms": snappedf(cpu / f, 0.01),
 		"draw_calls": int(dc / f),
 		"primitives": int(prim / f),
 		"objects_rendered": int(obj / f),

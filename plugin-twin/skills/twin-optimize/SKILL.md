@@ -7,8 +7,9 @@ description: >-
   can be net-NEGATIVE), and the benchmark methodology that survives macOS (frames-drawn deltas,
   vsync off, warmup). Use when the walkthrough stutters, when a frame budget must hold at N
   instances, when deciding chunked vs single MultiMesh, when tempted to enable occlusion culling
-  "because more culling is better", or when any fps number is about to go in a report. NOT the
-  import pipeline (twin-import) and NOT data binding (twin-bind-data).
+  "because more culling is better", when an imported twin model should get the toolkit applied
+  automatically (tools/optimize_scene.gd), or when any fps number is about to go in a report.
+  NOT the import pipeline (twin-import) and NOT data binding (twin-bind-data).
 ---
 
 # Twin optimize (chunking, culling, honest benchmarks)
@@ -19,6 +20,87 @@ go through the project's `library-twin/` mount, the engine-invisible symlink to 
 home `plugin-twin/library/`; the base plugin's knowledge stays on `library/`). The recipes
 generalize; the exact percentages are one machine's — re-measure on the target hardware before
 promising a budget.
+
+## Scene optimizer — `tools/optimize_scene.gd` (headless)
+
+Mechanizes the toolkit below on an imported twin model. No editor import needed (.glb loads at
+runtime via GLTFDocument), deterministic, headless-safe, exit 0 = optimized scene + report:
+
+```sh
+$GODOT --headless --path . --script tools/optimize_scene.gd -- \
+    --in=<model.glb|scene.tscn> --out=<optimized.tscn> --report=<report.json> \
+    [--chunks=8] [--min-instances=8] [--occluders] [--vis-ranges]
+```
+
+Passes, in order:
+
+- **Instancing (always on).** Groups MeshInstance3Ds by (mesh resource, `material_override`);
+  nodes with per-surface override materials are skipped — MultiMeshInstance3D cannot express
+  them. Groups with ≥ `--min-instances` (default 8) collapse into region-chunked
+  MultiMeshInstance3D fields: the group's world AABB gridded `--chunks`×`--chunks` (default
+  8×8) on the XZ plane, instances bucketed by origin, one MultiMesh per non-empty cell with a
+  correct per-chunk `custom_aabb` so the frustum culler gets real units (chunk nodes sit at
+  identity; buffers follow the 12-float recipe below, `instance_count` set BEFORE `buffer`).
+- **GlobalId join preserved.** Every chunk node carries `meta "twin_globalids"` — a
+  PackedStringArray of the original node names ordered by instance index — and the report
+  embeds the same map (`globalid_map`), so data binding can still resolve
+  instance → GlobalId (`set_instance_color` per instance later). Caveat: the stored name is
+  the MeshInstance3D's own; models that keep the guid on a parent grouping node need the
+  node-or-parent fallback applied BEFORE optimizing.
+- **`--occluders` (opt-in — occlusion culling can be net-negative, see below).** Any remaining
+  un-instanced mesh whose world-AABB volume exceeds 10 m³ (documented default) gets a child
+  OccluderInstance3D + BoxOccluder3D sized to 90% of its local AABB — the shrink avoids
+  self-occlusion artifacts, explicit box occluders need no bake.
+- **`--vis-ranges` (opt-in).** Size classes by world-AABB diagonal: small (< 0.5 m) →
+  `visibility_range_end = 40` m; medium (< 2 m) → 120 m; large → untouched (structure must
+  never pop out). Un-instanced meshes only — chunked fields already cull per chunk. The
+  distances are documented defaults, NOT a measured recipe yet (see TODO).
+
+Report JSON: `meshes_before`, `nodes_before/after`, `groups_total/instanced`, `multimeshes`,
+`instances_total`, `skipped_surface_override`, `occluders_added`, `vis_ranges_set`,
+`est_draw_items_before/after` (one item per mesh-surface / per chunk-surface),
+`globalid_map(_size)`, `per_group`.
+
+Gotchas baked into the tool (learned the hard way):
+
+- `Node3D.global_transform` silently returns identity during `SceneTree._init` — wait one
+  `process_frame` before reading transforms, or every instance lands in one chunk at origin.
+- `PackedScene.pack()` silently DROPS any node whose `owner` is unset — own every descendant
+  before packing.
+- Runtime-loaded GLB meshes have no `resource_path`, so they serialize inline into the output
+  `.tscn` (duplex: 286 meshes → 465 KB text); pass an `.scn` out-path for big models.
+
+### Measured on real BIM (duplex.glb, 286 meshes) — instancing rarely wins there
+
+At defaults, duplex has **224 distinct mesh groups in 286 meshes**: only 3 groups
+(30 instances) instanced, est draw items 348 → 340. Even at `--min-instances=2`: 26 groups /
+88 instances → 84 multimeshes, still 348 → 340. **Real IFC geometry is mostly unique.** The
+instancing pass pays off on repeated-equipment scenes — synthetic control, 2000 nodes sharing
+3 meshes: 3 groups → 192 chunks, nodes 2001 → 194, est draw items 2000 → 192, all 2000
+GlobalIds preserved and unique after round-trip. On unique-geometry architecture the
+`--occluders` / `--vis-ranges` passes are what remain to tune (duplex: 31 occluders,
+47 vis ranges) — and their fps effect must be benched per the methodology below, not assumed.
+
+### Measured on a real composite scene (city block of duplexes, M3 Pro Metal)
+
+Full record: `library-twin/findings/twin-optimizer-benchmark-2026-07-08.md`. duplex.glb
+duplicated 20x20 (114,400 meshes) and optimized with `--chunks=2` (optimizer wall-clock 1.3 s):
+
+- **Aerial (all visible): 27.3 → 119.4 fps (+337%, ≥4.4x — the after is still pinned at the
+  macOS 120 Hz presentation cap)**; frame 36.6 → 8.4 ms; render-thread submit 28.98 → 0.56 ms
+  (−98%); draw calls 21,787 → 1,084.
+- Street level: 99.3 → 120 fps (cap-limited); render-thread 7.46 → 0.37 ms (−95%).
+- **The default `--chunks=8` REGRESSED the same scene at 10x10** (~100 instances/group → ~2
+  instances per chunk, 14,336 multimeshes): aerial 120 → 50.3 fps. Chunk count must match
+  instance density — target tens of instances per chunk, not a fixed grid.
+- macOS caps frame presentation at the display refresh (120 Hz) even with `VSYNC_DISABLED` —
+  an empty scene benches at exactly 120. At the cap, compare `cpu_ms` (viewport measured
+  render time, now in `bench_scene.gd`; `gpu_ms` reads 0 on this Metal setup), not fps.
+- Forward+ already auto-merges repeated identical surfaces (49,458 objects → 6,802 draw
+  calls unoptimized), so `est_draw_items` overstates before-cost; the real win is per-object
+  cull/sort/submit overhead. `--occluders`/`--vis-ranges` are no-ops on fully-instanced
+  scenes (0 added). Join gate on the optimized composite: 28,600/28,600 ids (100%) via
+  `twin_globalids` metas.
 
 ## Recipe — chunked MultiMesh
 
@@ -81,15 +163,20 @@ run on the same scene. Rules:
 
 The following are NOT yet proven recipes; treat them as open work, not folklore:
 
-- **LOD / `visibility_range_*`** — no measured recipe yet (which distances, hysteresis, per
-  mesh type). Do not present visibility ranges as a proven win until benched here.
-- **Automatic chunk-size selection** — the 64–256 band is empirical at 1M instances on one
-  layout; no formula for arbitrary models/instance densities yet.
+- **LOD / `visibility_range_*` as a MEASURED recipe** — the optimizer's `--vis-ranges` pass
+  applies documented size-class defaults, but no bench has validated the distances (or added
+  hysteresis via `visibility_range_begin_margin`). Do not present visibility ranges as a
+  proven fps win until benched here.
+- **Auto-LOD generation** (simplified proxy meshes for far ranges, procedural or via
+  `ImporterMesh` LODs) — not built; `--vis-ranges` only hides, it never swaps.
+- **Automatic chunk-size selection** — `--chunks` is a fixed default (8×8); the 64–256 band is
+  empirical at 1M instances on one layout. Small groups get near-1-instance chunks today; no
+  formula for arbitrary models/instance densities yet.
 - **Calibrated frame-budget defaults per hardware tier** — budgets are per-project statements
   today.
-- **Occluder authoring from IFC geometry** (walls → BoxOccluder3D automatically) — unproven.
-- **Interaction with runtime-loaded GLB scenes** (twin-import) at scale — the spike instanced
-  procedural meshes; re-instancing a loaded GLB into MultiMesh chunks is designed, not proven.
+- **Semantic occluder authoring** (IFC walls/slabs/floorplan → fitted occluders) — the
+  `--occluders` pass is geometric only (AABB volume gate + shrunken box); it has not been
+  benched for fps effect, and thin-wall coverage from a floorplan is unproven.
 
 ## RTK note
 
