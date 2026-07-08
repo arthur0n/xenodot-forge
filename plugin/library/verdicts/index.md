@@ -11,7 +11,7 @@
 - [Verdict — new-onset motion sickness (FPS, Arena) — 2026-06-23](motion-sickness-eval-2026-06-23.md) — Grounds Hermes motion-sickness findings against real repo code — resolves its 6 open questions and maps each mitigation to concrete files.
 - [Verdict — Hermes 'polish & quality layer' findings (2026-06-19)](polish-quality-eval-2026-06-19.md) — Scope: Hermes recommendations to stand up a quality + polish layer (quality-gate layering, review
 - [Verdict — automated runtime testing (input-bot + log capture)](runtime-testing-eval-2026-06-19.md) — No library candidate — both runtime-testing recommendations are GdUnit4-free hand-rolled patterns; the home is the existing godot-runtime-smoke skill family.
-- [SFX voice-cap / anti-spike limiter — skill eval](sfx-voice-cap-eval-2026-06-27.md) — Anti-spike SFX voice-cap (same-frame copies of one sound) — no godot-\* skill covers it; gate pending human adopt/reject.
+- [SFX voice-cap / anti-spike limiter — skill eval](sfx-voice-cap-eval-2026-06-27.md) — Anti-spike SFX voice-cap (same-frame copies of one sound) — no godot-* skill covers it; gate pending human adopt/reject.
 - [Skill eval — enemy hit/death/kill-confirm combat contract (2026-06-17)](skill-eval-enemy-combat-2026-06-17.md) — Researcher record. Gap surfaced by bug-triage (Track H): no durable contract for
 - [Verdict — Greybox FPS 'traps' (Hermes findings, 2026-06-26)](traps-greybox-eval-2026-06-26.md) — REJECT a new godot-traps skill. REJECT the trap_zone.tscn enum component as a system.
 - [Verdict — VFX for the FPS POC (Hermes findings eval)](vfx-skill-eval-2026-06-19.md) — Recommend-only eval of Hermes VFX findings — FPS combat juice gaps (muzzle, hit/death, rescue feedback); decision gate pending user.
