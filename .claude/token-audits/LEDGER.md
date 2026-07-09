@@ -27,8 +27,18 @@ Entry template:
 2026-07-06T07-39-33-283Z
 2026-07-07T07-15-06-288Z
 2026-07-08T06-40-55-221Z
+2026-07-08T17-28-15-668Z
+2026-07-08T20-33-26-012Z
+2026-07-09T15-44-24-254Z
 
 ## Audits (newest first)
+
+### 2026-07-09 — sessions: 07-08T17-28, 07-08T20-33, 07-09T15-44
+
+- Offenders: **none convertible.** 07-08T17-28 & 20-33 are 6-line status stubs (no LLM turns). 07-09 ($27.5, 6 turns) is legit framework synthesis — transcript-researcher/skill-researcher harvesting 3 game transcripts into convention skills. Payload leader = `Read` (43 calls, 393k chars ≈ 98k tok) but reads are near-distinct (top repeat ×3, edit-driven) and no main↔subagent duplication; the 9 Agent dispatches are all judgment-heavy (draft/revise skills). Costliest turns = pure cache_read on standing orchestrator ctx ($10.2/$7.4, 600–800k cache_read) — inherent, same as prior audit.
+- Opportunity: none filed this run — nothing here runs without a model.
+- Pending re-check: `godot-docs-memoize` stays **pending** — 0 godot-docs calls in any covered session, so the shipped dedup denial fired 0× → uncountable this run. Next run with real game-doc lookups must count the denial marker and flip it.
+- Process note: append CLI auto-computes metrics from `--sessions`; a run can legitimately file **zero** opportunities (record the offender="none" + note, skip `--opp`). jq `.text?//""` fails on the installed jq — **fixed** in `.claude/commands/token-audit.md:62` (`map(.text//"")`).
 
 ### 2026-07-08 — sessions: 07-03T10-35, 07-03T18-42, 07-04T22-05, 07-05T14-52, 07-06T07-39, 07-07T07-15, 07-08T06-40
 

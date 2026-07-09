@@ -2,7 +2,7 @@
 
 # Framework audit ledger
 
-**open (fix-now): 1 · later: 16 · skip: 3**
+**open (fix-now): 0 · later: 14 · skip: 3**
 
 _Last audit:_ 2026-07-08 — full 9-dim fan-out pass (8 gather agents, ~355k subagent tokens); D1/D4 clean; filed 7 no-brainers + 7 improvements + 3 laters + 1 skip-tombstone. Self-fixed framework-audit.md in-pass: sibling list → glob (×2, was silently omitting token-audit.md), tools/ → plugin/tools/ in D8, Never-bullet no longer recommends the rtk grep it bans. Process note: fan-out gather worked but D9-audit-fanout single-agent comparison still unmeasured. Same day: integrated external review iter1 (86 extracted items → 1 no-brainer + 2 improvements + 4 laters filed after 3-agent repo-state verification; 1 existing row upgraded to MEASURED; roadmap waves parked as pointer; 2 review claims already resolved in repo).
 
@@ -12,13 +12,12 @@ _Last audit:_ 2026-07-08 — full 9-dim fan-out pass (8 gather agents, ~355k sub
 
 _none_
 
-## Bucket 4 — improvements (1) · fix-now · needs judgment (/framework-audit-fix)
+## Bucket 4 — improvements (0) · fix-now · needs judgment (/framework-audit-fix)
 
-- **D8-navmesh-check-orphan** · `D8` · _open_ — check_navmesh_baked (checks.sh:395) is composed by no gate and documented in no skill — yet it's the deterministic nav check D9-greybox-eye-harden asks for; compose it (optional, self-gating on tools/check_nav_bake.gd) in validate.sh or document the wiring in the nav/greybox skills.
+_none_
 
-## Bucket 5 — later (16) · system / parked
+## Bucket 5 — later (14) · system / parked
 
-- **D5-agent-restatement** · `D5` · _open_ — 3x-restatement pattern in transcript-researcher (archive policy, 'no spawn'), level-designer (handoff), bug-triage (no game code), skill-researcher (config gating) — state each constraint once.
 - **D2-engine-version** · `D2` · _open_ — engine version drift across skills: 'Godot 4.6' (greybox, enemy-ai, godot-assets) vs '4.3+' (pixel-lighting) — framework-wide consistency pass.
 - **D9-gdscript-shadow-lint** · `D9` · _open_ — recurring runtime GDScript::reload warnings the gate never caught: SHADOWED*GLOBAL_IDENTIFIER (range, sign — ability_data.gd, directional_force_effect.gd, aim_line_resolver.gd) + CONFUSABLE_LOCAL_DECLARATION (next_pos — guard.gd). Harden: add a deterministic lint check (gdstyle rule / check*\* in tools/lib/checks.sh). Verify first whether gdstyle already covers it.
 - **D7-display-clobber** · `D7` · _open_ — INVESTIGATE: human repeatedly reports the game's display/window settings reverting ('back to super small, mode !=2'). Determine whether a framework step (materialize/doctor/setup, or the screenshot/verify GD scripts) rewrites project.godot display settings instead of preserving the game's; if game-local config, drop.
@@ -28,7 +27,6 @@ _none_
 - **D9-model-pin-retier** · `D9` · _open_ — Model-upgrade ritual due: Fable 5 is now the session default; re-tier the 13 sonnet + 2 haiku agent pins (riskiest: godot-refactor EDITS gdscript on haiku, justified only by 'mechanical') on a sample task with a before/after measurement — keep/strip/retier per pin, not by hunch.
 - **D9-handoff-summarizer-strip** · `D9` · _open_ — MEASURED 2026-07-08 (review iter1 + fresh log check): handoff-summarizer = 0 invocations in the 2 newest session logs while orchestrator.md:85 still mandates the digest path; NO-HANDOFF fallback (:88) is reactive prose. Decide direction: STRIP the hop (orchestrator reads the handoff file directly) vs ENFORCE it (review P0B-4, summarizer÷builder dispatches ≥0.8) — mandate-without-compliance is the one wrong answer.
 - **D9-arena-eye-harden** · `D9` · _open_ — HARDEN (partial): godot-arena-spatial-design:19,32,53 'self-audit BY EYE' has a measurable subset (loop topology / no degree-1 dead-ends, interior-foothold count, hall ≥2.0m + doorway ≥1.25×2.5 scale, ≥3 nameable sub-regions) — draft check*arena*\*; sightline/mystery principles stay by-eye. Sibling of D9-greybox-eye-harden; godot-gridmap-level is the hardened reference.
-- **D2-genre-skill-leak** · `D2` · _open_ — no domain/genre taxonomy on skills (skill-registry.js:66 reads only agents:) — godot-player preloads BOTH camera-paradigm skills (:14-15), so FPS prose leaks into iso/top-down sessions (review transcript evidence; mechanism verified 2026-07-08, only prose 'Pick ONE camera genre' mitigates); fix is review P2D-1/2 profile:{genre,style} skill-scope projection — plan-scale, park until that wave.
 - **D6-routing-table-static** · `D6` · _open_ — orchestrator routing is a hardcoded prose table (orchestrator.md:16-22) and session.js:311-318 injects no generated capabilities block — drift mechanism verified (a game-local builder would be invisible to routing; none exist today, so no live instance); fix is review P0A-1/2/4 data-driven routing block rendered from capabilities.json.
 - **D9-caveman-gate** · `D9` · _open_ — caveman enforcement is prompt-only (per-tool reminder hook deleted afa2a79, 2026-06-26) with NO compliance measurement (no gate log exists); review iter1 claims ~0% compliance ('[cvmn]' in 0/708 blocks); decide: restore a slim observe+score hook (review P0B-2 + P0B-7 banned-pattern list) or measure first and accept prompt-only.
 - **D8-result-contract-unenforced** · `D8` · _open_ — agent-report/SKILL.md:31 contracts the relayed result to '<path> — gate PASS|FAIL' but nothing enforces it — no SubagentStop hook anywhere (verified 2026-07-08); review measured ~1.2k-char avg prose results vs the ~50-char contract; harden: SubagentStop regex validator + digest cap ≤6 lines (review P0B-3 merged schema).

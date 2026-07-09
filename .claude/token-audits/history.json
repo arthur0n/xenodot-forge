@@ -43,6 +43,35 @@
         }
       ],
       "processNote": "First run. Costliest turns = cache_read on standing orchestrator context (inherent). Applied result-bytes-by-tool sweep to token-audit.md step 3."
+    },
+    {
+      "date": "2026-07-09",
+      "sessions": [
+        "2026-07-09T15-44-24-254Z",
+        "2026-07-08T20-33-26-012Z",
+        "2026-07-08T17-28-15-668Z"
+      ],
+      "covered": {
+        "input": 9101,
+        "output": 39302,
+        "cacheCreate": 96701,
+        "cacheRead": 2428886,
+        "cost": 27.5328,
+        "total": 2573990,
+        "turns": 205,
+        "hitRate": 96,
+        "costPerSession": 9.1776,
+        "costPerTurn": 0.1343
+      },
+      "global": {
+        "cost": 6535.0619,
+        "total": 75259293,
+        "hitRate": 97,
+        "sessionCount": 18
+      },
+      "topOffender": "No convertible offender: 07-09 is framework synthesis (transcript-researcher/skill-researcher harvest→draft); costliest turns = cache_read on standing orchestrator ctx (inherent). Reads mostly distinct; no main/subagent dup.",
+      "opportunities": [],
+      "processNote": "2 of 3 covered are 6-line status stubs (no LLM turns). No godot-docs calls in any → godot-docs-memoize uncountable this run, stays pending."
     }
   ]
 }

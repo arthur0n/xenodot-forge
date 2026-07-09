@@ -79,7 +79,10 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
    - **D8 (verification-flow gap):** apply the recorded edit at the named layer — add the missing
      `## Verification (mandatory)` block to the builder, wire the claimed step into
      `plugin/tools/lib/checks.sh` / `plugin/tools/validate.sh` (or correct the skill's claim), or
-     replace a re-taught passage with a pointer to the owning skill. A new gate check graduates as a
+     replace a re-taught passage with a pointer to the owning skill, or REMOVE a redundant/superseded
+     check whose job a live gate already does (an orphan `check_*` no gate composes and no skill
+     documents, competing with the framework's own convention — e.g. the `smoke_*.gd` auto-glob) —
+     delete it and confirm `rg` shows zero remaining refs. A new gate check graduates as a
      `check_*` function in `plugin/tools/lib/checks.sh`.
    - **D9 (harness simplification):** **strip** — apply the agreed removal/down-tier (edit the
      agent's `model:` / skill list, trim the scaffold, drop the dead gate step), then confirm the

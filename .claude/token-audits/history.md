@@ -8,6 +8,7 @@
 
 | date | #sess | covered $ | tok | hit% | $/sess | $/turn | global $ | global tok | global hit% |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| 2026-07-09 | 3 | 27.5328 | 2574k | 96 | 9.1776 | 0.1343 | 6535.0619 | 75259k | 97 |
 | 2026-07-08 | 7 | 3315.3861 | 32857k | 95 | 473.6266 | 0.4514 | 6507.5291 | 72685k | 97 |
 
 ## Opportunities (did the fix move the metric?)
