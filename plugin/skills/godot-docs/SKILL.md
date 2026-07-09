@@ -1,6 +1,7 @@
 ---
 name: godot-docs
 agents: [builders]
+domain: godot-core
 description: >
   The Godot docs MCP (mcp__godot-docs__*) is the SOURCE OF TRUTH for engine API — class
   names, method/signal/property signatures, enums, and deprecations. Use BEFORE asserting

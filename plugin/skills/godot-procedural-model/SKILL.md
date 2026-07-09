@@ -1,6 +1,7 @@
 ---
 name: godot-procedural-model
 agents: [godot-assets, art-director]
+domain: godot-core
 description: Generate local placeholder low-poly .glb MODELS procedurally by kitbashing primitives (box/cylinder/cone) and exporting via GLTFDocument, using the reusable headless tool tools/gen_models.gd. Use when the prototype needs discrete props (furniture, items) fast and locally — no web catalogues, no AI, no Blender — so a scene reads as a whole. Blocky low-poly programmer-art; real/final props still go through the asset-advisor sourcing loop (catalogues / AI is parked).
 ---
 

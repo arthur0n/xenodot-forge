@@ -1,6 +1,7 @@
 ---
 name: godot-animation-libraries
 agents: [godot-player]
+domain: godot-core
 description: Import and play skeletal animations on a sourced 3D character in Godot 4.6 — the separate-glTF workflow (one model file + anim-only files), merging anim clips into an AnimationLibrary loaded onto your own AnimationPlayer, and retargeting a foreign animation (e.g. Mixamo) onto your skeleton via SkeletonProfileHumanoid. Use when an animated rigged .glb arrives in assets/models/, when a character must stop being a static capsule and play a looping idle/walk, when animations come in their own glTF separate from the model, when a sourced animation targets a different skeleton than your character, or when an imported AnimationPlayer's clips won't play / play on the wrong bones. NOT for static-prop import (that is godot-mesh-import-pixel-art), NOT for shader-time foliage sway (godot-foliage), NOT for 2D sprite-frame animation.
 ---
 

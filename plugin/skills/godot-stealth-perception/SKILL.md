@@ -1,6 +1,7 @@
 ---
 name: godot-stealth-perception
 agents: [godot-enemy]
+domain: godot-core
 description: >-
   The "find player" / aggro-trigger stack for a stealth enemy in Godot 4.6 — a
   `VisionCone3D` (tattomoosa addon, Area3D, an FOV cone with a LOS test) + a custom
@@ -121,7 +122,7 @@ FSM-driven stealth enemy with a `VisionCone3D` (v0.3.0).
 ## Verification checklist
 
 - [ ] Player in cone + range + LOS → Patrol→Aggro within ~5 frames (`current_state.name ==
-  "AggroState"`).
+"AggroState"`).
 - [ ] Player OUT of the cone but a `noise_heard` lands within `hearing_radius` → also Aggro
       (see-OR-hear proven).
 - [ ] Player NOT in group `"player"` → neither channel triggers. (That's the bug, not a feature

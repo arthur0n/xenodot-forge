@@ -1,6 +1,7 @@
 ---
 name: godot-oneshot-vfx
 agents: [godot-vfx]
+domain: godot-core
 description: >-
   Fire-and-free 3D combat VFX for a first-person shooter POC in Godot 4.6 — a
   reusable vfx_base.tscn (Node3D root + GPUParticles3D child) one-shot rig that

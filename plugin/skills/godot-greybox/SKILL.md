@@ -1,6 +1,7 @@
 ---
 name: godot-greybox
 agents: [game-designer, level-designer]
+domain: godot-core
 description: Fast HAND-AUTHORED STATIC blockout for prototyping ANY level in Godot — write real, editable nodes (one floor, walls/props, hazards, NavigationRegion3D) DIRECTLY into `levels/<name>.tscn` so every piece is selectable and movable in the editor. Turns a level-designer concept brief into a measurable, non-flat space (elevation change, distinguishable zones). This is the DEFAULT build method. Use for "greybox", "blockout", "prototype a level", "level feels empty / flat / boxy". NOT runtime/Resource-driven generation (that is `godot-runtime-arena`, opt-in only), NOT GridMap tile-fill (`godot-gridmap-level`, only when asked), NOT the concept interview (that is level-designer), NOT combat/arena spatial-design principles for encounter spaces (that is the opt-in `godot-arena-spatial-design` — layer it on top when the level is a combat arena).
 ---
 

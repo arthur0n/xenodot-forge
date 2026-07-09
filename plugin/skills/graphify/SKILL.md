@@ -1,6 +1,7 @@
 ---
 name: graphify
 agents: [orchestrator, bug-triage]
+domain: universal
 description: Query the game's knowledge graph for codebase / architecture / file-relationship questions — when graphify-out/graph.json exists, treat the question as a graphify query FIRST. Thin wrapper over the installed graphify CLI (query / path / explain / update); the graph lives in the game's graphify-out/.
 ---
 

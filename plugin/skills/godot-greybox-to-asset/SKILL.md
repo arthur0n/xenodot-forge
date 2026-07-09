@@ -1,6 +1,7 @@
 ---
 name: godot-greybox-to-asset
 agents: [godot-assets]
+domain: godot-core
 description: Migrate a finished greybox blockout to final sourced assets in Godot 4.6 — the REPLACE half of the blockout loop (godot-greybox BUILDS it; this skill RETIRES it). Identify every BoxMesh greybox node in a level `.tscn`, batch-source/verify the `.glb` models and tileable surface textures through the asset-advisor loop, swap each node 1:1 in place preserving its name + position + rotation + collision, validate, then delete the greybox nodes LAST (never first), re-bake the navmesh, and decorate after the walls land. Use for "replace the greybox", "swap blockout for real assets", "retire the placeholder boxes", "migrate the level to final art", "the level is greyboxed, make it look real", or when an arena full of flat BoxMesh cover must become sourced models/textures. Owns the migration ORDER + safety + shared-material building-set; DELEGATES the per-node swap to godot-mesh-import-pixel-art (props) / godot-texture-import-pixel-art (surfaces) and the sourcing to the asset-advisor loop. NOT a second importer, NOT CSG greyboxing, NOT inherited-scene or make-local swaps, NOT the original blockout build (that is godot-greybox).
 ---
 

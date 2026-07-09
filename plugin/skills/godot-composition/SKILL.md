@@ -1,6 +1,7 @@
 ---
 name: godot-composition
 agents: [builders]
+domain: godot-core
 description: Composition conventions ("SOLID translated to Godot") — component nodes over inheritance, signals up / calls down, scene as the unit of composition, and when (not) to modularize. Load before structuring an entity with more than one behavior, before any refactor/extraction, when a script grows past one job, or when someone proposes a base-class hierarchy or a shared-behavior autoload.
 ---
 

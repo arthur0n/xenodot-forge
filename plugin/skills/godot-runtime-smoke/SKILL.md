@@ -1,6 +1,7 @@
 ---
 name: godot-runtime-smoke
 agents: [godot-dev, godot-enemy, godot-weapons-abilities, godot-player, godot-playtester]
+domain: godot-core
 description: >-
   The L2 runtime-smoke layer for a Godot-family game (4.x) WITHOUT
   GdUnit4 — a headless SceneTree tool script (`tools/smoke_*.gd`, run via

@@ -1,6 +1,7 @@
 ---
 name: godot-first-person-controller
 agents: [godot-player]
+domain: genre-fps
 description: First-person CharacterBody3D player in Godot 4.6 — yaw the body / pitch a child Head holding a perspective eye-camera, raw mouse-look, camera-relative WASD, gravity from ProjectSettings, jump on is_on_floor, plus flat sprint (hold-to-run speed multiplier), crouch (hold-to-lower eye height + collider), and a procedural sprint view-model "running feel" (the held weapon lowers + swings side-to-side while sprinting). Use when building an FPS player entity, when a first-person genre needs its controller, when the view must look out through the player's eyes, when mouse-look pitch/yaw or camera-relative movement misbehaves, when adding sprint/run or crouch/duck to the player ("hold to sprint", "run speed", "crouch", "duck under", "lower stance"), or when the view-model / held weapon should react to sprinting ("sprint view-model", "running feel", "weapon swing while running", "lower the gun when sprinting", "arm-swing sway"). NOT for top-down / isometric — that uses the orthographic follow rig (godot-orthographic-follow-camera). This is the FPS sibling of that skill; pick one per genre.
 ---
 

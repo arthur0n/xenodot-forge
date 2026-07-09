@@ -1,6 +1,7 @@
 ---
 name: godot-mesh-import-pixel-art
 agents: [godot-assets, asset-advisor]
+domain: style-pixel
 description: Import, scale and wire a SOURCED low-poly / pixel-art .glb model in Godot 4 as a discrete prop — the primary path for furniture/items, instanced in place of a greybox box (NOT a texture wrapped on a primitive). Use whenever a .glb arrives in assets/models/ from the asset-sourcing loop, when a prop must stop being a flat greybox box, when an imported model renders blurry / wrong-sized / black, or when deciding how to swap a greybox node for a real model. Also use for the glTF Advanced-Import workflow (skip a node, override vs extract a material, embedded textures, normal-map invert-Y), when deciding inherited-scene vs nested-instance vs make-local for an imported model, or when adding a collider to an imported mesh (auto-generate + Make-Unique). NOT for authoring a model (that is parked/Blender) and NOT for tiling a texture on a wall (that is godot-texture-import-pixel-art).
 ---
 

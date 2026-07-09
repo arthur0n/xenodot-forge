@@ -1,6 +1,7 @@
 ---
 name: godot-3d-pixelation
 agents: [godot-visuals, art-director]
+domain: style-pixel
 description: SubViewport-based low-resolution crisp rendering of a 3D scene in Godot 4.x — the foundation of the "3D pixel art" style. Use for pixelated/retro/PSX/low-res 3D, setting SubViewport render resolution, "crisp pixels", restructuring a scene tree so 3D renders below window resolution, or when a downscaled viewport looks blurry.
 ---
 

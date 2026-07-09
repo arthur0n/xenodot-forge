@@ -1,6 +1,7 @@
 ---
 name: agent-report
 agents: [builders, godot-playtester]
+domain: universal
 description: The agent→orchestrator handoff protocol. A backgrounded worker's relayed result string truncates on long, tool-heavy turns, so the handoff is an artifact, not a string — the worker Writes its full report to a file, and a cheap summarizer distills it. Load this whenever a task asks you to hand off a structured report to another agent, or when you are the agent distilling one. Any agent doing background work that must be handed off uses it — not only builders. Defines both sides of the contract.
 ---
 

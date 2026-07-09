@@ -1,6 +1,7 @@
 ---
 name: library-record-writing
 agents: [addon-researcher, cli-researcher]
+domain: universal
 description: How a *-researcher writes a durable `library/<kind>/` record — the machine-face frontmatter rule, the index-append step, the one-page limit, and the post-adopt/post-build 4-field Lesson section. Use whenever an addon / cli researcher writes its verdict doc (`library/addons/<slug>.md`, `library/tools/<slug>.md`) so the record is queryable, indexed, and agnostic. Owns the shared record-writing METHOD; each agent still owns its own per-kind template (frontmatter fields + doc structure).
 ---
 

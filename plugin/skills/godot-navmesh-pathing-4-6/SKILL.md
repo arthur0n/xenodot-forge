@@ -1,6 +1,7 @@
 ---
 name: godot-navmesh-pathing-4-6
 agents: [godot-enemy, level-designer]
+domain: godot-core
 description: >-
   The Godot 4.6 navmesh + NavigationAgent3D INTEGRATION layer beneath
   `godot-enemy-ai` — the runtime-bake + nav-server-sync + entity-velocity-ordering

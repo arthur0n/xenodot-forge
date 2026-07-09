@@ -1,6 +1,7 @@
 ---
 name: godot-runtime-arena
 agents: [game-designer, level-designer]
+domain: design
 description: Resource-driven arena assembled at RUNTIME in Godot — author an `ArenaLayout` `.tres` (footprint, cover pieces with class, verticality, lanes, landmarks, spawn markers, fall zones) that ONE builder node instantiates in `_ready()`, plus a headless layout self-audit that REPORTS spatial metrics. OPT-IN — use ONLY when the user EXPLICITLY wants a Resource/data-driven, runtime-built, or many-variant arena (a designer iterates the `.tres` without touching scenes). For a normal prototype blockout use `godot-greybox` (static, hand-authored, editable in the editor) — that is the DEFAULT; this is the opt-in runtime path. Builds on `godot-arena-spatial-design`'s nine spatial principles. NOT GridMap tile-fill (`godot-gridmap-level`).
 ---
 

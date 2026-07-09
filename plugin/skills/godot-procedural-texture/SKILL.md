@@ -1,6 +1,7 @@
 ---
 name: godot-procedural-texture
 agents: [godot-assets, art-director]
+domain: godot-core
 description: Generate local placeholder pixel-art SURFACE textures procedurally with the Godot Image API, via the reusable headless tool tools/gen_textures.gd. Use when the prototype needs tileable wall/floor/fabric textures fast and locally (no web generators, no human upload) so a scene reads as a whole. These are programmer-art placeholders — real/final art still goes through the asset-advisor sourcing loop.
 ---
 

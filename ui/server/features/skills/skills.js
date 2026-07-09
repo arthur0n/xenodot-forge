@@ -4,9 +4,10 @@
 // The setup wizard writes .xenodot/skill-setup.json; the server applies it on next start.
 import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { PROJECT_DIR } from "../../core/config.js";
+import { PROJECT_DIR, PROFILE } from "../../core/config.js";
 import { parseJSON } from "../../../lib/json.js";
-import { split } from "./skill-registry.js";
+import { split, readAgents, readSkillDomains } from "./skill-registry.js";
+import { filterAgentSkills } from "./skill-scope.js";
 import {
   BUILTIN_SKILLS,
   ORCHESTRATOR_FRAMEWORK_SKILLS,
@@ -173,4 +174,40 @@ export function computeSessionSkills({ floor, candidates, overrides }) {
     return wildcard === "on"; // default-deny unless the wildcard turns everything on
   });
   return [...new Set([...floor, ...enabled])];
+}
+
+/** @typedef {import("@anthropic-ai/claude-agent-sdk").AgentDefinition} AgentDefinition */
+
+/** Resolve the profile-filtered `options.agents` overlay for the SESSION — the ONLY lever that
+ * narrows what a SUB-AGENT preloads (the SDK: subagents ignore `options.skills` and read
+ * `AgentDefinition.skills`). Reads the plugin agents + skill domains + the game PROFILE and hands
+ * the pure core the filtering. @returns {Record<string, AgentDefinition>} */
+export function resolveSessionAgents() {
+  return computeProfiledAgents(readAgents(), readSkillDomains(), PROFILE);
+}
+
+/** Pure core of resolveSessionAgents (tested in skills.check.js). For each plugin agent, drop the
+ * skills that fall outside the game profile; emit an `options.agents` override ONLY when the filter
+ * actually removed a skill — a matching/absent profile leaves the agent untouched (no override, so
+ * no shadow-duplicate of the plugin agent, and an unprofiled game is a total no-op). The override
+ * is a faithful copy: description/prompt/tools/model/effort are preserved and only `skills` is
+ * narrowed, so the plugin stays the source of truth for everything but the skill list.
+ * @param {ReturnType<typeof readAgents>} agents @param {Map<string,string|null>} domains
+ * @param {import("../../../lib/profile.js").Profile} profile
+ * @returns {Record<string, AgentDefinition>} */
+export function computeProfiledAgents(agents, domains, profile) {
+  /** @type {Record<string, AgentDefinition>} */
+  const out = {};
+  for (const [name, a] of agents) {
+    const skills = filterAgentSkills(a.skills, domains, profile);
+    if (skills.length === a.skills.length) continue; // nothing dropped → leave the plugin agent as-is
+    /** @type {AgentDefinition} */
+    const def = { description: a.description, prompt: a.body, skills };
+    const tools = a.tools.filter(Boolean);
+    if (tools.length) def.tools = tools;
+    if (a.model) def.model = a.model;
+    if (a.effort) def.effort = /** @type {AgentDefinition["effort"]} */ (a.effort);
+    out[name] = def;
+  }
+  return out;
 }

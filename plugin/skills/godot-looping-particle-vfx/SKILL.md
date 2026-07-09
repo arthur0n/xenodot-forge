@@ -1,6 +1,7 @@
 ---
 name: godot-looping-particle-vfx
 agents: [godot-vfx]
+domain: godot-core
 description: >-
   Persistent LOOPING 3D particle VFX for a Godot 4.6 Forward+ game — fire,
   smoke, torch, aura, magic loops — the opposite-lifecycle sibling of

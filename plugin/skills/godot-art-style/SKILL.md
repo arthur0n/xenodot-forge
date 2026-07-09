@@ -1,6 +1,7 @@
 ---
 name: godot-art-style
 agents: [art-director, godot-assets]
+domain: godot-core
 description: Single source of truth for a 3D-pixel-art game's palette + visual style language in Godot — a shared `tools/art_style.gd` const module of NAMED swatches and style scalars that the procedural generators (`gen_textures.gd`, `gen_models.gd`) `preload()` and read, so textures and models cohere by construction instead of drifting from hand-copied `Color()` literals. The GAME owns its swatches + scalars (its look); this skill is the pattern and the conventional location, never the palette. Use when placeholder art looks incoherent across textures/models, when the same colour is typed into more than one generator, before adding a new procedural texture/model spec, or when an art-director needs one place to set the look. NOT an asset-sourcing or import skill (that is asset-advisor / godot-mesh-import-pixel-art / godot-texture-import-pixel-art).
 ---
 

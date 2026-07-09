@@ -30,6 +30,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { FRAMEWORK_PLUGIN_DIR, ASSET_LIBRARY, RES_ASSET_MOUNT } from "../core/config.js";
 import { generateManifest } from "./gen-manifest.js";
+import { generateCapabilities } from "./gen-capabilities.js";
 
 const TOOLS_SRC = path.join(FRAMEWORK_PLUGIN_DIR, "tools");
 const LIB_SRC = path.join(FRAMEWORK_PLUGIN_DIR, "library");
@@ -150,7 +151,15 @@ export function prepareGame(projectDir) {
   } catch {
     /* non-fatal — agents fall back to re-deriving facts if the manifest is absent */
   }
-  return { tools, lib, assets, manifest };
+  // The skills-side capability map (domains + in-profile), from the plugin registry + the game
+  // profile. Same best-effort discipline: a failure here must not break materialize/doctor/new.
+  let capabilities = null;
+  try {
+    capabilities = generateCapabilities(projectDir);
+  } catch {
+    /* non-fatal — the runtime filter falls back to fail-open (keep all) if the index is absent */
+  }
+  return { tools, lib, assets, manifest, capabilities };
 }
 
 // CLI: `node ui/server/cli/materialize.js [projectDir]`

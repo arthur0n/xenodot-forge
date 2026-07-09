@@ -1,6 +1,7 @@
 ---
 name: godot-screen-effects
 agents: [godot-visuals]
+domain: godot-core
 description: Build screen-space post-process effects in a Godot 4.x 3D project — the fullscreen-quad rig plus reading the screen/depth/normal buffers in a spatial shader, the foundation for outlines, edge detection, fog, and depth visualization. Use when adding a custom post-process effect, when a post-process shader only covers a small square, before sampling hint_depth_texture / hint_normal_roughness_texture / hint_screen_texture, or when depth reads all-white/all-black or normals look wrong.
 ---
 

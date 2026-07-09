@@ -1,6 +1,7 @@
 ---
 name: godot-effect-composition
 agents: [godot-weapons-abilities]
+domain: godot-core
 description: The STATELESS flavour of data-driven composition (Godot 4.x) — a `.tres` ability/cast Resource holds an ordered list of fire-once `Effect` Resources (WHAT) + a `TargetResolver` (WHOM); runtime values ride a `Context` DTO; the apply loop lives in the entity that owns the trigger. New ability = a new `.tres`, no code. Use for spells, abilities, casts, melee swings, trap/pickup/projectile payloads, and status effects — buffs/debuffs/dots — anything "apply some effect to some target(s)". Builds on `godot-data-driven-composition`; the stateful sibling is `godot-enemy-archetype`. Includes a worked MELEE transfer + reference lineage (OctoD, MachiTwo, kibble-cabal, willnationsdev). A game applies this concretely as a game-local skill (e.g. a cast-system).
 ---
 

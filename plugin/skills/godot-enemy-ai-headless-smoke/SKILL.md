@@ -1,6 +1,7 @@
 ---
 name: godot-enemy-ai-headless-smoke
 agents: [godot-enemy, bug-triage, godot-playtester]
+domain: godot-core
 description: >-
   How to TEST a Godot enemy AI when `--headless` has no RenderingDevice and doesn't
   sync `Area3D` overlaps — so you CANNOT assert real pathing, vision-cone detection,

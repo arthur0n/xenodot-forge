@@ -38,7 +38,7 @@ import {
   makeCheckLoop,
 } from "../features/autonomous/autonomous-control.js";
 import { applyOp, pruneDoneTasks, findOpenQuestion } from "../features/tasks/tasks-store.js";
-import { resolveSessionSkills } from "../features/skills/skills.js";
+import { resolveSessionSkills, resolveSessionAgents } from "../features/skills/skills.js";
 import {
   DEFAULT_POLICY,
   EDIT_TOOLS,
@@ -259,6 +259,13 @@ function buildMakeQuery({ inbox, canUseTool, abort, waitFor, formAgentQueue, sen
     codexEnabled: getCodexConfig().enabled,
     codexDir: CODEX_PLUGIN_DIR,
   });
+  // The profile-filtered sub-agent overlay: for each plugin agent whose skill list carries a
+  // genre/style skill OUTSIDE this game's {genre, style}, an `options.agents` override with the
+  // narrowed skill list. This is the ONLY lever that reaches sub-agent skill preloads (the SDK
+  // routes them through AgentDefinition.skills, never options.skills). Overrides the same-named
+  // plugin agent by bare name; empty (a total no-op) when the profile is unset or nothing is out
+  // of profile. Built once per session — the profile is fixed for the session's lifetime.
+  const profiledAgents = resolveSessionAgents();
   /** @param {string | null} resume */
   return (resume) =>
     query({
@@ -279,6 +286,10 @@ function buildMakeQuery({ inbox, canUseTool, abort, waitFor, formAgentQueue, sen
         // skipMcpDiscovery: the UI owns its MCP tools (below). Its slash commands
         // (`/codex:review`) expand from the user's prompt; `codex:codex-rescue` becomes delegable.
         plugins,
+        // Profile-filtered sub-agent overlay (see profiledAgents above). Spread in only when
+        // non-empty so an unprofiled / fully-in-profile game passes NO `agents` and behaves
+        // exactly as before M2 (pure plugin agents, no shadow-duplicates).
+        ...(Object.keys(profiledAgents).length ? { agents: profiledAgents } : {}),
         // The framework knowledge base (plugin/library) and skill/agent sources live
         // in the plugin, OUTSIDE the game cwd. Mount the plugin as an extra working
         // root so researcher agents can read it AND write new knowledge / promoted

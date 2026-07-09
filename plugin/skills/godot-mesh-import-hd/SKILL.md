@@ -1,6 +1,7 @@
 ---
 name: godot-mesh-import-hd
 agents: [asset-advisor, godot-assets]
+domain: style-hd
 description: Import, shade and wire a SOURCED standard-HD .glb prop in Godot 4.6 Forward+ as a discrete first-person prop — the HD sibling of godot-mesh-import-pixel-art, for stylized-PBR sourced finals (NOT NEAREST/flat pixel placeholders). Use whenever a sourced HD .glb arrives in assets/models/ for the greybox→asset swap, when a prop must shade with real PBR maps (albedo/metallic/roughness/normal/AO, ORM packed), when an imported HD model renders blurry/aliased/inside-out/black, when an HD normal map lights inside-out, or when deciding filter/mipmap/material settings for a sourced HD model. NOT the pixel-art placeholder path (that is godot-mesh-import-pixel-art, kept for gen_models output), NOT tiling a wall texture (godot-texture-import-pixel-art / its HD sibling).
 ---
 

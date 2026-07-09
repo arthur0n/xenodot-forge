@@ -1,6 +1,7 @@
 ---
 name: godot-export-builds
 agents: [godot-dev]
+domain: godot-core
 description: Export a Godot-family game to a shippable build from the command line — headless `--export-release` to desktop (macOS / Linux / Windows) first, web (HTML5) gated behind a renderer spike, then upload to itch.io with butler. Use when packaging a build for distribution, shipping a POC to itch.io, setting up `export_presets.cfg`, or when an export fails with "no export template found" / "no matching preset". Desktop is the guaranteed path; web is uncertain whenever the look depends on Forward+ post-process. NOT for running/verifying in-editor (that is godot-verify) — this produces a distributable artifact.
 ---
 

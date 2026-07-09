@@ -1,6 +1,7 @@
 ---
 name: godot-texture-import-pixel-art
 agents: [godot-assets, asset-advisor]
+domain: style-pixel
 description: Correctly import pixel-art textures in Godot 4 — NEAREST filter, no mipmaps, uncompressed. Use whenever a PNG/texture is added to assets/textures/ and bound to a material or shader uniform. Also covers the Make-Unique gotcha on imported mesh materials and the texture_filter enum trap.
 ---
 

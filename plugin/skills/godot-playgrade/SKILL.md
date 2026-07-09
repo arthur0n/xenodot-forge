@@ -1,6 +1,7 @@
 ---
 name: godot-playgrade
 agents: [godot-playtester]
+domain: godot-core
 description: The rubric CONTRACT for grading a built Godot game by PLAYING it, not reviewing its code — the deterministic half of the generator-evaluator loop. Use when grading a build against its design Acceptance: run tools/playgrade.sh (it scores runs-clean / renders-healthy / core-loop-functional / data-driven / feel-responsive into a structured playgrade-report.json with hard thresholds and an exit code), author the adversarial play_*.gd bots it runs, and root-cause each FAIL. Defines criteria + thresholds + the finding format; tools/playgrade.sh is the implementation.
 ---
 

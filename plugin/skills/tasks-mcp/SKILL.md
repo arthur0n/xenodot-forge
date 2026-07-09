@@ -1,6 +1,7 @@
 ---
 name: tasks-mcp
 agents: [workers]
+domain: universal
 description: Use mcp__ui__tasks as a plan and scratchpad inside any agent run. Add tasks at start, update status as you work, then close them in one call (op complete_open) before you hand off or return. Visible in the UI right rail and persistent across sessions.
 metadata:
   type: utility

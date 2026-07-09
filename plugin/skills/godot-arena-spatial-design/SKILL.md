@@ -1,6 +1,7 @@
 ---
 name: godot-arena-spatial-design
 agents: [game-designer, level-designer]
+domain: design
 description: OPT-IN spatial-design principles for a combat/arena encounter space in Godot — nine measurable properties (loop topology, interior cover, partitioned sightlines, cover mix, bounded verticality, landmarks, spawn-to-engagement pacing, scale/density, choke-vs-open) that turn a flat blockout into a real firefight space. Use ONLY when the level being built is a combat/arena encounter (enemy waves, gunfights) — apply ALONGSIDE whichever build method is chosen (`godot-greybox` static default, `godot-runtime-arena` runtime, or `godot-gridmap-level` tile-fill). NOT the build mechanism itself, NOT a general level-design bar for non-combat spaces (that's `level-design-principles`).
 ---
 

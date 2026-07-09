@@ -1,6 +1,7 @@
 ---
 name: godot-data-driven-composition
 agents: [godot-enemy, godot-weapons-abilities]
+domain: godot-core
 description: The GENERIC data-driven composition pattern in Godot 4.x — a typed `.tres` Resource carrier holds an ordered list of typed, composable pieces, so new variants are authored as DATA (a new `.tres`), not code. The shared base for the two flavours — stateless fire-once `Effect` Resources (`godot-effect-composition`) and stateful per-frame `Node` behaviours (`godot-enemy-archetype`). Use when designing ANY "carrier + ordered pieces" system (abilities, enemies, items, traps, status effects) and deciding how to structure it so designers edit resources, not scripts. Pick the flavour by piece-shape (stateless vs stateful) — this skill is the shared core + that decision.
 ---
 

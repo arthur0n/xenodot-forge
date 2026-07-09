@@ -1,6 +1,7 @@
 ---
 name: godot-enemy-archetype
 agents: [godot-enemy]
+domain: godot-core
 description: The STATEFUL flavour of data-driven composition (Godot 4.x) — trait-mixing enemies via an `EnemyArchetype` Resource (`.tres`: stats + an ordered list of behaviour `PackedScene`s) whose pieces are stateful `EnemyBehaviour` child NODES instanced fresh per enemy, NOT stateless Resources. One generic `Enemy` scene reads the archetype at spawn; behaviours plug into its attack/movement seams. A trait-mix (tank + magnet, tank + shooter) is a new `.tres`, no subclass, no code. Use when "trait-mixing", "enemy archetype", "tank that also shoots", "data-driven enemy" appears. Builds on `godot-data-driven-composition`; the stateless sibling is `godot-effect-composition`. Composes `godot-enemy-ai` (FSM, no BTs), `godot-composition`, `godot-shooter-enemy-combat` (hit/death contract).
 ---
 

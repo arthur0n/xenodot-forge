@@ -1,6 +1,7 @@
 ---
 name: godot-playthrough-bot
 agents: [godot-dev, godot-player, godot-playtester]
+domain: godot-core
 description: >-
   The headless INPUT-DRIVEN playthrough bot for a Godot-family game (4.x) WITHOUT
   GdUnit4 — an `extends SceneTree` tool script (`tools/bot_playthrough.gd` /

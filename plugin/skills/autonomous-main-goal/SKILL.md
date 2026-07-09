@@ -1,6 +1,7 @@
 ---
 name: autonomous-main-goal
 agents: [orchestrator]
+domain: universal
 description: The hive's Autonomous Mode self-drive loop. When a standing Main Goal is active, evaluate it, break it into ordered slices, then on each `[Autonomous check #N]` cycle assess progress, dispatch the next slice, and record one-line status via mcp__ui__autonomous — until the board satisfies the goal. HIVE-ONLY. Load when a Main Goal is set (header / .xenodot/autonomous.json) and an autonomous check tick arrives, or when judging whether the goal is met.
 ---
 

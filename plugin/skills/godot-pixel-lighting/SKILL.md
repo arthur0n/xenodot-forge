@@ -1,6 +1,7 @@
 ---
 name: godot-pixel-lighting
 agents: [godot-visuals, art-director]
+domain: godot-core
 description: Pixel-readability-first lighting for the 3D pixel-art blockout — one DirectionalLight3D "sun" with hard shadows, Sky/Color ambient fill, Filmic tonemap + fixed exposure on the SubViewport Environment. Use when lighting or re-tuning a level, when a ground shadow or jump landing isn't readable, when the scene renders black or blows out highlights, when shadows show acne/peter-panning/distance pop, or before touching the WorldEnvironment tonemap/exposure. Deliberately hard shadows over soft, Filmic over ACES/AgX.
 ---
 

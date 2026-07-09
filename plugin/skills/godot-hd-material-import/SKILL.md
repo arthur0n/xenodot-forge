@@ -1,6 +1,7 @@
 ---
 name: godot-hd-material-import
 agents: [asset-advisor, godot-assets]
+domain: style-hd
 description: Import a SOURCED HD texture set and wire a full-PBR StandardMaterial3D / ORMMaterial3D for a standard-HD FPS in Godot 4.6 Forward+ — LINEAR filter + mipmaps ON, sRGB albedo / non-color (linear) for every other map, normal-map invert-Y when DirectX-style, ORM channel-pack when occlusion/roughness/metallic ship packed, and a stylized-middle bias (roughness high, metal low, normals mild) so the muted-industrial palette stays dominant and combat stays readable. Use when a sourced HD texture (a wall/floor/surface or a prop's own maps) arrives in assets/textures/ and needs a real PBR material — "PBR material", "HD texture import", "wire albedo/normal/roughness/metallic/AO", "ORM packed texture", "tileable HD wall/floor texture", "uv1_scale tiling", "material shades inside-out / too glossy / shimmers at distance", "non-color vs sRGB map". NOT the NEAREST/no-mipmap placeholder + UI/sprite path (that is godot-texture-import-pixel-art, which survives for gen_textures output), NOT .glb mesh/collider import (godot-mesh-import-pixel-art), NOT the greybox→asset replace flow (godot-greybox-to-asset).
 ---
 

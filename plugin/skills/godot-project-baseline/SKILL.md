@@ -1,6 +1,7 @@
 ---
 name: godot-project-baseline
 agents: [godot-dev]
+domain: godot-core
 description: Establish or verify a Godot 4.x project's game-agnostic baseline — quality gates (warnings-as-errors, gdlint/gdformat), folder layout, naming, physics layers, input map — and record it in CLAUDE.md as the single source of truth. Use FIRST in any new project, on "set up the project" / "start a POC" / "initialize the game", or whenever another godot-* skill is about to run and CLAUDE.md has no "## Project conventions" section yet. Game-aesthetic decisions (renderer rationale, window/stretch, texture filters, art-style stack) do NOT live here — they belong in a project-local game-conventions skill this skill teaches you to create.
 ---
 

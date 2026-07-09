@@ -1,6 +1,7 @@
 ---
 name: godot-gridmap-level
 agents: [godot-dev]
+domain: godot-core
 description: Build a tile-based 3D level from a drawn grid (levels/drawn/current.json) with GridMap + MeshLibrary so geometry is computed and grid-snapped, not hand-authored. Use for any Draw-level brief citing current.json, a level with more than ~10 wall/floor pieces, or when hand-typed Transform3D walls clip, mis-size, or drift off their colliders. Covers MeshLibrary tile authoring, the @tool grid importer, the GridMap+instanced-props hybrid, and verify additions. NOT for a tiny hand-built blockout of a few boxes.
 ---
 
