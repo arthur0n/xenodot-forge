@@ -5,7 +5,7 @@
   "lastAudit": "2026-07-08 — full 9-dim fan-out pass (8 gather agents, ~355k subagent tokens); D1/D4 clean; filed 7 no-brainers + 7 improvements + 3 laters + 1 skip-tombstone. Self-fixed framework-audit.md in-pass: sibling list → glob (×2, was silently omitting token-audit.md), tools/ → plugin/tools/ in D8, Never-bullet no longer recommends the rtk grep it bans. Process note: fan-out gather worked but D9-audit-fanout single-agent comparison still unmeasured. Same day: integrated external review iter1 (86 extracted items → 1 no-brainer + 2 improvements + 4 laters filed after 3-agent repo-state verification; 1 existing row upgraded to MEASURED; roadmap waves parked as pointer; 2 review claims already resolved in repo).",
   "parking": [
     "skill-content-gap dimension — a skill missing a known technique/caveat maps to no clean D1–D9",
-    "D10 'seam integrity' dimension — do the framework's own gates (promote/materialize/validate) enforce the conventions its docs state? (this pass's D2-library-gate-blindspot is exactly a seam-integrity find)",
+    "D11 'seam integrity' dimension — do the framework's own gates (promote/materialize/validate) enforce the conventions its docs state? (this pass's D2-library-gate-blindspot is exactly a seam-integrity find) [renumbered D10→D11 when abstraction-level/domain-layering took D10]",
     "2026-07-06 external review (docs/xenodot/2026-07-06-framework-review-iter1.md) = ROADMAP source (capabilities.json routing, domain taxonomy, bolts, starter/onboarding waves, seam check_*, autoload/shadow/dir gates) — plan work lives in that doc, ledger tracks only drift; verified already-resolved there: gdlintrc is 500 now, host-agnostic seam rule already in godot-composition rules 5/6"
   ],
   "dimensions": {
@@ -17,7 +17,8 @@
     "D6": "orchestrator",
     "D7": "the framework's own commands",
     "D8": "verification flow",
-    "D9": "harness load-bearing under the current model"
+    "D9": "harness load-bearing under the current model",
+    "D10": "abstraction-level / domain-layering (generic baseline vs domain/aesthetic payload; second-domain test; dependency-direction inversions)"
   },
   "buckets": {
     "3": "no-brainer",
@@ -31,6 +32,15 @@
     "skip": "bucket 6"
   },
   "findings": [
+    {
+      "id": "D10-import-layering-inversion",
+      "dim": "D10",
+      "bucket": 4,
+      "verdict": "fix-now",
+      "status": "open",
+      "finding": "Dependency-direction inversion: godot-mesh-import-hd:11 declares the GENERIC structural mesh-import workflow (place/import, scale, nested-instance, auto-collision, Make-Unique, Advanced-Import skip/extract) 'identical and OWNED THERE' in godot-mesh-import-pixel-art and names itself 'the HD sibling of godot-mesh-import-pixel-art'; godot-hd-material-import is likewise the 'HD sibling of godot-texture-import-pixel-art'. So the HD aesthetic must DEPEND ON the pixel-art skill for an aesthetic-neutral core — a generic workflow smuggled inside a domain-named capability. Fix (D10 split): extract the structural mesh/texture-import core into neutral base skills (e.g. godot-mesh-import / godot-texture-import) that BOTH pixel-art and HD layer their filter/mipmap/material deltas on top of; neither art style owns the other's base.",
+      "pattern": "generic core = the base BOTH aesthetics import; each art style is a thin delta layer on top, never a sibling reaching into the other's skill for the shared workflow."
+    },
     {
       "id": "D6-issuekit-mechanics",
       "dim": "D6",

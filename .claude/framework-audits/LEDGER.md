@@ -2,7 +2,7 @@
 
 # Framework audit ledger
 
-**open (fix-now): 3 · later: 16 · skip: 3**
+**open (fix-now): 4 · later: 16 · skip: 3**
 
 _Last audit:_ 2026-07-08 — full 9-dim fan-out pass (8 gather agents, ~355k subagent tokens); D1/D4 clean; filed 7 no-brainers + 7 improvements + 3 laters + 1 skip-tombstone. Self-fixed framework-audit.md in-pass: sibling list → glob (×2, was silently omitting token-audit.md), tools/ → plugin/tools/ in D8, Never-bullet no longer recommends the rtk grep it bans. Process note: fan-out gather worked but D9-audit-fanout single-agent comparison still unmeasured. Same day: integrated external review iter1 (86 extracted items → 1 no-brainer + 2 improvements + 4 laters filed after 3-agent repo-state verification; 1 existing row upgraded to MEASURED; roadmap waves parked as pointer; 2 review claims already resolved in repo).
 
@@ -12,8 +12,9 @@ _Last audit:_ 2026-07-08 — full 9-dim fan-out pass (8 gather agents, ~355k sub
 
 _none_
 
-## Bucket 4 — improvements (3) · fix-now · needs judgment (/framework-audit-fix)
+## Bucket 4 — improvements (4) · fix-now · needs judgment (/framework-audit-fix)
 
+- **D10-import-layering-inversion** · `D10` · _open_ — Dependency-direction inversion: godot-mesh-import-hd:11 declares the GENERIC structural mesh-import workflow (place/import, scale, nested-instance, auto-collision, Make-Unique, Advanced-Import skip/extract) 'identical and OWNED THERE' in godot-mesh-import-pixel-art and names itself 'the HD sibling of godot-mesh-import-pixel-art'; godot-hd-material-import is likewise the 'HD sibling of godot-texture-import-pixel-art'. So the HD aesthetic must DEPEND ON the pixel-art skill for an aesthetic-neutral core — a generic workflow smuggled inside a domain-named capability. Fix (D10 split): extract the structural mesh/texture-import core into neutral base skills (e.g. godot-mesh-import / godot-texture-import) that BOTH pixel-art and HD layer their filter/mipmap/material deltas on top of; neither art style owns the other's base.
 - **D6-issuekit-mechanics** · `D6` · _open_ — ui/orchestrator.md:25 embeds builder-facing issuekit CLI syntax (attempt/resolve flags) + the known-issues graduation recipe inside the routing doc; trim to the routing decision (search tracker first → spawn builder/designer) and let the issue process own the mechanics.
 - **D8-navmesh-check-orphan** · `D8` · _open_ — check_navmesh_baked (checks.sh:395) is composed by no gate and documented in no skill — yet it's the deterministic nav check D9-greybox-eye-harden asks for; compose it (optional, self-gating on tools/check_nav_bake.gd) in validate.sh or document the wiring in the nav/greybox skills.
 - **D9-critique-in-mainwindow** · `D9` · _open_ — Every self-improvement command runs its self-critique/verdict step in the MAIN window, not a subagent — framework-audit step7, framework-audit-fix step6, framework-feedback step7, harvest-sessions step9, token-audit step7 — so critique reasoning becomes orchestrator context debt. Dispatch each critique to a throwaway subagent (like framework-audit's step-3 gather fan-out) and keep only the one-line verdict: keep the verdict, not the transcript. Pairs with D9-audit-fanout.
@@ -46,5 +47,5 @@ _none_
 ## Parking — dimension ideas (unactioned)
 
 - skill-content-gap dimension — a skill missing a known technique/caveat maps to no clean D1–D9
-- D10 'seam integrity' dimension — do the framework's own gates (promote/materialize/validate) enforce the conventions its docs state? (this pass's D2-library-gate-blindspot is exactly a seam-integrity find)
+- D11 'seam integrity' dimension — do the framework's own gates (promote/materialize/validate) enforce the conventions its docs state? (this pass's D2-library-gate-blindspot is exactly a seam-integrity find) [renumbered D10→D11 when abstraction-level/domain-layering took D10]
 - 2026-07-06 external review (docs/xenodot/2026-07-06-framework-review-iter1.md) = ROADMAP source (capabilities.json routing, domain taxonomy, bolts, starter/onboarding waves, seam check\_\*, autoload/shadow/dir gates) — plan work lives in that doc, ledger tracks only drift; verified already-resolved there: gdlintrc is 500 now, host-agnostic seam rule already in godot-composition rules 5/6

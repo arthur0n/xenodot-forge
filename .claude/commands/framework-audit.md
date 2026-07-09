@@ -1,6 +1,6 @@
 ---
-description: Framework self-audit — score agents/skills/orchestrator/commands across 9 quality dimensions, record findings in the ledger, propose fixes, critique itself. Manual, human-run. Forge-local (not shipped).
-argument-hint: "[D1..D9 | all]"
+description: Framework self-audit — score agents/skills/orchestrator/commands across 10 quality dimensions, record findings in the ledger, propose fixes, critique itself. Manual, human-run. Forge-local (not shipped).
+argument-hint: "[D1..D10 | all]"
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Agent, Skill, mcp__ui__form, mcp__ui__tasks, mcp__ui__ask
 model: opus
 ---
@@ -157,6 +157,27 @@ misses one ref leaves contamination behind. Completeness → `rg`; concepts → 
        Model-upgrade ritual: on a major model release, strip one scaffold on a sample task, measure,
        decide keep/strip/retier — record as D9 findings. Expect most D9 flags to need a real
        before/after measurement, not a hunch — say which are measured vs hypothesised.
+
+   - **D10 — Abstraction-level / domain-layering.** Does each capability sit at ONE altitude — a
+     GENERIC baseline (engine/quality/way-of-work: renderer defaults, folder layout, naming,
+     warnings-as-errors, structural workflows) OR a DOMAIN/AESTHETIC payload — and never fuse the two
+     into one un-swappable block? D2 catches one PROJECT's facts; D10 catches one DOMAIN's/art-style's
+     payload smuggled into a capability whose name or role promises generality. The tell: a
+     generic-tier capability (name/role says 'conventions', 'baseline', 'keystone', 'use FIRST') that
+     hardcodes a domain constant as 'non-negotiable' — a pixel-art / SubViewport / Forward+ call
+     stamped 'for this art style' inside a skill sold as the shared structural workflow. **The probe
+     is the SECOND-DOMAIN TEST:** read the capability as a game this framework also spans that does
+     NOT share the payload (an HD/PBR title where a pixel-art one taught) — does the generic half
+     still apply cleanly and the payload half fall away as a swappable layer? Also flag
+     DEPENDENCY-DIRECTION INVERSIONS: a generic workflow living INSIDE a domain-named capability so a
+     second domain must depend on the first (the HD import skill inheriting the structural
+     mesh-import flow FROM the pixel-art skill) — the generic core should be the base BOTH aesthetics
+     import. Fix pattern: split the generic baseline into its own neutral capability; the payload
+     becomes a thin layer on top. Expect false positives: a payload-tier capability SHOULD carry
+     domain constants — only flag them where the declared tier is GENERIC. Origin:
+     godot-project-conventions fused a quality baseline with 3D-pixel-art payload (fixed 322e4da);
+     invisible to every single-domain loop (contamination gates catch one project's facts, session
+     mining only sees the domain in use) — surfaced only by a fork's second-domain strip.
 
 4. **Judge + id each finding.** EXPECT most findings to be false positives on inspection — they are
    hypotheses until checked against the actual files: generic industry vocabulary (tank/grunt/runner)

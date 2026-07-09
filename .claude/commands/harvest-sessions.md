@@ -44,7 +44,7 @@ is applied by the SAME `/framework-audit-fix`.
 - **Ledger (write findings here):** `.claude/framework-audits/LEDGER.json` — the SOURCE OF TRUTH
   (a `findings[]` array); read FIRST (dedup), append AFTER (push objects, then `npm run ledger`).
   `LEDGER.md` / `ledger.html` are GENERATED VIEWS — never hand-edit. Its meta defines the
-  **dimensions D1–D9**, **buckets** (3/4/5/6), **verdict** and **status**. Reuse them exactly —
+  **dimensions D1–D10**, **buckets** (3/4/5/6), **verdict** and **status**. Reuse them exactly —
   `/framework-audit-fix` resolves by id. Schema: `.claude/framework-audits/README.md`.
 - **Coverage sidecar:** `.claude/framework-audits/harvested-sessions.txt` — one session-tag per line,
   the sessions already harvested. Read first so you never re-scan; append after. Create it if absent.
@@ -90,7 +90,8 @@ lines, which `rtk grep`/`jq` handle.)
 
 6. **Map + write an explicit fix; dedup; append.** For each surviving finding: tag the **nearest
    dimension** `<Dn>` (D1 over-cap agent · D2 contamination · D3 name↔scope · D4 data-driven · D5
-   bloat/dup · D6 orchestrator · D7 commands · D8 verify-flow · D9 harness) so `/framework-audit-fix`'s
+   bloat/dup · D6 orchestrator · D7 commands · D8 verify-flow · D9 harness · D10
+   abstraction-level/domain-layering) so `/framework-audit-fix`'s
    playbook applies; write the **fix concretely** (target `file` + before→after / block to add);
    assign **bucket**/`verdict`/**id** `<Dn>-<slug>` (reuse an existing id for the same issue). Push
    ONE `open` object per finding to `LEDGER.json`'s `findings[]` — `{ id, dim, bucket, verdict,

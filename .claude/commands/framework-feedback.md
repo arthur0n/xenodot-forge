@@ -31,7 +31,7 @@ applied by the SAME `/framework-audit-fix`.
 
 - **Ledger (write here):** `.claude/framework-audits/LEDGER.json` — the SOURCE OF TRUTH (a `findings[]`
   array); read FIRST (dedup), append AFTER (push objects, then `npm run ledger`). `LEDGER.md` /
-  `ledger.html` are GENERATED VIEWS — never hand-edit. Its meta defines the **dimensions D1–D9**, the
+  `ledger.html` are GENERATED VIEWS — never hand-edit. Its meta defines the **dimensions D1–D10**, the
   **buckets** (3 no-brainer · 4 improvement · 5 system/later · 6 skip), the **verdict** (`fix-now` 3/4 ·
   `later` 5 · `skip` 6) and **status** (`open` · `skip` — applied findings are REMOVED, never stamped
   `done`). Reuse them exactly — `/framework-audit-fix` resolves by id. Schema: its `README.md`.
@@ -64,7 +64,8 @@ applied by the SAME `/framework-audit-fix`.
 4. **Map + write an explicit fix.** For each surviving finding:
    - Tag the **nearest dimension** `<Dn>` so `/framework-audit-fix`'s per-dimension playbook applies
      (D1 over-cap agent · D2 contamination · D3 name↔scope · D4 data-driven · D5 bloat/dup · D6
-     orchestrator · D7 commands · D8 verify-flow · D9 harness). If none fits cleanly, pick the
+     orchestrator · D7 commands · D8 verify-flow · D9 harness · D10 abstraction-level/domain-layering).
+     If none fits cleanly, pick the
      closest and make the fix **self-contained** — it's what actually drives the apply.
    - Write the **fix concretely**: target `file` + the operation (before→after, or the block to add).
      A vague finding can't be applied; an explicit one can.

@@ -40,7 +40,7 @@ The pre-commit hook also runs this and stages `LEDGER.md`, so the committed view
 | field     | meaning                                                                                                                                                                                           |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `id`      | stable `<Dn>-<slug>` — the fix commands target findings by this id                                                                                                                                |
-| `dim`     | `D1`..`D9` (see `dimensions` in the JSON)                                                                                                                                                         |
+| `dim`     | `D1`..`D10` (see `dimensions` in the JSON)                                                                                                                                                        |
 | `bucket`  | `3` no-brainer · `4` improvement · `5` later · `6` skip                                                                                                                                           |
 | `verdict` | `fix-now` (3/4) · `later` (5) · `skip` (6)                                                                                                                                                        |
 | `status`  | `open` · `skip`                                                                                                                                                                                   |
