@@ -2,7 +2,7 @@
 name: godot-greybox-to-asset
 agents: [godot-assets]
 domain: godot-core
-description: Migrate a finished greybox blockout to final sourced assets in Godot 4.6 — the REPLACE half of the blockout loop (godot-greybox BUILDS it; this skill RETIRES it). Identify every BoxMesh greybox node in a level `.tscn`, batch-source/verify the `.glb` models and tileable surface textures through the asset-advisor loop, swap each node 1:1 in place preserving its name + position + rotation + collision, validate, then delete the greybox nodes LAST (never first), re-bake the navmesh, and decorate after the walls land. Use for "replace the greybox", "swap blockout for real assets", "retire the placeholder boxes", "migrate the level to final art", "the level is greyboxed, make it look real", or when an arena full of flat BoxMesh cover must become sourced models/textures. Owns the migration ORDER + safety + shared-material building-set; DELEGATES the per-node swap to godot-mesh-import-pixel-art (props) / godot-texture-import-pixel-art (surfaces) and the sourcing to the asset-advisor loop. NOT a second importer, NOT CSG greyboxing, NOT inherited-scene or make-local swaps, NOT the original blockout build (that is godot-greybox).
+description: Migrate a finished greybox blockout to final sourced assets in Godot 4.6 — the REPLACE half of the blockout loop (godot-greybox BUILDS it; this skill RETIRES it). Identify every BoxMesh greybox node in a level `.tscn`, batch-source/verify the `.glb` models and tileable surface textures through the asset-advisor loop, swap each node 1:1 in place preserving its name + position + rotation + collision, validate, then delete the greybox nodes LAST (never first), re-bake the navmesh, and decorate after the walls land. Use for "replace the greybox", "swap blockout for real assets", "retire the placeholder boxes", "migrate the level to final art", "the level is greyboxed, make it look real", or when an arena full of flat BoxMesh cover must become sourced models/textures. Owns the migration ORDER + safety + shared-material building-set; DELEGATES the per-node swap to godot-mesh-import (props) / godot-texture-import (surfaces) — with the game's style delta for the surface — and the sourcing to the asset-advisor loop. NOT a second importer, NOT CSG greyboxing, NOT inherited-scene or make-local swaps, NOT the original blockout build (that is godot-greybox).
 ---
 
 # godot-greybox-to-asset — retire the blockout (migration craft)
@@ -19,10 +19,12 @@ does not re-implement importing — it orchestrates the skills that already do.
 
 - `godot-greybox` — the level being migrated was built by it (BoxMesh cover, SpawnMarker3D, FallZone,
   baked NavigationRegion3D). This skill consumes that blockout; it does not author shape.
-- `godot-mesh-import-pixel-art` — owns the per-node prop swap (scale near-uniform, nested `.glb`
-  instance, collider, NEAREST/material). This skill calls it once per discrete prop/cover node.
-- `godot-texture-import-pixel-art` — owns large flat surfaces (wall/floor/ground): a `StandardMaterial3D`
-  with `uv1_scale` + Texture Repeat on the existing BoxMesh, NOT a model. This skill calls it per surface.
+- `godot-mesh-import` — owns the per-node prop swap mechanics (scale near-uniform, nested `.glb`
+  instance, collider, Make-Unique); the game's style delta (`godot-mesh-import-pixel-art` NEAREST /
+  `godot-mesh-import-hd` PBR) sets the surface. This skill calls it once per discrete prop/cover node.
+- `godot-texture-import` — owns large flat surfaces (wall/floor/ground): the `StandardMaterial3D`
+  tiling (`uv1_scale` + Texture Repeat) on the existing BoxMesh, NOT a model; the style delta
+  (`godot-texture-import-pixel-art` / `godot-hd-material-import`) sets the filter/material. Called per surface.
 - asset-advisor classify/verify loop — sources + verifies the batch of `.glb` / textures BEFORE any swap.
 - `godot-verify` — the load/render/smoke gate run AFTER swaps and AGAIN after the greybox deletion;
   also the `position`+`rotation` (never raw `Transform3D` literal) authoring contract is preserved.
@@ -33,10 +35,10 @@ does not re-implement importing — it orchestrates the skills that already do.
 - Migrate ONE level `.tscn` (`levels/<name>.tscn`) at a time; never batch across levels in one pass.
 - Art-kind → technique (decide per greybox node BEFORE sourcing, from the CLAUDE.md table):
   - **discrete prop / cover piece / furniture** → sourced low-poly `.glb` (`assets/models/<name>.glb`),
-    instanced in place of the BoxMesh node — `godot-mesh-import-pixel-art`.
+    instanced in place of the BoxMesh node — `godot-mesh-import` (+ the game's style delta for the surface).
   - **large flat surface** (perimeter wall, floor, ground) → tileable texture on the EXISTING BoxMesh
-    via `StandardMaterial3D` + `uv1_scale` + Texture Repeat — `godot-texture-import-pixel-art`. Keep the
-    box; re-skin it. Do NOT replace a wall with a wall-shaped model.
+    via `StandardMaterial3D` + `uv1_scale` + Texture Repeat — `godot-texture-import` (+ the style delta). Keep
+    the box; re-skin it. Do NOT replace a wall with a wall-shaped model.
 - **Preserve the spatial contract.** A swap keeps the greybox node's PascalCase name, `position`,
   `rotation`, and a collider of equivalent footprint. The level's spatial read — elevation, zoning,
   and (if it's a combat/arena encounter) the `godot-arena-spatial-design` principles
@@ -61,10 +63,11 @@ does not re-implement importing — it orchestrates the skills that already do.
    (No real asset yet? `tools/gen_models.gd` / `tools/gen_textures.gd` placeholders are fine to swap
    onto FIRST — they still de-box the scene — and re-swapped when sourced art arrives.)
 3. **Swap each node IN PLACE — greybox stays until validated.** Per node, delegate the mechanics:
-   - prop/cover → `godot-mesh-import-pixel-art` (nest the `.glb` under the owned node; keep name +
-     `position` + `rotation`; scale near-uniform to the cell; unique collider sized to AABB).
-   - surface → `godot-texture-import-pixel-art` (apply `StandardMaterial3D` + `uv1_scale` + Repeat to
-     the EXISTING BoxMesh; keep the box).
+   - prop/cover → `godot-mesh-import` (nest the `.glb` under the owned node; keep name +
+     `position` + `rotation`; scale near-uniform to the cell; unique collider sized to AABB) + the
+     game's style delta for the surface filter/material.
+   - surface → `godot-texture-import` (apply `StandardMaterial3D` + `uv1_scale` + Repeat to
+     the EXISTING BoxMesh; keep the box) + the style delta for the filter.
      Do the swaps with the greybox content still present as a fallback — do NOT delete any greybox node yet.
 4. **Validate the swapped scene.** `tools/validate.sh` then
    `$GODOT --headless --path . --script tools/verify_scene.gd -- levels/<name>.tscn main.tscn`.
@@ -104,16 +107,17 @@ does not re-implement importing — it orchestrates the skills that already do.
 | A wall moved / cover shifted after swap         | Asset scaled the cell instead of fitting it — re-seat to the greybox `position`/`rotation`; scale the asset to the cell, never move the cell |
 | Placeholder deleted, replacement missing        | Greybox retired before validation — restore from VCS; ALWAYS swap+validate, delete LAST (step 5)                                             |
 | Enemies stop pathing / walk through new walls   | Navmesh stale — re-bake `NavigationRegion3D` over final geometry (step 6)                                                                    |
-| Wall replaced by a wall-shaped model, looks off | Large flat surface should be a texture on the BoxMesh, not a model — use godot-texture-import-pixel-art                                      |
+| Wall replaced by a wall-shaped model, looks off | Large flat surface should be a texture on the BoxMesh, not a model — use godot-texture-import (+ style delta)                                |
 | Arena reads as a kitbash                        | Structural pieces don't share a material — re-source the building set with ONE shared material family                                        |
 | Second importer / build script appeared         | Fork — extend the existing builder/swap, one build path                                                                                      |
-| Prop giant/speck/floating/crushed               | Per-node scale/seat issue — see godot-mesh-import-pixel-art Error→Fix (near-uniform Root Scale, AABB to y0)                                  |
+| Prop giant/speck/floating/crushed               | Per-node scale/seat issue — see godot-mesh-import Error→Fix (near-uniform Root Scale, AABB to y0)                                            |
 | Build fails godot-verify Transform3D ban        | Author swaps via `position`+`rotation`, never a `Transform3D` literal                                                                        |
 
 ---
 
 For a Resource-driven arena assembled at RUNTIME, see `godot-runtime-arena` (not this). The per-node
-import mechanics live in `godot-mesh-import-pixel-art` / `godot-texture-import-pixel-art`; sourcing lives
-in the asset-advisor loop — this skill only orchestrates the migration order + safety over them.
+import mechanics live in `godot-mesh-import` / `godot-texture-import` (with the game's style delta for
+the surface); sourcing lives in the asset-advisor loop — this skill only orchestrates the migration
+order + safety over them.
 
 Adapted from GodotPrompter (https://github.com/jame581/GodotPrompter), MIT License, Copyright (c) GodotPrompter Contributors.

@@ -2,7 +2,7 @@
 
 # Framework audit ledger
 
-**open (fix-now): 2 · later: 16 · skip: 3**
+**open (fix-now): 1 · later: 16 · skip: 3**
 
 _Last audit:_ 2026-07-08 — full 9-dim fan-out pass (8 gather agents, ~355k subagent tokens); D1/D4 clean; filed 7 no-brainers + 7 improvements + 3 laters + 1 skip-tombstone. Self-fixed framework-audit.md in-pass: sibling list → glob (×2, was silently omitting token-audit.md), tools/ → plugin/tools/ in D8, Never-bullet no longer recommends the rtk grep it bans. Process note: fan-out gather worked but D9-audit-fanout single-agent comparison still unmeasured. Same day: integrated external review iter1 (86 extracted items → 1 no-brainer + 2 improvements + 4 laters filed after 3-agent repo-state verification; 1 existing row upgraded to MEASURED; roadmap waves parked as pointer; 2 review claims already resolved in repo).
 
@@ -12,9 +12,8 @@ _Last audit:_ 2026-07-08 — full 9-dim fan-out pass (8 gather agents, ~355k sub
 
 _none_
 
-## Bucket 4 — improvements (2) · fix-now · needs judgment (/framework-audit-fix)
+## Bucket 4 — improvements (1) · fix-now · needs judgment (/framework-audit-fix)
 
-- **D10-import-layering-inversion** · `D10` · _open_ — Dependency-direction inversion: godot-mesh-import-hd:11 declares the GENERIC structural mesh-import workflow (place/import, scale, nested-instance, auto-collision, Make-Unique, Advanced-Import skip/extract) 'identical and OWNED THERE' in godot-mesh-import-pixel-art and names itself 'the HD sibling of godot-mesh-import-pixel-art'; godot-hd-material-import is likewise the 'HD sibling of godot-texture-import-pixel-art'. So the HD aesthetic must DEPEND ON the pixel-art skill for an aesthetic-neutral core — a generic workflow smuggled inside a domain-named capability. Fix (D10 split): extract the structural mesh/texture-import core into neutral base skills (e.g. godot-mesh-import / godot-texture-import) that BOTH pixel-art and HD layer their filter/mipmap/material deltas on top of; neither art style owns the other's base.
 - **D8-navmesh-check-orphan** · `D8` · _open_ — check_navmesh_baked (checks.sh:395) is composed by no gate and documented in no skill — yet it's the deterministic nav check D9-greybox-eye-harden asks for; compose it (optional, self-gating on tools/check_nav_bake.gd) in validate.sh or document the wiring in the nav/greybox skills.
 
 ## Bucket 5 — later (16) · system / parked

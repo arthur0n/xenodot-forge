@@ -2,7 +2,7 @@
 name: godot-animation-libraries
 agents: [godot-player]
 domain: godot-core
-description: Import and play skeletal animations on a sourced 3D character in Godot 4.6 — the separate-glTF workflow (one model file + anim-only files), merging anim clips into an AnimationLibrary loaded onto your own AnimationPlayer, and retargeting a foreign animation (e.g. Mixamo) onto your skeleton via SkeletonProfileHumanoid. Use when an animated rigged .glb arrives in assets/models/, when a character must stop being a static capsule and play a looping idle/walk, when animations come in their own glTF separate from the model, when a sourced animation targets a different skeleton than your character, or when an imported AnimationPlayer's clips won't play / play on the wrong bones. NOT for static-prop import (that is godot-mesh-import-pixel-art), NOT for shader-time foliage sway (godot-foliage), NOT for 2D sprite-frame animation.
+description: Import and play skeletal animations on a sourced 3D character in Godot 4.6 — the separate-glTF workflow (one model file + anim-only files), merging anim clips into an AnimationLibrary loaded onto your own AnimationPlayer, and retargeting a foreign animation (e.g. Mixamo) onto your skeleton via SkeletonProfileHumanoid. Use when an animated rigged .glb arrives in assets/models/, when a character must stop being a static capsule and play a looping idle/walk, when animations come in their own glTF separate from the model, when a sourced animation targets a different skeleton than your character, or when an imported AnimationPlayer's clips won't play / play on the wrong bones. NOT for static-prop import (that is godot-mesh-import + its style delta), NOT for shader-time foliage sway (godot-foliage), NOT for 2D sprite-frame animation.
 ---
 
 # Animation libraries for a sourced 3D character
@@ -11,7 +11,7 @@ Animated character = **sourced rigged `.glb` (skeleton + skinned mesh) + anim cl
 
 ## Requirements
 
-- `godot-mesh-import-pixel-art` — import/scale/nest the model exactly as that skill says; this skill adds the animation layer only.
+- `godot-mesh-import` — import/scale/nest the model exactly as that base skill says (+ the game's style delta for the surface); this skill adds the animation layer only.
 - `godot-3d-pixelation` — judge in F5 at SubViewport scale (foot-sliding, wrong-bone retargets obvious low-res).
 - `godot-composition` — `CharacterBody3D` base + model + `AnimationPlayer` as children; gameplay calls down (`anim_player.play()`), animation signals up (`animation_finished`).
 - `godot-code-rules` — any `.gd` driving playback must be strict-typed; gate with `tools/validate.sh`.
@@ -29,7 +29,7 @@ Animated character = **sourced rigged `.glb` (skeleton + skinned mesh) + anim cl
 
 **1. Import and nest the model**
 
-Delegate to `godot-mesh-import-pixel-art`. Confirm imported scene contains `Skeleton3D` + skinned `MeshInstance3D`. If model `.glb` ships an `AnimationPlayer` with wanted clips, use those directly (skip step 3).
+Delegate to `godot-mesh-import`. Confirm imported scene contains `Skeleton3D` + skinned `MeshInstance3D`. If model `.glb` ships an `AnimationPlayer` with wanted clips, use those directly (skip step 3).
 
 **2. Split clips from one glTF (only if anims NOT in separate files)**
 
@@ -129,7 +129,7 @@ F5 with character in a level: mesh deforms (not T-pose), idle loops with no snap
 
 ## Verification checklist
 
-- [ ] Model `.glb` imported and **nested** under owned `CharacterBody3D` (per `godot-mesh-import-pixel-art`), with visible `Skeleton3D` + skinned `MeshInstance3D`
+- [ ] Model `.glb` imported and **nested** under owned `CharacterBody3D` (per `godot-mesh-import`), with visible `Skeleton3D` + skinned `MeshInstance3D`
 - [ ] Anims from **separate** anim-only glTFs (or split via Advanced Import) — model file carries no gameplay logic
 - [ ] One merged `AnimationLibrary` at `resources/animations/<char>.tres` with clean clip names
 - [ ] `AnimationPlayer` is child of your node, loads library, `root_node` points at nested model
@@ -150,7 +150,7 @@ F5 with character in a level: mesh deforms (not T-pose), idle loops with no snap
 | Clip resets to frame 0 every physics frame         | `play()` called every frame — Step 4: guard with `if _anim.current_animation != wanted`                                       |
 | Library has raw glTF clip names ("Armature\|Idle") | Step 3 — `add_animation("idle", clip)` renames on merge; rebuild with `@tool` script                                          |
 | Re-import loses animation wiring                   | Model was made-local — must be nested instance; `AnimationPlayer`/library on your node                                        |
-| Mesh deforms but giant/tiny/sunk                   | Scale/seat is the model-import step — `godot-mesh-import-pixel-art` Step 3                                                    |
+| Mesh deforms but giant/tiny/sunk                   | Scale/seat is the model-import step — `godot-mesh-import` Step 3                                                              |
 | Feet slide while walking                           | Root-motion vs in-place mismatch — drive `velocity` from clip root motion, or use in-place clip + move body in code; not both |
 
 ---

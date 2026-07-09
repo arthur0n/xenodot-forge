@@ -7,16 +7,16 @@
 // (universal · godot-core · design · project-local) is profile-agnostic and always kept — so the
 // lock test is exactly the prefix test, with no second list to drift from SKILL_DOMAINS.
 
-/** The pixel-art IMPORTERS: tagged `style-pixel` (honest — they own the NEAREST/no-mipmap import
- * contract), yet every game depends on them, HD included. The HD import skills delegate their
- * structural steps to `godot-mesh-import-pixel-art` and reuse `godot-texture-import-pixel-art` for
- * `gen_*` placeholder output (see the skills' own cross-refs). So they survive the style filter
- * unconditionally. Documented, not name-magic. (M2 Step 1b; M3 may de-pixel the placeholder path
- * and retire this set.) @type {ReadonlySet<string>} */
-export const STYLE_PIXEL_KEEP_ALWAYS = new Set([
-  "godot-mesh-import-pixel-art",
-  "godot-texture-import-pixel-art",
-]);
+/** The one pixel-art importer every game keeps, HD included. The aesthetic-NEUTRAL structural core
+ * now lives in the always-kept base skills `godot-mesh-import` / `godot-texture-import` (domain
+ * `godot-core`), so an HD game no longer reaches into a `style-pixel` skill for structure — the pixel
+ * and HD import skills are equal deltas on those bases (D10-import-layering-inversion). That leaves
+ * only `godot-texture-import-pixel-art` kept-always: the `gen_*` placeholder pipeline
+ * (`godot-procedural-texture`) writes pixel `.import` sidecars regardless of the game's final style,
+ * so even an HD game needs it for placeholder output. `godot-mesh-import-pixel-art` is now a pure
+ * style delta (its structure moved to the base; `gen_models` placeholders are flat-shaded, no NEAREST
+ * texture) and is dropped off-style like any other. Documented, not name-magic. @type {ReadonlySet<string>} */
+export const STYLE_PIXEL_KEEP_ALWAYS = new Set(["godot-texture-import-pixel-art"]);
 
 /** Does a skill with `domain` belong in a game whose profile is `{genre, style}`?
  *   - non-locked domain (universal/godot-core/design/project-local, or any non genre-/style- prefix)

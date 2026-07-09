@@ -69,7 +69,7 @@ Surfaced in the web UI under the **Get Assets** tab; the loop also lives in `CLA
   For the prototype that's fine — the downscale supplies the pixel look; don't block on finding
   a "pixel" model.
 - **Scale is never consistent across sources.** Every model imports at a different size — the
-  scale-to-footprint step (skill `godot-mesh-import-pixel-art`, step 3) is mandatory, not optional.
+  scale-to-footprint step (base skill `godot-mesh-import`, Step 3) is mandatory, not optional.
 - **`.gltf` (text) needs conversion.** The single-file upload accepts `.glb` only. Re-export or
   convert multi-file `.gltf` (+ `.bin` + textures) to a self-contained `.glb` first.
 - **CC-BY attribution drifts.** Re-confirm a model's licence on its page before relying on it.

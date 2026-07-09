@@ -90,7 +90,15 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
      and any sibling to LAYER their domain deltas on top of the neutral base — never let one aesthetic
      depend on another's skill. Fix the dependency direction: the generic core is the base both import;
      the payload shrinks to a thin filter/material/tuning delta. Confirm the second-domain read still
-     holds (the generic half applies with the payload stripped) and full verify stays green.
+     holds (the generic half applies with the payload stripped) and full verify stays green. BLAST
+     RADIUS the split bites beyond the skill prose: (a) a runtime skill-scope carve-out may exist
+     PRECISELY for the inversion you're fixing (`STYLE_PIXEL_KEEP_ALWAYS` in
+     `ui/server/features/skills/skill-scope.js` + its `skill-scope.check.js` tests) — re-derive which
+     entries the always-kept neutral base now covers and prune/rewrite the comment; (b) new base skills
+     are new frontmatter entries — check `BUILDER_INDEX_CAP` before adding both to an at-cap builder,
+     else tag the base to a lighter agent and let the builder load it on-demand via the deltas'
+     `## Requirements` (the `godot-3d-pixelation` precedent). Unlike D3 this is NOT a rename: sweep only
+     refs to NEUTRAL content that MOVED to the base; leave valid domain-named refs intact.
 4. **Verify.** If any framework file changed: `rtk npm run validate` (tsc + eslint, zero
    warnings — this also runs the skill-scope check, catching D1/D3/D5 wiring mistakes) and
    `rtk npx prettier --write` on the touched files. Report the result honestly; if validate

@@ -33,15 +33,6 @@
   },
   "findings": [
     {
-      "id": "D10-import-layering-inversion",
-      "dim": "D10",
-      "bucket": 4,
-      "verdict": "fix-now",
-      "status": "open",
-      "finding": "Dependency-direction inversion: godot-mesh-import-hd:11 declares the GENERIC structural mesh-import workflow (place/import, scale, nested-instance, auto-collision, Make-Unique, Advanced-Import skip/extract) 'identical and OWNED THERE' in godot-mesh-import-pixel-art and names itself 'the HD sibling of godot-mesh-import-pixel-art'; godot-hd-material-import is likewise the 'HD sibling of godot-texture-import-pixel-art'. So the HD aesthetic must DEPEND ON the pixel-art skill for an aesthetic-neutral core — a generic workflow smuggled inside a domain-named capability. Fix (D10 split): extract the structural mesh/texture-import core into neutral base skills (e.g. godot-mesh-import / godot-texture-import) that BOTH pixel-art and HD layer their filter/mipmap/material deltas on top of; neither art style owns the other's base.",
-      "pattern": "generic core = the base BOTH aesthetics import; each art style is a thin delta layer on top, never a sibling reaching into the other's skill for the shared workflow."
-    },
-    {
       "id": "D8-navmesh-check-orphan",
       "dim": "D8",
       "bucket": 4,

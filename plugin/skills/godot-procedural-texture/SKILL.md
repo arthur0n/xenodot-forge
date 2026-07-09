@@ -48,7 +48,7 @@ Append one entry to the `_specs` array (in `gen_textures_specs.gd`) and re-run. 
 
 ## Wire onto a surface
 
-A generated texture is a tileable surface texture — bind it per skill `godot-texture-import-pixel-art` Step 3b: `StandardMaterial3D` with `texture_filter = 1` (NEAREST), Texture Repeat on, `uv1_scale` sized to the face in metres. Do **not** wrap one on a whole discrete prop (that wants a `.glb` — skill `godot-mesh-import-pixel-art`).
+A generated texture is a tileable surface texture — bind it per the tiling mechanics in base skill `godot-texture-import` (Step 3): `StandardMaterial3D` with Texture Repeat on, `uv1_scale` sized to the face in metres, at `texture_filter = 1` (NEAREST, the pixel value — skill `godot-texture-import-pixel-art`). Do **not** wrap one on a whole discrete prop (that wants a `.glb` — skill `godot-mesh-import`).
 
 ## Verify
 

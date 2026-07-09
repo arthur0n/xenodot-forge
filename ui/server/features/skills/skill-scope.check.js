@@ -46,12 +46,14 @@ check("style lock: matching style kept, mismatching dropped", () => {
 });
 
 // --- inProfile: pixel-importer carve-out (style-pixel kept even in an HD game) ---
-check("carve-out: pixel importers survive a style-hd game", () => {
+check("carve-out: the placeholder-gen importer survives a style-hd game", () => {
   for (const name of STYLE_PIXEL_KEEP_ALWAYS) {
     assert.equal(inProfile("style-pixel", HD_FPS, name), true);
   }
-  // a non-importer style-pixel skill in an HD game is still dropped
+  // a non-carve-out style-pixel skill in an HD game is still dropped — including the pixel MESH
+  // delta, whose structural core moved to the always-kept `godot-mesh-import` base (D10 split).
   assert.equal(inProfile("style-pixel", HD_FPS, "godot-3d-pixelation"), false);
+  assert.equal(inProfile("style-pixel", HD_FPS, "godot-mesh-import-pixel-art"), false);
 });
 
 // --- inProfile: fail-open ---
@@ -69,35 +71,46 @@ check("fail-open: unknown/missing skill domain kept", () => {
 const DOMAINS = {
   caveman: "universal",
   "godot-verify": "godot-core",
+  "godot-mesh-import": "godot-core", // neutral base — always kept
+  "godot-texture-import": "godot-core", // neutral base — always kept
   "godot-first-person-controller": "genre-fps",
   "godot-orthographic-follow-camera": "genre-topdown-iso",
   "godot-3d-pixelation": "style-pixel",
-  "godot-mesh-import-pixel-art": "style-pixel", // importer carve-out
+  "godot-texture-import-pixel-art": "style-pixel", // importer carve-out (placeholder-gen)
+  "godot-mesh-import-pixel-art": "style-pixel", // plain style delta now — dropped off-style
   "godot-mesh-import-hd": "style-hd",
 };
 const AGENT_SKILLS = Object.keys(DOMAINS);
 
-check("filterAgentSkills: pixel/iso game keeps its variants, drops fps + hd", () => {
+check("filterAgentSkills: pixel/iso game keeps its variants + bases, drops fps + hd", () => {
   const out = filterAgentSkills(AGENT_SKILLS, DOMAINS, PIXEL_ISO);
   assert.deepEqual(out, [
     "caveman",
     "godot-verify",
+    "godot-mesh-import",
+    "godot-texture-import",
     "godot-orthographic-follow-camera",
     "godot-3d-pixelation",
+    "godot-texture-import-pixel-art",
     "godot-mesh-import-pixel-art",
   ]);
 });
 
-check("filterAgentSkills: hd/fps game drops iso + pixelation, keeps importer + hd", () => {
-  const out = filterAgentSkills(AGENT_SKILLS, DOMAINS, HD_FPS);
-  assert.deepEqual(out, [
-    "caveman",
-    "godot-verify",
-    "godot-first-person-controller",
-    "godot-mesh-import-pixel-art", // carve-out survives
-    "godot-mesh-import-hd",
-  ]);
-});
+check(
+  "filterAgentSkills: hd/fps game keeps bases + carve-out + hd, drops iso/pixelation/pixel-mesh",
+  () => {
+    const out = filterAgentSkills(AGENT_SKILLS, DOMAINS, HD_FPS);
+    assert.deepEqual(out, [
+      "caveman",
+      "godot-verify",
+      "godot-mesh-import", // always-kept base (structural core, no aesthetic)
+      "godot-texture-import", // always-kept base
+      "godot-first-person-controller",
+      "godot-texture-import-pixel-art", // carve-out survives (placeholder-gen)
+      "godot-mesh-import-hd",
+    ]);
+  },
+);
 
 check("filterAgentSkills: undeclared profile keeps everything (fail-open)", () => {
   const out = filterAgentSkills(AGENT_SKILLS, DOMAINS, { genre: null, style: null });

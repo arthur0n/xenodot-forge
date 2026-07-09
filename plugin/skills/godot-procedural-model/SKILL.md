@@ -42,11 +42,11 @@ Append one entry to the `_props` array (in `gen_models_props.gd`) and re-run. Sc
 
 - **Poly count**: `CylinderMesh` (used for both `cylinder` and `cone`) tessellates to far more verts than boxes — the lamp `.glb` is ~15× a box prop. Fine for placeholders; lower `radial_segments` on the cylinder/cone in `_make_mesh` if size matters.
 - **Strict typed GDScript** (skill `godot-code-rules`): specs/parts hold heterogeneous Variants, so reads use `@warning_ignore("unsafe_cast")` + a `# SEAM:` note. Don't name a local `root` (shadows `SceneTree.root`) — use `scene_root`. Keep lines ≤100 chars.
-- **Materials over glTF**: flat `albedo_color` round-trips; Godot-specific sampler settings (e.g. `texture_filter` NEAREST) do not — set those after import via Make-Unique (skill `godot-mesh-import-pixel-art`, Step 4) if you later texture a prop.
+- **Materials over glTF**: flat `albedo_color` round-trips; Godot-specific sampler settings (e.g. `texture_filter` NEAREST) do not — set those after import via Make-Unique (skill `godot-mesh-import`, Step 2 + the game's style delta) if you later texture a prop.
 
 ## Wire it in
 
-A generated `.glb` is a discrete prop: instance it in place of the greybox `BoxMesh` node, per skill `godot-mesh-import-pixel-art`. Instance it under a `StaticBody3D` holder with a per-prop `BoxShape3D` collider sized to its mesh AABB — **props get collision by default** (skill `godot-gridmap-level` step 3), so the player can't walk through furniture. Don't wrap a surface texture on a whole prop (that's the surface path — `godot-procedural-texture` / `godot-texture-import-pixel-art`).
+A generated `.glb` is a discrete prop: instance it in place of the greybox `BoxMesh` node, per skill `godot-mesh-import`. Instance it under a `StaticBody3D` holder with a per-prop `BoxShape3D` collider sized to its mesh AABB — **props get collision by default** (skill `godot-gridmap-level` step 3), so the player can't walk through furniture. Don't wrap a surface texture on a whole prop (that's the surface path — `godot-procedural-texture` / `godot-texture-import-pixel-art`).
 
 ## Verify
 
