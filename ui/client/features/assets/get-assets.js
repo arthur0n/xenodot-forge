@@ -261,15 +261,15 @@ function copyBtn(text) {
   return btn;
 }
 
-/** Destination "place" selector: the game's own assets/ (default) or the external
+/** Destination "place" selector: the project's own assets/ (default) or the external
  * shared-asset library (res://x-shared-assets) — for free-library example assets kept out of
- * the game tree. @returns {{ row: HTMLElement, get: () => "game"|"shared",
+ * the project tree. @returns {{ row: HTMLElement, get: () => "game"|"shared",
  * onChange: (cb: () => void) => void }} */
 function placeSelect() {
   const row = el("div", "asset-place-row");
   row.append(el("span", "desc", "Place: "));
   const sel = /** @type {HTMLSelectElement} */ (el("select", "form-input"));
-  const game = /** @type {HTMLOptionElement} */ (el("option", undefined, "Game (assets/)"));
+  const game = /** @type {HTMLOptionElement} */ (el("option", undefined, "Project (assets/)"));
   game.value = "game";
   const shared = /** @type {HTMLOptionElement} */ (
     el("option", undefined, "Shared (x-shared-assets/)")

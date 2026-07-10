@@ -11,7 +11,7 @@ import { subscribe } from "../../core/store.js";
 
 const STATUS_LABEL = {
   requested: "wants promoting",
-  approved: "approved · ready to forge",
+  approved: "approved · ready to promote",
   rejected: "rejected",
   promoted: "promoted ✓",
 };

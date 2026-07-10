@@ -280,12 +280,12 @@ function renderBanner(s) {
     el(
       "div",
       undefined,
-      "Point the framework at your game (it only reads it — your project stays in its own repo):",
+      "Point the framework at your project (it only reads it — it stays in its own repo):",
     ),
   );
   const code = el("div", "banner-code");
-  code.append(el("div", undefined, "npm run setup -- /path/to/your/game"));
-  code.append(el("div", undefined, "# then restart, or one-off: npm start /path/to/your/game"));
+  code.append(el("div", undefined, "npm run setup -- /path/to/your/project"));
+  code.append(el("div", undefined, "# then restart, or one-off: npm start /path/to/your/project"));
   banner.append(code);
   banner.style.display = "";
 }

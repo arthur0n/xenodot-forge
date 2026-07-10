@@ -101,15 +101,15 @@
  * @property {string} created - ISO timestamp
  */
 
-// ---------- Promotions (game-local → framework plugin) ----------
+// ---------- Promotions (project-local → framework plugin) ----------
 /**
  * A promotion request, persisted to <project>/.xenodot/promotions.json — the
  * deterministic record of a capability asked to be promoted into the plugin.
  * @typedef {object} Promotion
  * @property {string} id - short slug, e.g. "p3"
  * @property {"tools" | "skills" | "agents"} kind
- * @property {string} name - the capability's game-local name (tools/ file, skill dir, or agent .md)
- * @property {string} [reason] - one line: why it's broadly useful beyond this game
+ * @property {string} name - the capability's project-local name (tools/ file, skill dir, or agent .md)
+ * @property {string} [reason] - one line: why it's broadly useful beyond this project
  * @property {"requested" | "approved" | "rejected" | "promoted"} status
  * @property {string} [by] - requesting agent label
  * @property {string} at - ISO timestamp of the last state change
