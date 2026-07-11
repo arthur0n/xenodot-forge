@@ -86,7 +86,7 @@ function buildInstructions(persona, context) {
     "- Memory: keep durable conventions and stack facts in memory; when it nears capacity (the header " +
     "shows the percentage), CONSOLIDATE or replace stale entries rather than appending, so writes " +
     "don't fail at the cap.\n" +
-    "But you NEVER edit the caller's game or codebase, run their build, or write their files; you only " +
+    "But you NEVER edit the caller's project or codebase, run their build, or write their files; you only " +
     "investigate and report. Adopting anything into their project is a separate human-gated step you " +
     "take no part in.";
   const extra = context?.trim();

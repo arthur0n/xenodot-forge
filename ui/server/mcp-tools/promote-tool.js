@@ -14,9 +14,9 @@ import { addPromotion, summarize } from "../features/promotions/promotions-store
 export function makePromoteTool(send) {
   return tool(
     "promote",
-    "Request that a game-local capability be promoted into the framework plugin (so " +
-      "EVERY game gets it). Use when a tool/skill/agent the project authored locally has " +
-      "proven broadly useful, not specific to this game. It does NOT move files or pause " +
+    "Request that a project-local capability be promoted into the framework plugin (so " +
+      "EVERY project gets it). Use when a tool/skill/agent the project authored locally has " +
+      "proven broadly useful, not specific to this project. It does NOT move files or pause " +
       "the session — it records the request on the promotions board for the user to " +
       "approve/reject; on approval the user runs `npm run promote -- --pending`. Default " +
       "to keeping things local; promote deliberately.",
@@ -25,13 +25,13 @@ export function makePromoteTool(send) {
       name: z
         .string()
         .describe(
-          "Its name as it lives game-local: a tools/ filename (e.g. profile_frame.gd), a " +
+          "Its name as it lives project-local: a tools/ filename (e.g. profile_frame.gd), a " +
             ".claude/skills/<name> dir, or a .claude/agents/<name>(.md).",
         ),
       reason: z
         .string()
         .optional()
-        .describe("One line: why this is broadly useful beyond this game (the user reads it)."),
+        .describe("One line: why this is broadly useful beyond this project (the user reads it)."),
       // Internal: the requesting agent, set by the server (canUseTool) — do not set it yourself.
       _by: z.string().optional().describe("internal — server-set; ignore"),
     },
