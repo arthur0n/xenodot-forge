@@ -72,6 +72,62 @@
       "topOffender": "No convertible offender: 07-09 is framework synthesis (transcript-researcher/skill-researcher harvest→draft); costliest turns = cache_read on standing orchestrator ctx (inherent). Reads mostly distinct; no main/subagent dup.",
       "opportunities": [],
       "processNote": "2 of 3 covered are 6-line status stubs (no LLM turns). No godot-docs calls in any → godot-docs-memoize uncountable this run, stays pending."
+    },
+    {
+      "date": "2026-07-10",
+      "sessions": [
+        "2026-07-02T17-29-37-782Z",
+        "2026-07-03T10-35-53-741Z"
+      ],
+      "covered": {
+        "input": 1584,
+        "output": 24040,
+        "cacheCreate": 110100,
+        "cacheRead": 2885673,
+        "cost": 475.8742,
+        "total": 3021397,
+        "turns": 1773,
+        "hitRate": 96,
+        "costPerSession": 237.9371,
+        "costPerTurn": 0.2684
+      },
+      "global": {
+        "cost": 6535.0619,
+        "total": 75259293,
+        "hitRate": 97,
+        "sessionCount": 18
+      },
+      "topOffender": "none convertible (Read 2.45M chars but edit-driven on live game files)",
+      "opportunities": [],
+      "processNote": "07-02 = legit autonomous game-dev (38 xenodot:godot-* agents, edit-driven re-reads, orchestrator task churn); 07-03 = 6-line status stub. godot-docs: 2 distinct classes, no repeat."
+    },
+    {
+      "date": "2026-07-11",
+      "sessions": [
+        "2026-07-02T17-29-37-782Z",
+        "2026-07-03T10-35-53-741Z"
+      ],
+      "covered": {
+        "input": 1584,
+        "output": 24040,
+        "cacheCreate": 110100,
+        "cacheRead": 2885673,
+        "cost": 475.8742,
+        "total": 3021397,
+        "turns": 1773,
+        "hitRate": 96,
+        "costPerSession": 237.9371,
+        "costPerTurn": 0.2684
+      },
+      "global": {
+        "cost": 6535.0619,
+        "total": 75259293,
+        "hitRate": 97,
+        "sessionCount": 18
+      },
+      "topOffender": "Read 485× 2.45M chars (~610k tok) — edit-interleaved current-state refetches, legit",
+      "opportunities": [],
+      "processNote": "No convertible turns: 07-02T17-29 is legit game-building (38 judgment agents, edit-driven reads, cache_read orchestrator ctx); 07-03T10-35-53 is a 6-line status stub. godot-docs 2 distinct classes, dedup fired 0×."
     }
   ]
 }
