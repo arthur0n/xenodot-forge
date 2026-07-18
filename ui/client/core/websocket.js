@@ -125,6 +125,7 @@ function handleMessage(ev) {
     case "permission_denied":
     case "context":
     case "hermes":
+    case "extAgent":
     case "session":
     case "autonomousMode":
     case "idle":

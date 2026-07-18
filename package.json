@@ -17,6 +17,8 @@
     "hermes:check": "node ui/server/integrations/hermes/hermes-check.js",
     "codex:setup": "node ui/server/integrations/codex/codex-setup.js",
     "codex:check": "node ui/server/integrations/codex/codex-check.js",
+    "kimi:setup": "node ui/server/integrations/kimi/kimi-setup.js",
+    "kimi:check": "node ui/server/integrations/kimi/kimi-check.js",
     "new": "node ui/server/cli/new.js",
     "fork": "node ui/server/cli/fork.js",
     "promote": "node ui/server/features/promotions/promote.js",

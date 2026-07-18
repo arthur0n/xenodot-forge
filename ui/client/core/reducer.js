@@ -61,6 +61,8 @@ export function reduce(s, msg) {
       };
     case "hermes":
       return foldHermes(s, msg);
+    case "extAgent":
+      return foldExtAgent(s, msg);
     case "autonomousMode":
       return { ...s, autonomousMode: msg.payload }; // SNAPSHOT — replace
     case "event":
@@ -86,6 +88,25 @@ function foldHermes(s, msg) {
     activity: [
       ...s.activity,
       { kind: "hermes", agent: "hermes", verb: persona.name, detail, color: persona.color },
+    ],
+  };
+}
+
+/** A relayed progress line from any OTHER external agent (the generic, self-describing
+ * sibling of foldHermes — e.g. the Kimi coder's mcp__ui__kimi runs). The msg carries its
+ * own label + pill color, so new external agents need no client-side registry. @param {State} s
+ * @param {Extract<ServerMsg, { type: "extAgent" }>} msg @returns {State} */
+function foldExtAgent(s, msg) {
+  const detail = msg.text.slice(0, 200);
+  return {
+    ...s,
+    thinking:
+      msg.phase === "done"
+        ? { active: false, label: "" }
+        : { active: true, label: `${msg.label} · ${detail.slice(0, 60)}` },
+    activity: [
+      ...s.activity,
+      { kind: msg.agentId, agent: msg.agentId, verb: msg.label, detail, color: msg.color },
     ],
   };
 }

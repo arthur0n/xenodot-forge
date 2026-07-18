@@ -7,6 +7,7 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import { parseJSON } from "../../lib/json.js";
 import { sessionHistory } from "../features/transcripts/transcripts.js";
 import { buildUiServer } from "../mcp-tools/ui-server.js";
+import { cancelKimiBoardTask } from "../mcp-tools/kimi-tool.js";
 import { uiControlAllow, preToolGate } from "./ui-control.js";
 import { resolveSessionPlugins } from "./session-plugins.js";
 import { runningChip, emitRunning, runWithRetry } from "./stream.js";
@@ -51,7 +52,9 @@ import {
   HERMES_BLOCK,
   CODEX_BLOCK,
   DOCS_BLOCK,
+  KIMI_BLOCK,
   getHermesConfig,
+  getKimiConfig,
   POLICIES,
   PROJECT_DIR,
   FRAMEWORK_PLUGIN_DIR,
@@ -334,7 +337,8 @@ function buildMakeQuery({ inbox, canUseTool, abort, waitFor, formAgentQueue, sen
             (routingBlock ? "\n\n" + routingBlock : "") +
             (getHermesConfig().enabled ? "\n\n" + HERMES_BLOCK : "") +
             (getCodexConfig().enabled && existsSync(CODEX_PLUGIN_DIR) ? "\n\n" + CODEX_BLOCK : "") +
-            (getDocsConfig().enabled && DOCS_MCP_ENTRY ? "\n\n" + DOCS_BLOCK : ""),
+            (getDocsConfig().enabled && DOCS_MCP_ENTRY ? "\n\n" + DOCS_BLOCK : "") +
+            (getKimiConfig().enabled ? "\n\n" + KIMI_BLOCK : ""),
         },
         canUseTool,
         abortController: abort,
@@ -512,6 +516,11 @@ function answerTurn(task) {
  * @param {Inbox} inbox @returns {boolean} */
 function handleBoardMessage(msg, send, inbox) {
   if (msg.type === "task_update") {
+    // Removing a Kimi run's board task IS its interrupt — cancel the ACP run first
+    // (no-op for every other task id).
+    if (msg.op === "remove" && cancelKimiBoardTask(msg.id)) {
+      send({ type: "status", text: "cancelling the Kimi run tied to that task…" });
+    }
     const list = applyOp(msg, new Date().toISOString());
     send({ type: "tasks", tasks: list });
     // Push the answer to the orchestrator instead of relying on it to scan the

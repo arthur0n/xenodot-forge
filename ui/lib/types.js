@@ -8,11 +8,27 @@
 /** @typedef {{ path: string, title: string }} DesignDoc */
 /** @typedef {{ path: string, title: string, type: string | null, description: string | null }} LibraryEntry */
 /** @typedef {{ name: string, model: string | null }} AgentEntry */
-/** Browser-safe Hermes config (no API key — `hasKey` only). @typedef {{ enabled: boolean, apiUrl: string | null, model: string, hasKey: boolean, models: string[] }} HermesPublicConfig */
+/** Browser-safe Hermes config (no API key — `hasKey` only). @typedef {{ enabled: boolean, apiUrl: string | null, model: string, hasKey: boolean, models: string[], roles: string[] }} HermesPublicConfig */
 /** Verdict from probing a Hermes gateway (`POST /api/hermes/check`). @typedef {{ ok: boolean, reachable: boolean, authOk: boolean, status?: number, models?: string[], tools?: string[], error?: string }} HermesCheck */
 /** Browser-safe Codex config (no secrets — auth lives in the local `codex` CLI). `vendored` =
- * the optional plugin has been cloned on disk. @typedef {{ enabled: boolean, vendored: boolean }} CodexPublicConfig */
+ * the optional plugin has been cloned on disk. @typedef {{ enabled: boolean, vendored: boolean, roles: string[] }} CodexPublicConfig */
+
+// ---------- External-agent registry (/api/agents — the Agents portal) ----------
+/** One connection field an agent's portal card renders. `secret` fields render as password
+ * inputs, are never echoed back (the status only carries `hasKey`), and blank means "keep the
+ * saved value". `type: "select"` pulls its options from the status's `models` list (+ a custom
+ * entry). @typedef {{ key: string, label: string, type: "text" | "password" | "select", placeholder?: string, secret?: boolean, note?: string }} AgentField */
+/** First-time install steps for an agent's collapsible portal section.
+ * @typedef {{ summary: string, intro: string, code: string, after: string }} AgentInstall */
+/** One entry of GET /api/agents — an external agent's static portal copy + its current
+ * secret-free saved config (`status`; shape varies per agent, e.g. HermesPublicConfig).
+ * @typedef {{ id: string, label: string, blurb: string, docHref?: string, runbook?: string,
+ *   roles: string[], defaultRoles: string[], runtimeKind: string, fields: AgentField[],
+ *   install?: AgentInstall, hasSetup: boolean,
+ *   status: { enabled: boolean, roles: string[], hasKey?: boolean, models?: string[], vendored?: boolean, [k: string]: unknown } }} AgentPublicDescriptor */
 /** Verdict from probing the local Codex install (`POST /api/codex/check`). @typedef {{ ok: boolean, enabled: boolean, cli: boolean, version?: string, authOk: boolean, authMode?: string, authMethod?: "chatgpt" | "apiKey", model?: string, vendored: boolean, caveat?: string, error?: string }} CodexCheck */
+/** Browser-safe Kimi config (no secrets — auth lives in the local `kimi` CLI).
+ * @typedef {{ enabled: boolean, roles: string[] }} KimiPublicConfig */
 /** Browser-safe Godot-docs MCP config (no secrets — it queries the public docs site).
  * @typedef {{ enabled: boolean }} DocsPublicConfig */
 /**
@@ -151,6 +167,7 @@
  *   | { type: "permission_denied", toolName: string, agent?: string, reason?: string, background?: boolean }
  *   | { type: "context", percentage: number, totalTokens: number, maxTokens: number }
  *   | { type: "hermes", phase: "start" | "progress" | "done", runId?: string, text: string, persona?: string }
+ *   | { type: "extAgent", agentId: string, label: string, color?: string, phase: "start" | "progress" | "done", runId?: string, text: string }
  *   | { type: "autonomousMode", payload: Autonomous }
  *   | { type: "session", id: string | null }
  *   | { type: "idle" }

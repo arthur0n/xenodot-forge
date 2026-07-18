@@ -404,129 +404,12 @@
     <div class="modal-overlay" id="settings-modal" style="display: none">
       <div class="modal">
         <div class="modal-head">Settings</div>
-        <p class="modal-sub">
-          <strong>Hermes</strong> — an external
-          <a href="https://hermes-agent.nousresearch.com/" target="_blank" rel="noreferrer"
-            >Hermes Agent</a
-          >
-          the <strong>Hive</strong> can use as its main researcher. Only the Hive calls it; every
-          dispatch is gated (allow/deny). Hermes is advisory — it investigates and returns findings;
-          it never writes files or adopts anything. When off, research falls back to the Xenodot
-          researchers.
-        </p>
-        <details class="settings-install">
-          <summary>First time? You must install &amp; run Hermes on this machine first ▾</summary>
-          <p class="modal-sub muted">
-            Hermes is a <strong>separate program with its own model and its own billing</strong>
-            (your Anthropic plan does not cover it). It has no hosted endpoint — you run it locally,
-            then point Xenodot at it.
-          </p>
-          <p class="modal-sub muted">
-            <strong>Fastest:</strong> run <code>npm run hermes:setup</code> in a terminal — it does
-            steps 1, 3 and the wiring for you, and hands off to <code>hermes setup</code> for the
-            model. Then just <code>hermes gateway</code> (step 4) and Test connection below. Or do
-            it all by hand:
-          </p>
-          <pre class="settings-code">
-# 1. Install (sets up python/node/ripgrep + the global `hermes` command)
-curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
-
-# 2. Pick a model + paste your PROVIDER key (the billable one — stays inside Hermes)
-hermes setup --portal
-
-# 3. Turn the local API server on — add to ~/.hermes/.env :
-#      API_SERVER_ENABLED=true
-#      API_SERVER_KEY=pick-any-secret      ← this is the "Server key" below
-#                                            (you invent it; not billable)
-
-# 4. Run the gateway (serves http://localhost:8642)
-hermes gateway</pre
-          >
-          <p class="modal-sub muted">
-            Then fill the fields below: URL <code>http://localhost:8642</code>, Server key = the
-            <code>API_SERVER_KEY</code> you invented in step 3. Hit
-            <strong>Test connection</strong> to confirm it's reachable. Full runbook:
-            <code>HERMES.md</code>.
-          </p>
-        </details>
-        <label class="form-label settings-toggle">
-          <input type="checkbox" id="hermes-enabled" />
-          Enable Hermes
-        </label>
-        <label class="form-label" for="hermes-url">Hermes server URL</label>
-        <input
-          class="form-input"
-          id="hermes-url"
-          placeholder="http://localhost:8642  (your running Hermes gateway)"
-        />
-        <label class="form-label" for="hermes-key"
-          >Server key (Hermes <code>API_SERVER_KEY</code>)</label
-        >
-        <input
-          class="form-input"
-          id="hermes-key"
-          type="password"
-          autocomplete="off"
-          placeholder="the API_SERVER_KEY you set on your Hermes server"
-        />
-        <label class="form-label" for="hermes-model">Hermes model (label only)</label>
-        <select class="form-input" id="hermes-model"></select>
-        <input
-          class="form-input"
-          id="hermes-model-custom"
-          placeholder="custom model id, e.g. provider/model-name"
-          style="display: none"
-        />
         <p class="modal-sub muted">
-          This is a label only — the model that powers Hermes is chosen inside Hermes (<code
-            >hermes setup</code
-          >
-          → <code>~/.hermes/config.yaml</code>), not here. We don't send a model with the request.
+          <strong>External agents</strong> — optional coworkers the Hive can call (each with its
+          own account/billing, none covered by your Anthropic plan). Connect, test and enable them
+          below; cards come from the server's agent registry.
         </p>
-        <div class="settings-status" id="hermes-status"></div>
-        <div class="modal-actions" style="justify-content: flex-start">
-          <button class="btn ghost" id="hermes-setup" type="button">
-            Set up Hermes (installs the local agent)
-          </button>
-        </div>
-
-        <hr class="settings-divider" />
-        <p class="modal-sub">
-          <strong>Codex</strong> — OpenAI's
-          <a href="https://developers.openai.com/codex/" target="_blank" rel="noreferrer">Codex</a>
-          as an <strong>optional, on-demand</strong> code reviewer. When on, type
-          <code>/codex:review</code> (or <code>/codex:adversarial-review</code>) in a session to
-          review the current diff. It's advisory and never auto-runs. Billed to your ChatGPT/OpenAI
-          account — your Anthropic plan doesn't cover it.
-        </p>
-        <details class="settings-install">
-          <summary>First time? Install the Codex CLI &amp; vendor the plugin ▾</summary>
-          <p class="modal-sub muted">
-            One command does it all: installs the <code>@openai/codex</code> CLI (if missing),
-            clones OpenAI's review plugin into the gitignored <code>vendor/</code> dir, and switches
-            it on. Then log in once (a browser sign-in or an API key — Codex owns the credential,
-            Xenodot never sees it).
-          </p>
-          <pre class="settings-code">
-npm run codex:setup     # install check + vendor the plugin + enable
-codex login             # ChatGPT account (incl. Free) or API key</pre
-          >
-          <p class="modal-sub muted">
-            Full runbook: <code>CODEX.md</code>. Verify anytime with
-            <strong>Test Codex</strong> below or <code>npm run codex:check</code>.
-          </p>
-        </details>
-        <label class="form-label settings-toggle">
-          <input type="checkbox" id="codex-enabled" />
-          Enable Codex review
-        </label>
-        <div class="settings-status" id="codex-status"></div>
-        <div class="modal-actions" style="justify-content: flex-start">
-          <button class="btn ghost" id="codex-test" type="button">Test Codex</button>
-          <button class="btn ghost" id="codex-setup" type="button">Set up Codex</button>
-        </div>
-
-        <hr class="settings-divider" />
+        <div id="agents-portal-list"></div>
         <p class="modal-sub">
           <strong>Godot Docs</strong> — mount the official
           <a href="https://docs.godotengine.org/en/stable/" target="_blank" rel="noreferrer"
@@ -547,7 +430,6 @@ codex login             # ChatGPT account (incl. Free) or API key</pre
         <div class="modal-error" id="settings-error"></div>
         <div class="modal-actions">
           <button class="btn ghost" id="settings-cancel">Cancel</button>
-          <button class="btn ghost" id="hermes-test">Test connection</button>
           <button class="btn primary" id="settings-save">Save</button>
         </div>
       </div>

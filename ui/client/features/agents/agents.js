@@ -35,6 +35,7 @@ const ROLE_COLOR = {
   "addon-researcher": "oklch(0.76 0.13 150)", // verdigris — the library
   "transcript-researcher": "oklch(0.74 0.15 345)", // magenta — raw signal
   hermes: "#3b2aff", // electric indigo — the external Hermes researcher (not a Xenodot)
+  kimi: "#10b981", // Moonshot teal — the external Kimi coder (not a Xenodot)
 };
 
 /** Strip "namespace:" prefix from a plugin-namespaced agent id.
@@ -62,6 +63,7 @@ const DISPLAY = {
   "transcript-researcher": "Xenodot Transcript",
   hermes: "Hermes: Researcher",
   "codex-rescue": "Codex: Reviewer",
+  kimi: "Kimi: Coder",
 };
 
 /** @param {string} name @returns {string} */
