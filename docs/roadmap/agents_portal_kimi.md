@@ -15,8 +15,7 @@
 > permission cards honored, cancel) on the first real dispatch.
 >
 > **Interrupt (as built):** removing Kimi's board task cancels its run (ACP `session/cancel`
->
-> - kill) — plus a 20-minute wall-clock cap. The `stop_task` control targets SDK workers only.
+> then kill) — plus a 20-minute wall-clock cap. The `stop_task` control targets SDK workers only.
 
 ## Context
 

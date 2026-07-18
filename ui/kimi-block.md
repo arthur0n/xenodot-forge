@@ -1,4 +1,4 @@
-# Kimi — your external coder (mcp**ui**kimi)
+# Kimi — your external coder (`mcp__ui__kimi`)
 
 You have an external **Kimi coder** coworker (Moonshot's kimi-cli, driven over ACP). It takes
 ONE discrete, self-contained implementation task, codes it **in an isolated git worktree** of
