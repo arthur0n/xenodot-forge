@@ -37,3 +37,7 @@ plugin/.xenodot/
 .husky/post-commit.local
 
 .claude/token-audits/history.html
+
+# research-loop: Hermes findings are advisory + private — kept local, never committed.
+# state.json (dedup ledger) IS tracked so the schedule dedups across machines.
+.claude/research-loop/digest-*.md
