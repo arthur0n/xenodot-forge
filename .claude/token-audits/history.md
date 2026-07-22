@@ -8,6 +8,7 @@
 
 | date | #sess | covered $ | tok | hit% | $/sess | $/turn | global $ | global tok | global hit% |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| 2026-07-17 | 2 | 77.2376 | 979k | 99 | 38.6188 | 0.1425 | 6612.2996 | 76239k | 97 |
 | 2026-07-11 | 2 | 475.8742 | 3021k | 96 | 237.9371 | 0.2684 | 6535.0619 | 75259k | 97 |
 | 2026-07-10 | 2 | 475.8742 | 3021k | 96 | 237.9371 | 0.2684 | 6535.0619 | 75259k | 97 |
 | 2026-07-09 | 3 | 27.5328 | 2574k | 96 | 9.1776 | 0.1343 | 6535.0619 | 75259k | 97 |
@@ -18,4 +19,5 @@
 | filed | id | est tok | landed | moved | Δtok | Δ$ | result |
 |---|---|--:|:-:|:-:|--:|--:|---|
 | 2026-07-08 | godot-docs-memoize | 55000 | ✓ | pending | — | — | Applied in-session dedup: ui-control.js docsDedupDecision denies a repeat get_class with a scroll-up stub (~20k→~30 chars/repeat), wired in makeCanUseTool; verified in session.test.js. Δ confirmed on next audit global snapshot. Permanent dated-trimmed cross-session cache = framework tech-debt D9-docs-cache-dated. |
+| 2026-07-17 | tasks-update-compact-ack | 16000 | — | — | — | — | — |
 

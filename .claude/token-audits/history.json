@@ -128,6 +128,44 @@
       "topOffender": "Read 485× 2.45M chars (~610k tok) — edit-interleaved current-state refetches, legit",
       "opportunities": [],
       "processNote": "No convertible turns: 07-02T17-29 is legit game-building (38 judgment agents, edit-driven reads, cache_read orchestrator ctx); 07-03T10-35-53 is a 6-line status stub. godot-docs 2 distinct classes, dedup fired 0×."
+    },
+    {
+      "date": "2026-07-17",
+      "sessions": [
+        "2026-07-11T11-29-19-916Z",
+        "2026-07-14T17-52-38-652Z"
+      ],
+      "covered": {
+        "input": 278,
+        "output": 6146,
+        "cacheCreate": 8591,
+        "cacheRead": 964484,
+        "cost": 77.2376,
+        "total": 979499,
+        "turns": 542,
+        "hitRate": 99,
+        "costPerSession": 38.6188,
+        "costPerTurn": 0.1425
+      },
+      "global": {
+        "cost": 6612.2996,
+        "total": 76238792,
+        "hitRate": 97,
+        "sessionCount": 19
+      },
+      "topOffender": "mcp__ui__tasks update echoes full OPEN board (113 updates × ~600 chars)",
+      "opportunities": [
+        {
+          "id": "tasks-update-compact-ack",
+          "estSavingTok": 16000,
+          "landed": false,
+          "moved": null,
+          "deltaTok": null,
+          "deltaCost": null,
+          "result": null
+        }
+      ],
+      "processNote": "task-tool.js:50 returns summarize(list) for every op incl. mechanical status-flips; compact ack for update saves ~16k tok/build-session"
     }
   ]
 }
