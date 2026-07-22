@@ -3699,3 +3699,33 @@ input.cmd::placeholder {
     max-width: 8.5em;
   }
 }
+
+/* Paid agents rail strip — billed externals (Hermes/Codex/…) visibility.
+   Rows render from GET /api/agents (features/agents-portal/paid-agents.js);
+   the whole section click-throughs to Settings. */
+.rail-paid {
+  cursor: pointer;
+}
+.paid-agent-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 2px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.paid-agent-row.on {
+  color: var(--text);
+}
+.paid-agent-name {
+  font-weight: 600;
+}
+.paid-agent-state {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 55%;
+}

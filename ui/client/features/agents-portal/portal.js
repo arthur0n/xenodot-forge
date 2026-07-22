@@ -6,6 +6,7 @@
 // descriptor server-side; this module renders whatever the catalog says.
 import { $, el } from "../../core/dom.js";
 import { fetchJSON, postJSON } from "../../../lib/json.js";
+import { refreshPaidAgents } from "./paid-agents.js";
 
 /** @typedef {import("../../../lib/types.js").AgentPublicDescriptor} AgentDescriptor */
 /** @typedef {import("../../../lib/types.js").AgentField} AgentField */
@@ -79,6 +80,7 @@ async function runAgentSetup(card) {
     if (r.ok) {
       const manual = r.manual ? `${r.manual} ` : "";
       setStatus(card.status, "ok", `✓ Set up. ${manual}RESTART the session to activate.`);
+      void refreshPaidAgents(); // setup may have just enabled the agent — repaint the strip
     } else {
       setStatus(card.status, "bad", `✗ Setup failed — ${r.error ?? "see the server log"}`);
     }

@@ -143,6 +143,19 @@
             </div>
           </section>
 
+          <!-- 2.5 · Paid agents — the billed externals (Hermes, Codex, …). Always visible
+               when the registry is non-empty so the user KNOWS what can spend money;
+               rows render data-driven from GET /api/agents. Click opens Settings. -->
+          <section class="rail-section rail-paid" id="paid-agents" style="display: none">
+            <div class="side-head">
+              <span class="side-label">Paid agents</span>
+              <span class="badge" id="paid-agents-badge"></span>
+            </div>
+            <div class="rail-body">
+              <div id="paid-agents-list"></div>
+            </div>
+          </section>
+
           <!-- 3 · Everything else — tabbed. Primary: Promote · Design.
                Secondary (project meta, lower priority): Agents · Skills · Tokens. -->
           <section class="rail-section rail-more">

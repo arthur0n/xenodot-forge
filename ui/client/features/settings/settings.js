@@ -8,6 +8,7 @@
 import { $, $input } from "../../core/dom.js";
 import { fetchJSON, postJSON } from "../../../lib/json.js";
 import { openPortal, collectAgentSettings } from "../agents-portal/portal.js";
+import { refreshPaidAgents } from "../agents-portal/paid-agents.js";
 import { initSkills } from "./settings-skills.js";
 import { initSkillSetup, maybeAutoOpenSkillSetup } from "./skill-setup-wizard.js";
 
@@ -54,6 +55,7 @@ async function save() {
     return;
   }
   close();
+  void refreshPaidAgents(); // enable/disable just changed — repaint the rail strip
 }
 
 export function initSettings() {
